@@ -294,6 +294,7 @@ public class MapProducerResourceTest {
 		int height = mapLink.getHeight();
 
 		ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+		MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 		Envelope env = producer.getProcessor().getEnvFromPointZoomAndExtent(
 				centre, mapLink.getZoom(), width, height);
@@ -360,7 +361,7 @@ public class MapProducerResourceTest {
 
 		PDFProducer pdf = new PDFProducer(PDFProducer.Page.A4, opts,
 				producer.getCrs());
-		pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+		pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 		for (BufferedImage image : images) {
 			image.flush();
@@ -444,6 +445,7 @@ public class MapProducerResourceTest {
 		int height = mapLink.getHeight();
 
 		ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+		MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 		Envelope env = producer.getProcessor().getEnvFromPointZoomAndExtent(
 				centre, mapLink.getZoom(), width, height);
@@ -536,7 +538,7 @@ public class MapProducerResourceTest {
 		}
 
 		PDFProducer pdf = new PDFProducer(PDFProducer.Page.A3);
-		pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+		pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 		for (BufferedImage image : images) {
 			image.flush();
@@ -600,6 +602,7 @@ public class MapProducerResourceTest {
 		int height = mapLink.getHeight();
 
 		ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+		MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 		Envelope env = producer.getProcessor().getEnvFromPointZoomAndExtent(
 				centre, mapLink.getZoom(), width, height);
@@ -689,7 +692,7 @@ public class MapProducerResourceTest {
 			asyncProc.shutdown();
 		}
 		PDFProducer pdf = new PDFProducer(PDFProducer.Page.A3_Landscape);
-		pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+		pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 		for (BufferedImage image : images) {
 			image.flush();
@@ -755,6 +758,7 @@ public class MapProducerResourceTest {
 		int height = mapLink.getHeight();
 
 		ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+		MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 		Envelope env = producer.getProcessor().getEnvFromPointZoomAndExtent(
 				centre, mapLink.getZoom(), width, height);
@@ -848,7 +852,7 @@ public class MapProducerResourceTest {
 		}
 
 		PDFProducer pdf = new PDFProducer(PDFProducer.Page.A4);
-		pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+		pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 		for (BufferedImage image : images) {
 			image.flush();
@@ -913,6 +917,7 @@ public class MapProducerResourceTest {
 		int height = mapLink.getHeight();
 
 		ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+		MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 		Envelope env = producer.getProcessor().getEnvFromPointZoomAndExtent(
 				centre, mapLink.getZoom(), width, height);
@@ -1005,7 +1010,7 @@ public class MapProducerResourceTest {
 		}
 
 		PDFProducer pdf = new PDFProducer(PDFProducer.Page.A4_Landscape);
-		pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+		pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 		for (BufferedImage image : images) {
 			image.flush();
@@ -1059,6 +1064,7 @@ public class MapProducerResourceTest {
 		int height = mapLink.getHeight();
 
 		ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+		MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 		Envelope env = producer.getProcessor().getEnvFromPointZoomAndExtent(
 				centre, mapLink.getZoom(), width, height);
@@ -1109,7 +1115,7 @@ public class MapProducerResourceTest {
 		}
 
 		PDFProducer pdf = new PDFProducer(PDFProducer.Page.A4);
-		pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+		pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 		for (BufferedImage image : images) {
 			image.flush();
@@ -1370,6 +1376,7 @@ public class MapProducerResourceTest {
 					height, testLayerDefs, MapProducer.ImageType.RGB);
 			ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
 			images.add(image);
+			MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 			PDFProducer.Options opts = new PDFProducer.Options();
 			opts.setPageTitle("Jebujee");
@@ -1379,7 +1386,7 @@ public class MapProducerResourceTest {
 
 			PDFProducer pdf = new PDFProducer(PDFProducer.Page.A4, opts,
 					producer.getCrs());
-			pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+			pdf.createLayeredPDFFromImages(images,additionalData,  outputFile, env, centre);
 
 			image.flush();
 
@@ -1413,10 +1420,11 @@ public class MapProducerResourceTest {
 			BufferedImage image = producer.getMap(asyncProc, env, zoom, width,
 					height, testLayerDefs, MapProducer.ImageType.RGB);
 
+			MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 			ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
 			images.add(image);
 			PDFProducer pdf = new PDFProducer(PDFProducer.Page.A4);
-			pdf.createLayeredPDFFromImages(images, outputFile, env, centre);
+			pdf.createLayeredPDFFromImages(images, additionalData, outputFile, env, centre);
 
 			image.flush();
 		} finally {

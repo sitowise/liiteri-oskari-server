@@ -4,17 +4,34 @@ import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.transport.TransportService;
-import org.codehaus.jackson.JsonGenerationException;
+
 import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.opengis.feature.simple.SimpleFeature;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
 
 import java.io.IOException;
 
-public class WFSCustomStyleStore {
+public class WFSCustomStyleStore extends CustomStyleStore {
     private static final Logger log = LogFactory.getLogger(WFSCustomStyleStore.class);
 
-    public static final String KEY = "WFSCustomStyle_";
+    public static final String KEY = "WFSCustomStyle_";    
+    
+    // custom style params
+    public static final String PARAM_FILL_COLOR = "fill_color";
+    public static final String PARAM_FILL_PATTERN = "fill_pattern";
+    public static final String PARAM_BORDER_COLOR = "border_color";
+    public static final String PARAM_BORDER_LINEJOIN = "border_linejoin";
+    public static final String PARAM_BORDER_DASHARRAY = "border_dasharray";
+    public static final String PARAM_BORDER_WIDTH = "border_width";
+
+    public static final String PARAM_STROKE_LINECAP = "stroke_linecap";
+    public static final String PARAM_STROKE_COLOR = "stroke_color";
+    public static final String PARAM_STROKE_LINEJOIN = "stroke_linejoin";
+    public static final String PARAM_STROKE_DASHARRAY = "stroke_dasharray";
+    public static final String PARAM_STROKE_WIDTH = "stroke_width";
+
+    public static final String PARAM_DOT_COLOR = "dot_color";
+    public static final String PARAM_DOT_SHAPE = "dot_shape";
+    public static final String PARAM_DOT_SIZE = "dot_size";
 
     public static final String HIGHLIGHT_FILL_COLOR = "#FAEBD7";
     public static final String HIGHLIGHT_BORDER_COLOR = "#000000";
@@ -44,10 +61,6 @@ public class WFSCustomStyleStore {
             "    </Graphic>\n" +
             "</GraphicFill>";
 
-
-    private String client;
-    private String layerId;
-
     private String fillColor;
     private int fillPattern;
     private String borderColor;
@@ -65,24 +78,12 @@ public class WFSCustomStyleStore {
     private int dotShape;
     private int dotSize;
 
-    private String geometry;
+
+	public WFSCustomStyleStore() {
+		setType("simple");
+	}
+    
     private String sld;
-
-    public String getClient() {
-        return client;
-    }
-
-    public void setClient(String client) {
-        this.client = client;
-    }
-
-    public String getLayerId() {
-        return layerId;
-    }
-
-    public void setLayerId(String layerId) {
-        this.layerId = layerId;
-    }
 
     public String getFillColor() {
         return fillColor;
@@ -196,13 +197,7 @@ public class WFSCustomStyleStore {
         this.dotSize = dotSize;
     }
 
-    public String getGeometry() {
-        return geometry;
-    }
 
-    public void setGeometry(String geometry) {
-        this.geometry = geometry;
-    }
 
     @JsonIgnore
     public String getSld() {
@@ -217,7 +212,7 @@ public class WFSCustomStyleStore {
      */
     @JsonIgnore
     public String addPrefixColor(String color) {
-        if(color.charAt(0) != '#') {
+        if(color != null && color.charAt(0) != '#') {
             return '#' + color;
         }
         return color;
@@ -231,7 +226,7 @@ public class WFSCustomStyleStore {
      */
     @JsonIgnore
     public String removePrefixColor(String color) {
-        if(color.charAt(0) == '#') {
+        if(color != null && color.charAt(0) == '#') {
             return color.substring(1);
         }
         return color;
@@ -251,7 +246,7 @@ public class WFSCustomStyleStore {
 
         // all point scales
         for(int i = 18; i < 43; i+=2) {
-            template = template.replaceAll(TransportService.PARAM_DOT_SIZE + i, Integer.toString(dotSize*i));
+            template = template.replaceAll(PARAM_DOT_SIZE + i, Integer.toString(dotSize*i));
         }
 
         // line styles
@@ -304,104 +299,32 @@ public class WFSCustomStyleStore {
 
         // colors
         if(isHighlight) {
-            template = template.replaceAll(TransportService.PARAM_FILL_COLOR, HIGHLIGHT_FILL_COLOR);
-            template = template.replaceAll(TransportService.PARAM_BORDER_COLOR, HIGHLIGHT_BORDER_COLOR);
+            template = template.replaceAll(PARAM_FILL_COLOR, HIGHLIGHT_FILL_COLOR);
+            template = template.replaceAll(PARAM_BORDER_COLOR, HIGHLIGHT_BORDER_COLOR);
 
-            template = template.replaceAll(TransportService.PARAM_STROKE_COLOR, HIGHLIGHT_STROKE_COLOR);
+            template = template.replaceAll(PARAM_STROKE_COLOR, HIGHLIGHT_STROKE_COLOR);
 
-            template = template.replaceAll(TransportService.PARAM_DOT_COLOR, HIGHLIGHT_DOT_COLOR);
+            template = template.replaceAll(PARAM_DOT_COLOR, HIGHLIGHT_DOT_COLOR);
         } else {
-            template = template.replaceAll(TransportService.PARAM_FILL_COLOR, fillColor);
-            template = template.replaceAll(TransportService.PARAM_BORDER_COLOR, borderColor);
+            template = template.replaceAll(PARAM_FILL_COLOR, fillColor);
+            template = template.replaceAll(PARAM_BORDER_COLOR, borderColor);
 
-            template = template.replaceAll(TransportService.PARAM_STROKE_COLOR, strokeColor);
+            template = template.replaceAll(PARAM_STROKE_COLOR, strokeColor);
 
-            template = template.replaceAll(TransportService.PARAM_DOT_COLOR, dotColor);
+            template = template.replaceAll(PARAM_DOT_COLOR, dotColor);
         }
 
-        template = template.replaceAll(TransportService.PARAM_BORDER_LINEJOIN, borderLinejoin);
-        template = template.replaceAll(TransportService.PARAM_BORDER_WIDTH, Integer.toString(borderWidth));
+        template = template.replaceAll(PARAM_BORDER_LINEJOIN, borderLinejoin);
+        template = template.replaceAll(PARAM_BORDER_WIDTH, Integer.toString(borderWidth));
 
-        template = template.replaceAll(TransportService.PARAM_STROKE_LINECAP, strokeLinecap);
-        template = template.replaceAll(TransportService.PARAM_STROKE_LINEJOIN, strokeLinejoin);
-        template = template.replaceAll(TransportService.PARAM_STROKE_WIDTH, Integer.toString(strokeWidth));
+        template = template.replaceAll(PARAM_STROKE_LINECAP, strokeLinecap);
+        template = template.replaceAll(PARAM_STROKE_LINEJOIN, strokeLinejoin);
+        template = template.replaceAll(PARAM_STROKE_WIDTH, Integer.toString(strokeWidth));
 
-        template = template.replaceAll(TransportService.PARAM_DOT_SHAPE, Integer.toString(dotShape));
+        template = template.replaceAll(PARAM_DOT_SHAPE, Integer.toString(dotShape));
 
         template = template.replaceAll(GEOMETRY, geometry);
 
         this.sld = template;
-    }
-
-    /**
-     * Saves into redis
-     *
-     * @return <code>true</code> if saved a valid session; <code>false</code>
-     *         otherwise.
-     */
-    public void save() {
-        JedisManager.setex(KEY + client + "_" + layerId, 86400, getAsJSON());
-    }
-
-    /**
-     * Transforms object to JSON String
-     *
-     * @return JSON String
-     */
-    @JsonIgnore
-    public String getAsJSON() {
-        try {
-            return TransportService.mapper.writeValueAsString(this);
-        } catch (JsonGenerationException e) {
-            log.error(e, "JSON Generation failed");
-        } catch (JsonMappingException e) {
-            log.error(e, "Mapping from Object to JSON String failed");
-        } catch (IOException e) {
-            log.error(e, "IO failed");
-        }
-        return null;
-    }
-
-    /**
-     * Creates store from cache
-     *
-     * @param client
-     * @param layerId
-     * @return object
-     */
-    @JsonIgnore
-    public static WFSCustomStyleStore create(String client, String layerId)
-            throws IOException {
-        String json = getCache(client, layerId);
-        if(json == null) {
-            return null;
-        }
-
-        return setJSON(json);
-    }
-
-    /**
-     * Transforms JSON String to object
-     *
-     * @param json
-     * @return object
-     */
-    @JsonIgnore
-    public static WFSCustomStyleStore setJSON(String json)
-            throws IOException {
-        return TransportService.mapper.readValue(json,
-                WFSCustomStyleStore.class);
-    }
-
-    /**
-     * Gets saved session from redis
-     *
-     * @param client
-     * @param layerId
-     * @return style as JSON String
-     */
-    @JsonIgnore
-    public static String getCache(String client, String layerId) {
-        return JedisManager.get(KEY + client + "_" + layerId);
     }
 }

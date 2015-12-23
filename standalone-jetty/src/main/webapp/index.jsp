@@ -1,14 +1,18 @@
 <%@ page contentType="text/html; charset=UTF-8" isELIgnored="false" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Standalone servlet - ${viewName} view</title>
-
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js">
     </script>
+	
 
     <!-- ############# css ################# -->
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
+    
     <link
             rel="stylesheet"
             type="text/css"
@@ -26,6 +30,19 @@
             rel="stylesheet"
             type="text/css"
             href="/Oskari${path}/css/overwritten.css"/>
+			
+    <link
+            rel="stylesheet"
+            type="text/css"
+            href="/Oskari${path}/css/bootstrap/bootstrap.css"/>			
+
+	<link
+            rel="stylesheet"
+            type="text/css"
+            href="/Oskari${path}/css/bootstrap/bootstrap-theme.css"/>					
+			
+	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>			
+	
     <style type="text/css">
         @media screen {
             body {
@@ -38,17 +55,45 @@
             }
 
             #maptools {
-                background-color: #333438;
+                background-color: #0186d1;
                 height: 100%;
                 position: absolute;
                 top: 0;
-                width: 153px;
+                width: 180px;
                 z-index: 2;
             }
+            
+            #minimized_maptools {
+				display: none;
+				background-color: #00bce9;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                width: 16px;
+                z-index: 2;
+			}
+			
+			#access_nav_show {
+				margin-top: 5px;
+				width: 15px;
+				height: 8px;
+				background-image: url("/Oskari/resources/show_view.png");
+				display: block;
+			}
+			
+			#access_nav_hide {
+				margin-top: 5px;
+				margin-right: 5px;
+				height: 8px;
+				background-image: url("/Oskari/resources/hide_view.png");
+				display: block;
+				background-repeat: no-repeat;
+  				background-position: right;
+			}
 
             #contentMap {
                 height: 100%;
-                margin-left: 153px;
+                margin-left: 175px;
             }
 
             #login {
@@ -90,41 +135,40 @@
                 padding: 5px;
             }
 
+			.oskari-tile-closed {
+				background-color: #0186d1;
+			}
         }
     </style>
     <!-- ############# /css ################# -->
 </head>
 <body>
 
+<nav id="minimized_maptools">
+	<a id="access_nav_show" href="#"></a>
+</nav>
+
 <nav id="maptools">
-    <div id="loginbar">
-    </div>
-    <div id="menubar">
-    </div>
-    <div id="divider">
-    </div>
-    <div id="toolbar">
-    </div>
-    <div id="login">
-        <c:choose>
-            <c:when test="${!empty loginState}">
-                <p class="error">Invalid password or username!!</p>
-            </c:when>
-        </c:choose>
-        <c:choose>
-            <c:when test="${!empty user}">
-                <a href="${ajaxUrl}action=logout">Logout</a>
-            </c:when>
-            <c:otherwise>
-                <form action='j_security_check' method="post" accept-charset="UTF-8">
-                    <input size="16" id="username" name="j_username" type="text" placeholder="Username" autofocus
-                           required>
-                    <input size="16" id="password" name="j_password" type="password" placeholder="Password" required>
-                    <input type="submit" id="submit" value="Log in">
-                </form>
-            </c:otherwise>
-        </c:choose>
-    </div>
+	<div id="maptools-container">
+		<div>
+			<a id="access_nav_hide" href="#"></a>
+		</div>
+		<div id="logo">
+		<a href="${baseUrl}">
+			<img src="/Oskari/resources/2014_Liiteri_logo_153x55px.png" alt="Liiteri logo" />
+		</a>
+		</div>
+		<div id="loginbar">
+		</div>
+		<div id="menubar">
+		</div>
+		<div id="divider">
+		</div>
+		<div id="footer-nav">
+			<div id="toolbar">
+			</div>
+		</div>
+	</div>
 </nav>
 <div id="contentMap" class="oskariui container-fluid">
     <div id="menutoolbar" class="container-fluid"></div>
@@ -162,23 +206,23 @@
 </script>
 
 <c:if test="${preloaded}">
-    <!-- Pre-compiled application JS, empty unless created by build job -->
+
     <script type="text/javascript"
-            src="/Oskari${path}/oskari.min.js">
+            src="/Oskari${path}/liiteri.js">
     </script>
-    <!-- Minified CSS for preload -->
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/oskari.min.css"
+            href="/Oskari${path}/liiteri.css"
             />
-    <%--language files --%>
+    <%--language files 
     <script type="text/javascript"
             src="/Oskari${path}/oskari_lang_all.js">
     </script>
     <script type="text/javascript"
             src="/Oskari${path}/oskari_lang_${language}.js">
     </script>
+    --%>
 </c:if>
 
 <script type="text/javascript"

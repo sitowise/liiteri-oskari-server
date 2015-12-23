@@ -115,7 +115,7 @@ public class MapLayerJSONParser {
 						"UTF-8");
 			}
 
-		} else if ("wfslayer".equals(type)) {
+		} else if ("wfslayer".equals(type) || "arcgislayer".equals(type)) {
 			layerURL = String.format(ConfigValue.LAYER_URLTEMPLATE_WFSLAYER
 					.getConfigProperty(props), layerDefinition.getLayerid());
 			layersParam = URLEncoder.encode(layerDefinition.getLayerid(),
@@ -288,7 +288,8 @@ public class MapLayerJSONParser {
 			if (!("wfslayer".equals(type) || "wmslayer".equals(type)
 					|| "statslayer".equals(type) || "base".equals(type)
 					|| "groupMap".equals(type) || "myplaces".equals(type)
-					|| "geojson".equals(type) || "wmtslayer".equals(type))) {
+					|| "geojson".equals(type) || "wmtslayer".equals(type)
+					|| "arcgislayer".equals(type))) {
 				continue;
 			}
 
@@ -314,6 +315,10 @@ public class MapLayerJSONParser {
 			layerDefinition.setLayerid(layerid);
 			layerDefinition.setLayerType(type);
 			layerDefinition.setTiles(tiles);
+			
+			if (layerObj.get("copyrightInfo") != null) {
+				layerDefinition.setCopyrightText(layerObj.get("copyrightInfo").toString());
+			}
 
 			if (isMyPlacesType(layerDefinition)) {
 				layerDefinition.setCacheable(false);
@@ -335,6 +340,16 @@ public class MapLayerJSONParser {
 				layerDefinition
 						.setCredentials(ConfigValue.LAYERDEFINITION_CREDENTIALS_MYPLACES
 								.getConfigProperty(props));
+			}
+			
+			if (!"statslayer".equals(type)) {
+			    if (layerObj.get("legendImage") != null && !layerObj.get("legendImage").toString().isEmpty()) {
+					layerDefinition.setLegendUrl(layerObj.get("legendImage").toString());
+					layerDefinition.setShowLegend(true);
+				} else if (type.equals("arcgislayer")) {
+				    layerDefinition.setLegendUrl("action_route=GetArcGisLegend&LAYERID=" + layerid);
+				    layerDefinition.setShowLegend(true);
+				}
 			}
 
 			List<Map<String, ?>> subLayer = (List) layerObj.get("subLayer");

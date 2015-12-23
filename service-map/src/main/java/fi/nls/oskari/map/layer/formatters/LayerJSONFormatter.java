@@ -131,6 +131,9 @@ public class LayerJSONFormatter {
         //log.debug("getCreated", layer.getCreated());
         JSONHelper.putValue(layerJson, "created", layer.getCreated());
         JSONHelper.putValue(layerJson, "updated", layer.getUpdated());
+        
+        JSONHelper.putValue(layerJson, "downloadServiceUrl", layer.getDownloadServiceUrl());
+        JSONHelper.putValue(layerJson, "copyrightInfo", layer.getCopyrightInfo());
 
         //log.debug("dataUrl_uuid", getFixedDataUrl(layer));
         JSONHelper.putValue(layerJson, "dataUrl_uuid", getFixedDataUrl(layer));
@@ -160,17 +163,18 @@ public class LayerJSONFormatter {
         final String metadataId = layer.getMetadataId();
         if(metadataId == null || metadataId.isEmpty()) {
             return null;
-        }
+        }       
+        
         //layerJson.put("dataUrl", metadataId);
-        final int indexOf = metadataId.indexOf("uuid=");
-        if (indexOf > 0) {
-            // parse uuid from URL
-            return metadataId.substring(indexOf + 5);
-        }
-        if(metadataId.startsWith("http")) {
-            log.debug("Couldn't parse uuid from metadata url:", metadataId);
-            return null;
-        }
+//        final int indexOf = metadataId.indexOf("uuid=");
+//        if (indexOf > 0) {
+//            // parse uuid from URL
+//            return metadataId.substring(indexOf + 5);
+//        }
+//        if(metadataId.startsWith("http")) {
+//            log.debug("Couldn't parse uuid from metadata url:", metadataId);
+//            return null;
+//        }
         return metadataId;
     }
 }

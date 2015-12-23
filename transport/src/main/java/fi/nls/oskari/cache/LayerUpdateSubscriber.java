@@ -6,16 +6,15 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.*;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.wfs.CachingSchemaLocator;
+import fi.nls.oskari.work.MapLayerJobType;
 import fi.nls.oskari.work.WFSMapLayerJob;
+
 import org.geotools.feature.FeatureCollection;
 import org.geotools.resources.Classes;
 import org.json.JSONObject;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.PropertyDescriptor;
-
 import java.io.BufferedReader;
 import java.util.*;
 
@@ -42,7 +41,7 @@ public class LayerUpdateSubscriber extends JedisSubscriber {
             CachingSchemaLocator.flushAll();
 
             // processing configuration
-            WFSMapLayerJob.Type processType = WFSMapLayerJob.Type.NORMAL;
+            MapLayerJobType processType = MapLayerJobType.NORMAL;
             SessionStore store = new SessionStore();
             store.setLanguage(null);
 

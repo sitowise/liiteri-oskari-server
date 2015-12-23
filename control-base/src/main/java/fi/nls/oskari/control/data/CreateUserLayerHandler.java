@@ -4,23 +4,23 @@ package fi.nls.oskari.control.data;
  *
  */
 
+import fi.mml.map.mapwindow.util.OskariLayerWorker;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
-
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
-
-
 import fi.nls.oskari.map.userlayer.domain.KMLGeoJsonCollection;
 import fi.nls.oskari.map.userlayer.domain.SHPGeoJsonCollection;
 import fi.nls.oskari.map.userlayer.service.GeoJsonWorker;
 import fi.nls.oskari.map.userlayer.service.UserLayerDataService;
-import fi.nls.oskari.util.ResponseHelper;
-
+import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbService;
+import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbServiceImpl;
+import fi.nls.oskari.map.userowndata.GisDataService;
+import fi.nls.oskari.util.JSONHelper;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -33,6 +33,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.json.JSONObject;
 
 
 @OskariActionRoute("CreateUserLayer")
@@ -41,6 +42,8 @@ public class CreateUserLayerHandler extends ActionHandler {
     private static final Logger log = LogFactory
             .getLogger(CreateUserLayerHandler.class);
     private final UserLayerDataService userlayerService = new UserLayerDataService();
+    private final GisDataService gisService = GisDataService.getInstance();
+    
     private static final List<String> ACCEPTED_FORMATS = Arrays.asList("SHP", "KML");
     private static final String IMPORT_SHP = ".SHP";
     private static final String IMPORT_KML = ".KML";
@@ -53,26 +56,28 @@ public class CreateUserLayerHandler extends ActionHandler {
 
     }
 
-
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
 
-
-        final HttpServletResponse response = params.getResponse();
         final String target_epsg = params.getHttpParam(PARAM_EPSG_KEY, "EPSG:3067");
-
+        
         try {
+        	User user = params.getUser();
 
             // Only 1st file item is handled
             RawUpLoadItem loadItem = getZipFiles(params);
+            
 
             File file = unZip(loadItem.getFileitem());
 
             if (file == null) {
                 throw new ActionException("Couldn't find valid import file in zip file");
             }
-
-            User user = params.getUser();
+            
+            //check limitations
+        	if (!gisService.canUserAddNewDataset(user, ((float)loadItem.getFileitem().getSize() / (1024 * 1024)))) {
+        		throw new ActionException("server_error_key_limit");
+        	}
 
             // import format
 
@@ -91,13 +96,32 @@ public class CreateUserLayerHandler extends ActionHandler {
 
             // Store geojson via ibatis
             UserLayer ulayer = userlayerService.storeUserData(geojsonWorker, user, loadItem.getFparams());
+            
+            //create reference to user layer in oskari_user_gis_data table
+            String dataId = "userlayer_" + ulayer.getId();
+            try {
+            	gisService.insertUserGisData(params.getUser(), dataId, "IMPORTED_PLACES", null);            	
+    		} catch (Exception e) {
+    			//TODO: should we suppress it?
+    			log.warn(e, "Cannot save user gis data");
+    		}
+            
+            // workaround because of IE iframe submit json download functionality
+            //params.getResponse().setContentType("application/json;charset=utf-8");
+            //ResponseHelper.writeResponse(params, userlayerService.parseUserLayer2JSON(ulayer));
+            params.getResponse().setContentType("text/plain;charset=utf-8");
+            params.getResponse().setCharacterEncoding("UTF-8");
 
-            params.getResponse().setContentType("application/json;charset=utf-8");
-            ResponseHelper.writeResponse(params, userlayerService.parseUserLayer2JSON(ulayer));
+            JSONObject userLayer = userlayerService.parseUserLayer2JSON(ulayer);
+            JSONObject permissions = OskariLayerWorker.getAllowedPermissions();
+            JSONHelper.putValue(userLayer, "permissions", permissions);
+            params.getResponse().getWriter().print(userLayer);
 
         } catch (Exception e) {
-            throw new ActionException("Couldn't get the import file set",
-                    e);
+        	if (e instanceof ActionException) {
+        		throw (ActionException) e;
+            }
+            throw new ActionException("Couldn't get the import file set", e);
         }
 
     }
@@ -256,7 +280,8 @@ public class CreateUserLayerHandler extends ActionHandler {
         // no dots any more allowed in filename
         if (parts[parts.length - 1].indexOf(".") > -1) return null;
         return parts[parts.length - 1];
-    }
+    }        
+    
 
     class RawUpLoadItem {
         FileItem fileitem;

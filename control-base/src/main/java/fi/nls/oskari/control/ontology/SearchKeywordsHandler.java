@@ -10,6 +10,7 @@ import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.control.ActionParamsException;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.OskariLayerService;
@@ -261,7 +262,8 @@ public class SearchKeywordsHandler extends ActionHandler {
         Set<String> layerKeywords = new HashSet<String>();
         try {
             if(OskariLayer.TYPE_WMS.equals(layer.getType())) {
-                WebMapService wms = WebMapServiceFactory.buildWebMapService(layer.getId(), layer.getName());
+            	boolean isUserWmsLayer = (layer instanceof UserWmsLayer);
+                WebMapService wms = WebMapServiceFactory.buildWebMapService(layer.getId(), layer.getName(), isUserWmsLayer);
                 if (wms == null || wms.getKeywords() == null) {
                     log.warn("Error parsing keywords for layer", layer);
                     return EMPTY_RESULT;

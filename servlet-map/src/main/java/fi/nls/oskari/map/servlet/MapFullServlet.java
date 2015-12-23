@@ -20,10 +20,7 @@ import fi.nls.oskari.util.ResponseHelper;
 import org.json.JSONObject;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.*;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Locale;
@@ -47,16 +44,19 @@ public class MapFullServlet extends HttpServlet {
 
     private final static String PROPERTY_DEVELOPMENT = "development";
     private final static String PROPERTY_VERSION = "oskari.client.version";
+    private final static String PROPERTY_DOMAIN = "oskari.domain";
     private final static String KEY_PRELOADED = "preloaded";
     private final static String KEY_PATH = "path";
     private final static String KEY_VERSION = "version";
 
+    private final static String KEY_BASE_URL = "baseUrl";
     private final static String KEY_AJAX_URL = "ajaxUrl";
-    private final static String KEY_CONTROL_PARAMS = "controlParams";
+    private final static String KEY_CONTROL_PARAMS = "controlParams";       
 
     private final ViewService viewService = new ViewServiceIbatisImpl();
     private boolean isDevelopmentMode = false;
     private String version = null;
+    private String baseUrl = null;
     private final Set<String> paramHandlers = new HashSet<String>();
 
     private static final long serialVersionUID = 1L;
@@ -94,6 +94,7 @@ public class MapFullServlet extends HttpServlet {
         isDevelopmentMode = "true".equals(PropertyUtil.get(PROPERTY_DEVELOPMENT));
         // Get version from init params or properties, prefer version from properties and default to init param
         version = PropertyUtil.get(PROPERTY_VERSION, getServletConfig().getInitParameter(KEY_VERSION));
+        baseUrl = PropertyUtil.get(PROPERTY_DOMAIN, "/");            
     }
 
     /**
@@ -111,18 +112,6 @@ public class MapFullServlet extends HttpServlet {
         } else {
             // JSP
             try {
-                final String action = params.getHttpParam("action");
-                if ("failed".equals(request.getParameter("loginState"))) {
-                    params.getRequest().setAttribute("loginState", "failed");
-                }
-                if ("logout".equals(action)) {
-                    HttpSession session = params.getRequest().getSession();
-                    session.invalidate();
-                    log.debug("Logout");
-                    // redirect to oskari.map.url or / if not defined
-                    params.getResponse().sendRedirect(PropertyUtil.get("oskari.map.url", "/"));
-                    return;
-                }
                 final String viewJSP = setupRenderParameters(params);
                 if(viewJSP == null) {
                     // view not found
@@ -215,6 +204,7 @@ public class MapFullServlet extends HttpServlet {
             request.setAttribute(KEY_AJAX_URL,
                     PropertyUtil.get(params.getLocale(), GetAppSetupHandler.PROPERTY_AJAXURL));
             request.setAttribute("urlPrefix", "");
+            request.setAttribute(KEY_BASE_URL, baseUrl);
 
             // in dev-mode app/page can be overridden
             if (isDevelopmentMode) {

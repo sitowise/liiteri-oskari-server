@@ -100,6 +100,14 @@ public class HttpHelper {
 		}
 		return null;
     }
+    
+    public static BufferedInputStream postRequestStream(String url, String contentType, String data, String username, String password) {
+		HttpRequest request = postRequest(url, contentType, data, username, password);
+		if(request != null) {
+			return request.buffer();
+		}
+		return null;
+    }
 
     /**
      * HTTP GET method with optional basic authentication and contentType definition
@@ -113,7 +121,7 @@ public class HttpHelper {
     public static BufferedReader getRequestReader(String url, String contentType, String username, String password) {
 		HttpRequest request = getRequest(url, contentType, username, password);
 		if(request != null) {
-			return request.bufferedReader();
+			return request.bufferedReader();		
 		}
 		return null;
     }
@@ -213,6 +221,45 @@ public class HttpHelper {
 			handleHTTPRequestFail(url, e);
 		}
 		return response;
+    }
+    
+    public static HttpRequest postRequest(String url, String contentType, String data, String username, String password) {
+		HttpRequest request;
+		try {
+
+			HttpRequest.keepAlive(false);
+			if(username != null && !username.equals("") && !username.equals("null")) {
+				request = HttpRequest.post(url)
+						.basic(username, password)
+						.contentType(contentType)
+                        .connectTimeout(CONNECTION_TIMEOUT_MS)
+                        .readTimeout(READ_TIMEOUT_MS)
+						.acceptGzipEncoding().uncompress(true)
+						.trustAllCerts()
+						.trustAllHosts()
+						.send(data);
+			} else {
+				request = HttpRequest.post(url)
+						.contentType(contentType)
+                        .connectTimeout(CONNECTION_TIMEOUT_MS)
+                        .readTimeout(READ_TIMEOUT_MS)
+						.acceptGzipEncoding().uncompress(true)
+						.trustAllCerts()
+						.trustAllHosts()
+						.send(data);
+			}
+			if(request.ok() || request.code() == 304)
+				return request;
+			else {
+				handleHTTPError("GET", url, request.code());
+			}
+			
+		} catch (HttpRequestException e) {
+			handleHTTPRequestFail(url, e);
+		} catch (Exception e) {
+			handleHTTPRequestFail(url, e);
+		}
+		return null;
     }
     
     /**

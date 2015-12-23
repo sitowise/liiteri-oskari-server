@@ -7,7 +7,8 @@ import java.util.Map;
 
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.util.PropertyUtil;
-import fi.nls.oskari.work.WFSMapLayerJob;
+import fi.nls.oskari.work.MapLayerJobType;
+
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
@@ -23,6 +24,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.SessionStore;
 import fi.nls.oskari.pojo.WFSLayerStore;
 import fi.nls.oskari.utils.XMLHelper;
+
 import org.opengis.referencing.operation.MathTransform;
 
 /**
@@ -46,7 +48,7 @@ public class WFSCommunicator {
 	 * @return xml payload
 	 */
 	@SuppressWarnings("unchecked")
-	public static String createRequestPayload(final WFSMapLayerJob.Type type, final WFSLayerStore layer, final SessionStore session, final List<Double> bounds, final MathTransform transform) {
+	public static String createRequestPayload(final MapLayerJobType type, final WFSLayerStore layer, final SessionStore session, final List<Double> bounds, final MathTransform transform) {
 		OMFactory factory = OMAbstractFactory.getOMFactory();
 
 		// namespaces

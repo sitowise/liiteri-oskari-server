@@ -1,0 +1,57 @@
+{
+    "GML2Separator": "false",
+    "GMLGeometryProperty": "geom",
+    "GMLVersion": "3.1.1",
+    "SRSName": "EPSG:3067",
+    "URL": "http://paikkatieto.ymparisto.fi/arcgis/rest/services/LiiteriSec/Liiteri_HallinnollisetAlueet/MapServer",
+    "WFSVersion": "1.1.0",
+    "customParser": "false",
+    "featureElement": "kunta100k",
+    "featureNamespace": "rajaukset",
+    "featureNamespaceURI": "sito.fi/rajaukset",
+    "featureParamsLocales": {
+    },
+    "featureType": {
+    },
+    "geometryNamespaceURI": "",
+    "geometryType": "2d",
+    "getFeatureInfo": "true",
+    "getHighlightImage": "true",
+    "getMapTiles": "true",
+    "layerId": "152",
+    "layerName": "17",
+    "maxFeatures": 1000,
+    "maxScale": 1000001,
+    "minScale": 10000000,
+    "nameLocales": {
+        "en": {
+            "name": "NLS Municipality borders_100k17",
+            "subtitle": ""
+        },
+        "fi": {
+            "name": "MML Kuntarajat_100k17",
+            "subtitle": ""
+        },
+        "sv": {
+            "name": "MML Kommungränser_100k17",
+            "subtitle": ""
+        }
+    },
+    "password": "***REMOVED***",
+    "selectedFeatureParams": {
+    },
+    "styles": {
+        "1": {
+            "SLDStyle": "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\r\n<StyledLayerDescriptor version=\"1.0.0\" \r\n    xsi:schemaLocation=\"http://www.opengis.net/sld StyledLayerDescriptor.xsd\" \r\n    xmlns=\"http://www.opengis.net/sld\" \r\n    xmlns:ogc=\"http://www.opengis.net/ogc\" \r\n    xmlns:xlink=\"http://www.w3.org/1999/xlink\" \r\n    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n    <!-- a named layer is the basic building block of an sld document -->\r\n\r\n  <NamedLayer>\r\n    <Name>Default Line</Name>\r\n    <UserStyle>\r\n        <!-- they have names, titles and abstracts -->\r\n      \r\n      <Title>A boring default style</Title>\r\n      <Abstract>A sample style that just prints out a green line</Abstract>\r\n      <!-- FeatureTypeStyles describe how to render different features -->\r\n      <!-- a feature type for lines -->\r\n\r\n      <FeatureTypeStyle>\r\n        <!--FeatureTypeName>Feature</FeatureTypeName-->\r\n        <Rule>\r\n          <Name>Rule 1</Name>\r\n          <Title>Green Line</Title>\r\n          <Abstract>A green line with a 2 pixel width</Abstract>\r\n\r\n          <!-- like a polygonsymbolizer -->\r\n          <LineSymbolizer>\r\n            <Stroke>\r\n              <CssParameter name=\"stroke\">#CC0099</CssParameter>\r\n               <CssParameter name=\"stroke-width\">0.5</CssParameter>             \r\n            </Stroke>\r\n          </LineSymbolizer>\r\n        </Rule>\r\n\r\n        </FeatureTypeStyle>\r\n    </UserStyle>\r\n  </NamedLayer>\r\n</StyledLayerDescriptor>\r\n",
+            "id": "1",
+            "name": "default"
+        }
+    },
+    "testLocation": [
+    ],
+    "testZoom": 9,
+    "tileBuffer": {
+    },
+    "tileRequest": "false",
+    "username": "***REMOVED***"
+}

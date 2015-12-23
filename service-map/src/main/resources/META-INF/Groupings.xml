@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="Groupings">
+
+	<typeAlias alias="Grouping" type="fi.nls.oskari.domain.groupings.Grouping" />
+	<typeAlias alias="GroupingThemeData"
+		type="fi.nls.oskari.domain.groupings.GroupingThemeData" />
+	<typeAlias alias="GroupingTheme"
+		type="fi.nls.oskari.domain.groupings.GroupingTheme" />
+
+	<resultMap id="GroupingResult" class="Grouping">
+		<result property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="status" column="status" />
+		<result property="description" column="description" />
+		<result property="userGroup" column="userGroup" />
+		<result property="created" column="created" />
+		<result property="updated" column="updated" />
+		<result property="mapState" column="mapstate" />
+		
+	</resultMap>
+
+	<select id="findAll" resultMap="GroupingResult">
+		select id, name,status,description,userGroup,created,updated,mapState from
+		oskari_groupings
+	</select>
+	
+	<select id="findByIds" resultMap="GroupingResult" parameterClass="list">
+		select id, name,status,description,userGroup,created,updated,mapState from oskari_groupings
+		where id IN
+		<iterate open="(" close=")" conjunction=",">
+			#[]#
+		</iterate>
+	</select>
+
+	<statement id="insertGrouping" resultClass="java.lang.Long"
+		parameterClass="Grouping">
+		INSERT INTO oskari_groupings(
+		name,
+		status,
+		description,
+		userGroup,
+		created,
+		updated,
+		mapState
+		)
+		VALUES (
+		#name#,
+		#status#,
+		#description#,
+		#userGroup#,
+		#created#,
+		#updated#,
+		#mapState#
+		)
+		RETURNING
+		id
+	</statement>
+
+	<statement id="insertGroupingTheme" resultClass="java.lang.Long"
+		parameterClass="GroupingTheme">
+		INSERT INTO oskari_groupings_themes(
+		parentThemeid,
+		name,
+		oskariGroupingId,
+		themeType,
+		mainThemeId,
+		is_public,
+		status
+		)
+		VALUES (
+		#parentThemeId#,
+		#name#,
+		#oskariGroupingId#,
+		#themeType#,
+		#mainThemeId#,
+		#isPublic#,
+		#status#
+		)
+		RETURNING
+		id
+	</statement>
+
+	<statement id="insertGroupingThemeData" resultClass="java.lang.Long"
+		parameterClass="GroupingThemeData">
+		INSERT INTO oskari_groupings_data(
+		name,
+		dataId,
+		dataType,
+		oskariGroupingThemeId,
+		status
+		)
+		VALUES(
+		#name#,
+		#dataId#,
+		#dataType#,
+		#oskariGroupingThemeId#,
+		#status#
+		)
+		RETURNING
+		id
+	</statement>
+
+	<statement id="deleteGrouping" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		DELETE FROM oskari_groupings WHERE id = #id#
+	</statement>
+
+	<statement id="deleteGroupingThemes" resultClass="java.lang.Integer"
+		parameterClass="java.lang.Long">
+		DELETE FROM oskari_groupings_themes WHERE
+		oskariGroupingid = #id#
+	</statement>
+
+	<update id="updateGrouping" parameterClass="Grouping">
+		update
+		oskari_groupings set
+		name = #name#,
+		description =#description#,
+		userGroup =#userGroup#,
+		updated =#updated#,
+		status =#status#
+		WHERE id =#id#
+	</update>
+
+	<update id="updateGroupingTheme" parameterClass="GroupingTheme">
+		update
+		oskari_groupings_themes set
+		name = #name#,
+		themeType =#themeType#,
+		parentThemeId =#parentThemeId#,
+		mainThemeId = #mainThemeId#,
+		oskariGroupingId = #oskariGroupingId#,
+		is_public = #isPublic#,
+		status = #status#
+		WHERE id =#id#
+	</update>
+
+	<statement id="deleteUnbindedMainTheme" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		DELETE FROM oskari_groupings_themes WHERE id = #id#
+	</statement>
+
+	<statement id="deleteUnbindedMainThemeSubThemes"
+		parameterClass="java.lang.Long" resultClass="java.lang.Integer">
+		DELETE FROM
+		oskari_groupings_themes WHERE mainThemeId = #id#
+	</statement>
+
+	<statement id="deleteThemeDataForTheme" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		DELETE FROM oskari_groupings_data WHERE
+		OskariGroupingThemeId = #id#
+	</statement>
+	
+	<select id="getUnboundLayers" resultClass="java.lang.Integer">
+		SELECT id 
+		FROM oskari_maplayer
+		WHERE id NOT IN 
+		(
+		SELECT ogd.dataid FROM oskari_groupings_data ogd
+		INNER JOIN oskari_groupings_themes ogt ON ogt.id = ogd.oskarigroupingthemeid
+		WHERE ogd.datatype = 0
+		AND ogt.oskarigroupingid IS NULL
+		)
+	</select>
+	
+	<select id="getUnboundLayersTheme" resultClass="java.lang.Integer">
+		SELECT id FROM oskari_groupings_themes WHERE unbound_layers = true AND themetype = 0
+	</select>
+	
+	<statement id="deleteUnnecessaryGroupingThemeData" parameterClass="GroupingTheme" resultClass="java.lang.Integer">
+		DELETE FROM oskari_groupings_data
+		WHERE oskarigroupingthemeid <![CDATA[ <> ]]> #id#
+		AND dataid IN 
+		(
+			SELECT ogd.dataid FROM oskari_groupings_data ogd
+			INNER JOIN oskari_groupings_themes ogt ON ogt.id = ogd.oskarigroupingthemeid
+			WHERE ogd.oskarigroupingthemeid = #id#
+			AND ogt.oskarigroupingid IS NULL
+		)
+		AND oskarigroupingthemeid IN
+		(
+			SELECT id FROM oskari_groupings_themes
+			WHERE oskarigroupingid IS NULL
+		)
+		AND datatype = #themeType#
+	</statement>
+
+</sqlMap>

@@ -1,6 +1,7 @@
 package fi.nls.oskari.transport;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import javax.servlet.GenericServlet;
 import javax.servlet.ServletException;
@@ -26,6 +27,7 @@ public class BayeuxInitializer extends GenericServlet
      */
 	public void init() throws ServletException
     {
+		Locale.setDefault(Locale.ENGLISH);
         BayeuxServer bayeux = (BayeuxServer)getServletContext().getAttribute(BayeuxServer.ATTRIBUTE);
         new TransportService(bayeux);
     }

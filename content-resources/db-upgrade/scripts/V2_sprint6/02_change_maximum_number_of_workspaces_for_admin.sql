@@ -1,0 +1,1 @@
+update oskari_workspaces_role_settings set workspaceAmountLimit = 2147483647 where roleId IN (SELECT id from oskari_roles WHERE name ='liiteri_admin');

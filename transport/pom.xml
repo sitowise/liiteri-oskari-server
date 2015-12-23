@@ -5,9 +5,9 @@
 
     <modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>fi.nls.oskari</groupId>
-		<artifactId>oskari-parent</artifactId>
-        <version>1.20</version>
+	<groupId>fi.nls.oskari</groupId>
+	<artifactId>oskari-parent</artifactId>
+	<version>1.20</version>
 	</parent>
     <groupId>fi.nls.oskari</groupId>
     <artifactId>transport</artifactId>
@@ -15,7 +15,7 @@
 
     <build>
     	<!-- This name is referenced in proxy forwards-->
-		<finalName>transport-0.0.1</finalName>
+		<finalName>transport-0.0.1</finalName>		
 	</build>
 
 	<profiles>
@@ -275,5 +275,11 @@
             <artifactId>log4j</artifactId>
             <version>1.2.12</version>
         </dependency>
+        
+        <dependency>
+  			<groupId>com.esri.geometry</groupId>
+  			<artifactId>esri-geometry-api</artifactId>
+  			<version>1.2</version>
+		</dependency>
     </dependencies>
 </project>

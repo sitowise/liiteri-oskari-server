@@ -20,4 +20,8 @@
         <res-type>${db.jndi.type}</res-type>
         <res-auth>${db.jndi.auth}</res-auth>
     </resource-ref>
+	
+	<listener>
+		<listener-class>fi.nls.oskari.map.servlet.MapFullServletContextListener</listener-class>
+	</listener>
 </webapp>

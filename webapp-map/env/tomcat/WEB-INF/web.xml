@@ -23,4 +23,8 @@
     <welcome-file-list>
         <welcome-file>main</welcome-file>
     </welcome-file-list>
+	
+	<listener>
+		<listener-class>fi.nls.oskari.map.servlet.MapFullServletContextListener</listener-class>
+	</listener>
 </web-app>

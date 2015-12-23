@@ -517,6 +517,7 @@ public class AnalysisParser {
             method.setY_upper(bbox.optString("top"));
 
             method.setDistance(params.optString("distance"));
+            method.setIncludeOriginal(params.optBoolean("includeOriginal", true));
             method.setGeojson(geojson);
 
         } catch (JSONException e) {

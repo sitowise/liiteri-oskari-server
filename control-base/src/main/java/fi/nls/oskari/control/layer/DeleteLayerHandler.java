@@ -10,6 +10,9 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
 import fi.nls.oskari.util.ConversionHelper;
+import fi.nls.oskari.wfs.WFSLayerConfiguration;
+import fi.nls.oskari.wfs.WFSLayerConfigurationService;
+import fi.nls.oskari.wfs.WFSLayerConfigurationServiceIbatisImpl;
 
 /**
  * Admin WMS layer delete for single layer, for base/group layers -> use DeleteOrganizationHandler
@@ -22,6 +25,8 @@ public class DeleteLayerHandler extends ActionHandler {
     private static final Logger log = LogFactory.getLogger(DeleteLayerHandler.class);
     private static final OskariLayerService mapLayerService = new OskariLayerServiceIbatisImpl();
     private PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
+    
+    private final WFSLayerConfigurationService layerConfigurationService = new WFSLayerConfigurationServiceIbatisImpl();    
 
     private static final String PARAM_LAYER_ID = "layer_id";
 
@@ -35,13 +40,21 @@ public class DeleteLayerHandler extends ActionHandler {
 
         if(!permissionsService.hasEditPermissionForLayerByLayerId(params.getUser(), layer.getId())) {
             throw new ActionDeniedException("Unauthorized user tried to remove layer - id: " + layer.getId());
-        }
+        }                
 
         try {
+        	WFSLayerConfiguration configuration = layerConfigurationService.findConfiguration(layer.getId());
+        	if (configuration != null) {
+        		layerConfigurationService.delete(layer.getId());
+        		configuration.destroy();            		
+        	}
+        	
             mapLayerService.delete(layer.getId());
         } catch (Exception e) {
             throw new ActionException("Couldn't delete map layer - id:" + layer.getId(), e);
-        }
+        }           	
+    	
+
     }
 
 }

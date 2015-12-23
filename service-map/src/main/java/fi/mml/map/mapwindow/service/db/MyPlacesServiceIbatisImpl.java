@@ -2,6 +2,10 @@ package fi.mml.map.mapwindow.service.db;
 
 import java.io.Reader;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,10 +20,12 @@ import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MyPlace;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.formatters.LayerJSONFormatterWMS;
 import fi.nls.oskari.permission.domain.Resource;
+import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseIbatisService;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.JSONHelper;
@@ -228,4 +234,44 @@ public class MyPlacesServiceIbatisImpl extends BaseIbatisService<MyPlaceCategory
         JSONHelper.putValue(myPlaceLayer, "metaType", "published");
         return myPlaceLayer;
     }
+	@Override
+	public List<UserGisData> getSharedMyPlaceLayers(long userId) {
+		List<UserGisData> resultList = queryForList(getNameSpace() + ".findSharedCategories", userId);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
+	@Override
+	public List<UserGisData> getUnexpiredMyPlaceLayers(long userId) {
+		List<UserGisData> resultList = queryForList(getNameSpace() + ".findUnexpiredCategories", userId);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
 }

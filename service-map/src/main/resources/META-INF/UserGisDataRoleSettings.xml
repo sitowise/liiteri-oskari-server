@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="UserGisDataRoleSettings">
+
+	<typeAlias alias="UserGisDataRoleSettings"
+		type="fi.nls.oskari.domain.map.UserGisDataRoleSettings" />
+
+
+
+	<select id="getDatasetAmountLimit" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		SELECT MAX(dataset_amount_limit)
+		FROM
+		oskari_user_gis_data_role_settings WHERE roleId IN (SELECT DISTINCT
+		role_id from oskari_role_oskari_user WHERE user_name = (SELECT user_name from oskari_users WHERE id 
+		=#userId#))
+	</select>
+
+	<select id="getDatasetMaxSizeInMB" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		SELECT MAX(dataset_max_size_mb)
+		FROM
+		oskari_user_gis_data_role_settings WHERE roleId IN (SELECT DISTINCT
+		role_id from oskari_role_oskari_user WHERE user_name = (SELECT user_name from oskari_users WHERE id 
+		=#userId#))
+	</select>
+
+
+</sqlMap>

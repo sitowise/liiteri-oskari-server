@@ -152,41 +152,63 @@ http://geowebcache.org/schema/1.4.0/geowebcache.xsd">
 				</coords>
 			</extent>
 			<alignTopLeft>false</alignTopLeft>
+			
+			<!--
+			<scaleDenominators>					
+				<double>29257142.85714286</double>
+				<double>14628571.428571435</double>
+				<double>7314285.714285715</double>
+				<double>3657142.8571428573</double>
+				<double>1828571.4285714286</double>
+				<double>914285.7142857143</double>
+				<double>457142.85714285716</double>
+				<double>228571.42857142858</double>
+				<double>114285.71428571429</double>
+				<double>57142.857142857145</double>
+				<double>28571.428571428572</double>
+				<double>14285.714285714286</double>
+				<double>7142.857142857143</double>
+				<double>3571.4285714285716</double>
+				<double>1785.7142857142858</double>				
+			</scaleDenominators>
+			-->
 			<resolutions>
-				<double>8192.0</double>
-				<double>4096.0</double>
+				<double>8192.0</double> <!-- 0 -->
+				<double>4096.0</double> 
 				<double>2048.0</double>
 				<double>1024.0</double>
 				<double>512.0</double>
-				<double>256.0</double>
+				<double>256.0</double> <!-- 5 -->
 				<double>128.0</double>
 				<double>64.0</double>
 				<double>32.0</double>
 				<double>16.0</double>
-				<double>8.0</double>
+				<double>8.0</double> <!-- 10 -->
 				<double>4.0</double>
 				<double>2.0</double>
 				<double>1.0</double>
-				<double>0.5</double>				
-			</resolutions>
+				<double>0.5</double>
+				<double>0.25</double> <!-- 15 -->
+			</resolutions>			
 			<metersPerUnit>1.0</metersPerUnit>
 			<pixelSize>2.8E-4</pixelSize>
-			<scaleNames>
-				<string>JHS180:0</string>
-				<string>JHS180:1</string>
-				<string>JHS180:2</string>
-				<string>JHS180:3</string>
-				<string>JHS180:4</string>
-				<string>JHS180:5</string>
-				<string>JHS180:6</string>
-				<string>JHS180:7</string>
-				<string>JHS180:8</string>
-				<string>JHS180:9</string>
-				<string>JHS180:10</string>
-				<string>JHS180:11</string>
-				<string>JHS180:12</string>
-				<string>JHS180:13</string>
-				<string>JHS180:14</string>				
+			<scaleNames>	
+				<string>0</string>			
+				<string>1</string>			
+				<string>2</string>
+				<string>3</string>
+				<string>4</string>
+				<string>5</string>
+				<string>6</string>
+				<string>7</string>
+				<string>8</string>
+				<string>9</string>
+				<string>10</string>
+				<string>11</string>
+				<string>12</string>
+				<string>13</string>
+				<string>14</string>				
+				<string>15</string>		
 			</scaleNames>
 			<tileHeight>256</tileHeight>
 			<tileWidth>256</tileWidth>
@@ -224,6 +246,7 @@ http://geowebcache.org/schema/1.4.0/geowebcache.xsd">
 							<double>8000000</double>
 						</coords>
 					</extent>
+					<zoomStart>0</zoomStart>
 				</gridSubset>
 			</gridSubsets>
 			<useETags>true</useETags>
@@ -232,6 +255,7 @@ http://geowebcache.org/schema/1.4.0/geowebcache.xsd">
 			</wmsUrl>
 			<wmsLayers>LAYER_TEMPLATE</wmsLayers>
 		</wmsLayer>
+ 
 
 		<wmsLayer>
 			<name>EPSG_3067_JHS180_LAYER_TEMPLATE</name>
@@ -254,7 +278,7 @@ http://geowebcache.org/schema/1.4.0/geowebcache.xsd">
 			</gridSubsets>
 			<useETags>true</useETags>
 			<wmsUrl>
-				<string>http://127.0.0.1:80/geoserver/service/wms</string>
+				<string>http://localhost:8002/geoserver/wms</string>
 			</wmsUrl>
 			<wmsLayers>LAYER_TEMPLATE</wmsLayers>
 		</wmsLayer>
@@ -280,9 +304,10 @@ http://geowebcache.org/schema/1.4.0/geowebcache.xsd">
 			</gridSubsets>
 			<useETags>true</useETags>
 			<wmsUrl>
-				<string>http://127.0.0.1:80/geoserver/service/wms</string>
+				<string>http://localhost:8002/geoserver/wms</string>
 			</wmsUrl>
 			<wmsLayers>LAYER_TEMPLATE</wmsLayers>
 		</wmsLayer>
+		  
 	</layers>
 </gwcConfiguration>

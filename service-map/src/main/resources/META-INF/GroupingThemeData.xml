@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="GroupingThemeData">
+
+    <typeAlias alias="GroupingThemeData" type="fi.nls.oskari.domain.groupings.GroupingThemeData" />
+
+    <resultMap id="GroupingThemeDataResult" class="GroupingThemeData">
+        <result property="id" column="Id" />
+        <result property="name" column="Name" />
+        <result property="dataId" column="DataId" />
+        <result property="dataType" column="DataType" />
+        <result property="oskariGroupingThemeId" column="OskariGroupingThemeId" />
+		<result property="status" column="status" />
+    </resultMap>
+	
+    <parameterMap id="GroupingThemeDataInsertParameter" class="GroupingThemeData">
+        <parameter property="name" />
+        <parameter property="dataId" />
+        <parameter property="dataType" />
+        <parameter property="oskariGroupingThemeId" />
+		<parameter property="status" />
+    </parameterMap>	
+	
+	<select id="maxId" resultClass="int">
+        select max(id) from oskari_groupings_data
+    </select>
+	
+    <statement id="insert" parameterMap="GroupingThemeDataInsertParameter" >
+        <!--  resultClass="java.lang.Integer" -->
+        insert into oskari_groupings_data (
+            Name,
+            DataId,
+            DataType,
+            OskariGroupingThemeId,
+			status
+			)
+        values (?,?,?,?,?)
+    </statement>	
+
+    <select id="findAll" resultMap="GroupingThemeDataResult">
+        select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1
+		UNION ALL
+		select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid
+    </select>   
+
+	<select id="getDataForThemeId" resultMap="GroupingThemeDataResult"
+		parameterClass="java.lang.Long">
+		select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1 and OskariGroupingThemeId = #id#
+		UNION ALL
+		select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid and g.OskariGroupingThemeId = #id#
+	</select>
+	
+	<select id="getAllIndicatorsForStatisticsThemes" resultMap="GroupingThemeDataResult">
+		select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1 and OskariGroupingThemeId is not null
+	</select>
+</sqlMap>

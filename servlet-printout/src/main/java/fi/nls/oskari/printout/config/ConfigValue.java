@@ -18,6 +18,9 @@ public enum ConfigValue {
 
 	/* */
 	LAYER_URLTEMPLATE_STATSLAYER("layer.urltemplate.statslayer"),
+	
+	/* */
+	LAYER_LEGEND_PROXY("layer.legendproxy"),
 
 	/* */
 	LAYER_CACHE_EXCLUDE("layer.cache.exclude"),

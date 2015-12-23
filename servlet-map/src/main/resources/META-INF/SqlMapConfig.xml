@@ -37,5 +37,14 @@ PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
   <sqlMap resource="META-INF/OskariLayer.xml" />
   <sqlMap resource="META-INF/LayerGroup.xml" />
   <sqlMap resource="META-INF/Visualization.xml" />
-
+<sqlMap resource="META-INF/Groupings.xml" />
+<sqlMap resource="META-INF/GroupingThemes.xml" />
+<sqlMap resource="META-INF/GroupingThemeData.xml" />
+<sqlMap resource="META-INF/WorkSpaces.xml" />
+<sqlMap resource="META-INF/WorkSpaceRoleSettings.xml" />
+<sqlMap resource="META-INF/Announcements.xml" />
+<sqlMap resource="META-INF/UserGisData.xml" />
+<sqlMap resource="META-INF/UserGisDataRoleSettings.xml" />
+<sqlMap resource="META-INF/Sharing.xml" />
+<sqlMap resource="META-INF/UserWmsLayer.xml" />
 </sqlMapConfig>

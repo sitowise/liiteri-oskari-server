@@ -21,12 +21,22 @@ public class BufferMethodParams extends AnalysisMethodParams {
 
     // distance from feature attribute field
     private final String ATTRIBUTENAME = "{attributeName}";
+    private final String INCLUDEORIGINAL = "{includeOriginal}";
     // private final String HREF = "{href}";
 
     private String distance = "";
     private String attributeName = "";
+    private Boolean includeOriginal = true;
 
-    public String getDistance() {
+    public Boolean getIncludeOriginal() {
+		return includeOriginal;
+	}
+
+	public void setIncludeOriginal(Boolean includeOriginal) {
+		this.includeOriginal = includeOriginal;
+	}
+
+	public String getDistance() {
         return distance;
     }
 
@@ -66,6 +76,7 @@ public class BufferMethodParams extends AnalysisMethodParams {
         // Set input values
         this.setLiteralDataContent(doc, DISTANCE, this.getDistance());
         this.setLiteralDataContent(doc, ATTRIBUTENAME, this.getAttributeName());
+        this.setLiteralDataContent(doc, INCLUDEORIGINAL, this.getIncludeOriginal().toString());
 
         // add features and inputs to dataInputs node
         return doc;
@@ -98,6 +109,7 @@ public class BufferMethodParams extends AnalysisMethodParams {
         doctemp = doctemp.replace(TYPENAME, this.getTypeName());
         doctemp = doctemp.replace(DISTANCE, this.getDistance());
         doctemp = doctemp.replace(ATTRIBUTENAME, "");
+        doctemp = doctemp.replace(INCLUDEORIGINAL, this.getIncludeOriginal().toString());
         
         //Properties
         if (this.getProperties() != null) {

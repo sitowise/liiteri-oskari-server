@@ -257,7 +257,7 @@ public class MapLayerServiceIbatisImpl extends BaseIbatisService<Layer>
         // for backwards compatibility - these need to be defined
         final WFSService service = new WFSService();
         service.setGmlVersion(configuration.getGMLVersion());
-        service.setGml2typeSeparator(ConversionHelper.getBoolean(configuration.isGML2Separator(), false));
+        service.setGml2typeSeparator(configuration.isGML2Separator());
         service.setUrl(configuration.getURL());
         service.setUsername(configuration.getUsername());
         service.setPassword(configuration.getPassword());

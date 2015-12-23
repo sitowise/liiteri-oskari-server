@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="WorkSpaceRoleSettings">
+
+	<typeAlias alias="WorkSpaceRoleSettings"
+		type="fi.nls.oskari.domain.workspaces.WorkSpaceRoleSettings" />
+
+
+
+	<select id="getMaxWorkSpaceAmount" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		SELECT MAX(workspaceAmountLimit)
+		FROM
+		oskari_workspaces_role_settings WHERE roleId IN (SELECT DISTINCT
+		role_id from oskari_role_oskari_user WHERE user_name = (SELECT user_name from oskari_users WHERE id 
+		=#userId#))
+	</select>
+
+	<select id="getMaxExpirationDateLimit" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		SELECT MAX(validWorkspaceDaysLimit)
+		FROM
+		oskari_workspaces_role_settings WHERE roleId IN (SELECT DISTINCT
+		role_id from oskari_role_oskari_user WHERE user_name = (SELECT user_name from oskari_users WHERE id 
+		=#userId#))
+	</select>
+
+
+</sqlMap>

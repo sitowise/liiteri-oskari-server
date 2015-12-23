@@ -43,9 +43,15 @@
     <!-- ############# /css ################# -->
 </head>
 <body>
-<div id="contentMap">
-    <div id="mapdiv">
-        <div class="mapplugins top right"></div>
+<div id="contentMap" class="oskariui container-fluid published">
+    <div class="row-fluid" style="height: 100%; background-color:white;">
+        <div class="oskariui-left"></div>
+        <div class="span12 oskariui-center" style="height: 100%; margin: 0;">
+            <div id="mapdiv"></div>
+        </div>
+        <div class="oskari-closed oskariui-right">
+            <div id="mapdivB"></div>
+        </div>
     </div>
 </div>
 
@@ -73,23 +79,23 @@
 </script>
 
 <c:if test="${preloaded}">
-    <!-- Pre-compiled application JS, empty unless created by build job -->
+
     <script type="text/javascript"
-            src="/Oskari${path}/oskari.min.js">
+            src="/Oskari${path}/liiteri.js">
     </script>
-    <!-- Minified CSS for preload -->
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/oskari.min.css"
+            href="/Oskari${path}/liiteri.css"
             />
-    <%--language files --%>
+    <%--language files 
     <script type="text/javascript"
             src="/Oskari${path}/oskari_lang_all.js">
     </script>
     <script type="text/javascript"
             src="/Oskari${path}/oskari_lang_${language}.js">
     </script>
+    --%>
 </c:if>
 
 <script type="text/javascript"

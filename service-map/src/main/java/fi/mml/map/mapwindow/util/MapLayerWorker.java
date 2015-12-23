@@ -11,6 +11,7 @@ import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.InspireTheme;
 import fi.nls.oskari.domain.map.Layer;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.domain.map.stats.StatsLayer;
 import fi.nls.oskari.domain.map.stats.StatsVisualization;
 import fi.nls.oskari.domain.map.wfs.WFSSLDStyle;
@@ -18,6 +19,7 @@ import fi.nls.oskari.domain.map.wfs.WFSSLDStyle;
 import fi.nls.oskari.domain.map.wms.LayerClass;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.wfs.WFSLayerConfigurationService;
@@ -449,10 +451,12 @@ public class MapLayerWorker {
      */
     private static WebMapService buildWebMapService(final Layer layer) {
         try {
-            return WebMapServiceFactory.buildWebMapService(layer.getId(), layer.getWmsName());
+            return WebMapServiceFactory.buildWebMapService(layer.getId(), layer.getWmsName(), false);
         } catch (WebMapServiceParseException e) {
             log.error("Failed to create WebMapService for layer id '" + layer.getId() + "'. No Styles available");
-        }
+        } catch (ServiceException e) {
+        	log.error("Failed to create WebMapService for layer id '" + layer.getId() + "'.");
+		}
         return null;
     }
 

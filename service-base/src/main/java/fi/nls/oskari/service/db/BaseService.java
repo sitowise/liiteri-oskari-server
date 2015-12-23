@@ -18,6 +18,7 @@ public interface BaseService<E> {
 	 */
 	public E find(int id);
 	
+	public E find(long id);
 	/**
 	 * Returns one object
 	 * 
@@ -54,6 +55,8 @@ public interface BaseService<E> {
 	 * @param id
 	 */
 	public void delete(int id);
+	
+	public void delete(long id);
 	
 	/**
 	 * Deletes an object

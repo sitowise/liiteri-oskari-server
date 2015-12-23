@@ -5,8 +5,10 @@ import fi.mml.map.mapwindow.service.db.CapabilitiesCacheServiceIbatisImpl;
 import fi.mml.map.mapwindow.util.RemoteServiceDownException;
 import fi.nls.oskari.domain.map.CapabilitiesCache;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.service.ServiceException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,33 +36,49 @@ public class WebMapServiceFactory {
 	 * 
 	 * @return WebMapService implementation that service url is implemented
 	 * @throws WebMapServiceParseException if something goes wrong when parsing
+	 * @throws ServiceException 
 	 * @throws RemoteServiceDownException if Web Map service is down
 	 */
-	public static WebMapService buildWebMapService(int layerId, String layerName) throws WebMapServiceParseException {
+	public static WebMapService buildWebMapService(int layerId, String layerName, boolean isUserWmsLayer) throws WebMapServiceParseException, ServiceException {
 
 		if (wmsCachedtime + wmsExpirationTime < System.currentTimeMillis()) {
             flushCache();
 		}
+		
+		String layerPrefix = "";
+    	if (isUserWmsLayer) {
+    		layerPrefix = UserWmsLayer.PREFIX;
+    	}
+    	
 		WebMapService wms = null;
         // caching since this is called whenever a layer JSON is created!!
-		if (wmsCache.containsKey("wmsCache_"+layerId)) {
-			wms = wmsCache.get("wmsCache_"+layerId);
+		if (wmsCache.containsKey("wmsCache_" + layerPrefix + layerId)) {
+			wms = wmsCache.get("wmsCache_" + layerPrefix + layerId);
 		} else {
-            CapabilitiesCache cc = capabilitiesCacheService.find(layerId);
+			CapabilitiesCache ccForSearch = new CapabilitiesCache();
+			ccForSearch.setLayerId(layerId);
+			ccForSearch.setUserWms(isUserWmsLayer);
+			
+            CapabilitiesCache cc = capabilitiesCacheService.findByLayer(ccForSearch);
             if (cc != null && "1.3.0".equals(cc.getVersion().trim())) {
                 wms = new WebMapServiceV1_3_0_Impl("from DataBase", cc.getData().trim(), layerName);
             } else if (cc != null && "1.1.1".equals(cc.getVersion().trim())) {
                 wms = new WebMapServiceV1_1_1_Impl("from DataBase", cc.getData().trim(), layerName);
             }
-			wmsCache.put("wmsCache_"+layerId, wms);
+			wmsCache.put("wmsCache_" + layerPrefix + layerId, wms);
 		}
 
 		
 		return wms;
 	}
 
-    public static void flushCache(final int layerId) {
-        wmsCache.remove("wmsCache_"+layerId);
+    public static void flushCache(final int layerId, boolean isUserWmsLayer) {
+    	String layerPrefix = "";
+    	if (isUserWmsLayer) {
+    		layerPrefix = UserWmsLayer.PREFIX;
+    	}
+    	
+        wmsCache.remove("wmsCache_" + layerPrefix + layerId);
     }
 
     public static void flushCache() {

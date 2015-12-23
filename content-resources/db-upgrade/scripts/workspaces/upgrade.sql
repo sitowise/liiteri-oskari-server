@@ -1,0 +1,1 @@
+ALTER TABLE oskari_workspaces ADD COLUMN "hidden" BOOLEAN DEFAULT FALSE;

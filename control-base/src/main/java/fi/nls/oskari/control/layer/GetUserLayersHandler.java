@@ -9,6 +9,7 @@ import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.User;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.log.LogFactory;
@@ -25,6 +26,7 @@ import fi.nls.oskari.util.ResponseHelper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -34,34 +36,67 @@ import java.util.Set;
 @OskariActionRoute("GetUserLayers")
 public class GetUserLayersHandler extends ActionHandler {
 
-    private static final Logger log = LogFactory.getLogger(GetUserLayersHandler.class);
-    private static final UserLayerDbService userLayerService = new UserLayerDbServiceIbatisImpl();
-    private final UserLayerDataService userlayerService = new UserLayerDataService();
+	private static final Logger log = LogFactory
+			.getLogger(GetUserLayersHandler.class);
+	private static final UserLayerDbService userLayerService = new UserLayerDbServiceIbatisImpl();
+	private final UserLayerDataService userlayerService = new UserLayerDataService();
 
-    private static final String JSKEY_USERLAYERS = "userlayers";
-    private static final String USERLAYER_LAYER_PREFIX = "userlayer_";
-    private static final String USERLAYER_BASELAYER_ID = "userlayer.baselayer.id";
+	private static final String JSKEY_USERLAYERS = "userlayers";
+	private static final String USERLAYER_LAYER_PREFIX = "userlayer_";
+	private static final String USERLAYER_BASELAYER_ID = "userlayer.baselayer.id";
 
-    final String userlayerBaseLayerId = PropertyUtil.get(USERLAYER_BASELAYER_ID);
+	final String userlayerBaseLayerId = PropertyUtil
+			.get(USERLAYER_BASELAYER_ID);
 
-    @Override
-    public void handleAction(ActionParameters params) throws ActionException {
+	@Override
+	public void handleAction(ActionParameters params) throws ActionException {
 
-        final JSONObject response = new JSONObject();
-        final JSONArray layers = new JSONArray();
-        JSONHelper.putValue(response, JSKEY_USERLAYERS, layers);
+		final JSONObject response = new JSONObject();
+		final JSONArray layers = new JSONArray();
+		JSONHelper.putValue(response, JSKEY_USERLAYERS, layers);
 
-        final User user = params.getUser();
-        if (!user.isGuest()) {
+		final User user = params.getUser();
+		if (!user.isGuest()) {
+			
+			List<UserGisData> unexpiredUserGisData = userLayerService.getUnexpiredUserLayers(user.getId());
+			for (UserGisData u : unexpiredUserGisData) {
+				Long id = getIdFromDataIdString(u.getDataId());
+				//FIXME: do it better, sending SQL to datbase for every layer is inefficiently
+				UserLayer userLayer = userLayerService.getUserLayerById(id);
+				
+				JSONObject userLayerJson = userlayerService.parseUserLayer2JSON(userLayer);
+				JSONHelper.putValue(userLayerJson, "shared", "false");
+				JSONHelper.putValue(userLayerJson, "downloadServiceUrl", u.getDownloadServiceUrl());
+				layers.put(userLayerJson);
+			}
+			
+			List<UserGisData> sharedUserGisData = userLayerService.getSharedUserLayers(user.getId());
+			for (UserGisData u : sharedUserGisData) {
+				Long id = getIdFromDataIdString(u.getDataId());
+				//FIXME: do it better, sending SQL to datbase for every layer is inefficiently
+				UserLayer userLayer = userLayerService.getUserLayerById(id);
+				
+				JSONObject userLayerJson = userlayerService.parseUserLayer2JSON(userLayer);
+				JSONHelper.putValue(userLayerJson, "shared", "true");
+				JSONHelper.putValue(userLayerJson, "downloadServiceUrl", u.getDownloadServiceUrl());
+				layers.put(userLayerJson);
+			}
+			
+//			final List<UserLayer> list = userLayerService
+//					.getUserLayerByUid(user.getUuid());
+//			
+//			for (UserLayer a : list) {
+//				// Parse userlayer data to userlayer
+//
+//				layers.put(userlayerService.parseUserLayer2JSON(a));
+//			}
+		}
 
-            final List<UserLayer> list = userLayerService.getUserLayerByUid(user.getUuid());
-            for(UserLayer a: list) {
-                // Parse userlayer data to userlayer
+		ResponseHelper.writeResponse(params, response);
+	}
 
-                layers.put(userlayerService.parseUserLayer2JSON(a));
-            }
-        }
-
-        ResponseHelper.writeResponse(params, response);
-    }
+	private Long getIdFromDataIdString(String dataId) {
+		int pos = dataId.lastIndexOf('_');
+		return Long.parseLong(dataId.substring(pos + 1));
+	}
 }

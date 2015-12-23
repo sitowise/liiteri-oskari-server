@@ -7,9 +7,11 @@ import fi.mml.portti.service.search.SearchCriteria;
 import fi.mml.portti.service.search.SearchResultItem;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.search.channel.SearchableChannel;
 import fi.nls.oskari.search.util.SearchUtil;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.IOHelper;
+
 import org.apache.xmlbeans.XmlObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
@@ -46,7 +48,7 @@ public class RegisterOfNomenclatureChannelSearchService implements SearchableCha
 
         try {
             final String url = getWFSUrl(searchCriteria.getSearchString());
-            final String data = IOHelper.getURL(url);
+            final String data = IOHelper.getURL(url, SearchUtil.getNameRegisterUser(), SearchUtil.getNameRegisterPassword());
 
             final String currentLocaleCode =  getLocaleCode(searchCriteria.getLocale());
             final FeatureCollectionDocument fDoc =  FeatureCollectionDocument.Factory.parse(data);
@@ -105,7 +107,10 @@ public class RegisterOfNomenclatureChannelSearchService implements SearchableCha
                 item.setLocationTypeCode(paikkatyyppiKoodi);
                 item.setType(getType(searchCriteria.getLocale(), paikkatyyppiKoodi));
                 item.setLocationName(SearchUtil.getLocationType(paikkatyyppiKoodi+"_"+ currentLocaleCode));
-                item.setVillage(SearchUtil.getVillageName(kuntaKoodi+"_"+ currentLocaleCode));
+                item.setVillage(SearchUtil.getVillageName(kuntaKoodi+"_"+ currentLocaleCode));                
+                //item.setType(paikkatyyppiKoodi);
+                //item.setLocationName(paikkatyyppiKoodi+"_"+ currentLocaleCode);
+                //item.setVillage(kuntaKoodi+"_"+ currentLocaleCode);
                 item.setLon(lonLat[0]);
                 item.setLat(lonLat[1]);
                 item.setMapURL(SearchUtil.getMapURL(searchCriteria.getLocale()));

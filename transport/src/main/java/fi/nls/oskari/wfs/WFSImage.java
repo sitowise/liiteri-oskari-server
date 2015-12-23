@@ -15,6 +15,7 @@ import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.pojo.WFSCustomStyleStore;
 import fi.nls.oskari.util.IOHelper;
+
 import org.apache.commons.codec.binary.Base64;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -38,6 +39,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.Location;
 import fi.nls.oskari.pojo.Tile;
 import fi.nls.oskari.pojo.WFSLayerStore;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
 
 /**
  * Image drawing for WFS layers 
@@ -104,7 +106,8 @@ public class WFSImage {
         // TODO: possibility to change the custom style store key to sessionID (it is hard without connection to get client)
         if(styleName.startsWith(PREFIX_CUSTOM_STYLE) && client != null) {
             try {
-                this.customStyle = WFSCustomStyleStore.create(client, layer.getLayerId());
+            	//TODO: change casting to factory
+                this.customStyle = (WFSCustomStyleStore) CustomStyleStore.create(client, layer.getLayerId());
                 if(this.customStyle == null) {
                     this.style = null;
                     log.error("WFSCustomStyleStore not created", client, layer.getLayerId());

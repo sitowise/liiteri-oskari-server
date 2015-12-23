@@ -44,4 +44,8 @@
             <form-error-page>/?loginState=failed</form-error-page>
         </form-login-config>
     </login-config>
+	
+	<listener>
+		<listener-class>fi.nls.oskari.map.servlet.MapFullServletContextListener</listener-class>
+	</listener>
 </webapp>

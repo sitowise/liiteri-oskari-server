@@ -1,5 +1,6 @@
 package fi.nls.oskari.map.userlayer.service;
 
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.service.ServiceException;
@@ -16,4 +17,8 @@ public interface UserLayerDbService extends BaseService<UserLayer> {
         public void deleteUserLayerById(final long id) throws ServiceException;
         public void deleteUserLayer(final UserLayer userlayer) throws ServiceException;
         public int updatePublisherName(final long id, final String uuid, final String name);
+        
+        public List<Long> getSharedUserLayerIds(long userId);
+        public List<UserGisData> getSharedUserLayers(long userId);
+        public List<UserGisData> getUnexpiredUserLayers(long userId);
 }

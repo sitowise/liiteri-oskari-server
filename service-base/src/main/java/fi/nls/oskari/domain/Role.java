@@ -13,9 +13,14 @@ import fi.nls.oskari.util.PropertyUtil;
  */
 public class Role {
 
+	public static final String GROUPINGS_ADMIN = "liiteri_groupings_admin";
+	public static final String ENV_USER = "liiteri_env_user";
+	public static final String AUTHORIZED_USER = "liiteri_authorized_user";
+	public static final String USER = "liiteri_user";
+	
     private static final Logger log = LogFactory.getLogger(Role.class);
     private static Role ADMIN_ROLE = null;
-    public static final String DEFAULT_ADMIN_ROLE_NAME = "Administrator";
+    private static final String DEFAULT_ADMIN_ROLE_NAME = "Administrator";
 
     private long id;
     private String name;

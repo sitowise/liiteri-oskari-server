@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="Sharing">
+	<typeAlias alias="SharingItem" type="pl.sito.liiteri.sharing.SharingItem" />
+
+	<resultMap id="SharingItemResult" class="SharingItem">
+		<result property="permissionId" column="id" />
+		<result property="credentialId" column="credentialId" />
+		<result property="credentialType" column="credentialType" />
+		<result property="resourceId" column="resourceId" />
+		<result property="resourceType" column="resourceType" />
+		<result property="email" column="email" />
+		<result property="status" column="status" />
+		<result property="token" column="token" />
+	</resultMap>
+
+    <select id="maxId" resultClass="int">
+        select max(id) from liiteri_sharing
+    </select>		
+
+	<statement id="insert" resultClass="java.lang.Long" parameterClass="SharingItem">
+		INSERT INTO liiteri_sharing(
+		credentialId,
+		credentialType,
+		resourceId,
+		resourceType,
+		email,
+		status,
+		token
+		)
+		VALUES (
+		#credentialId#,
+		#credentialType#,
+		#resourceId#,
+		#resourceType#,
+		#email#,
+		#status#,
+		#token#
+		)
+		RETURNING
+		id
+	</statement>
+	
+	<update id="update" parameterClass="SharingItem">
+		update liiteri_sharing set
+		credentialId = #credentialId#,
+		credentialType =#credentialType#,
+		resourceId =#resourceId#,
+		resourceType =#resourceType#,
+		email =#email#,
+		status =#status#
+		WHERE id =#permissionId#
+	</update>			
+	
+	<statement id="delete" parameterClass="java.lang.Long">
+		DELETE FROM liiteri_sharing WHERE
+		id = #id#
+	</statement>
+	
+    <select id="find"
+            parameterClass="java.lang.Long"
+            resultMap="SharingItemResult">
+		select
+		id,
+		credentialId,
+		credentialType,
+		resourceId,
+		resourceType,
+		email,
+		status,
+		token
+		FROM liiteri_sharing
+		WHERE id = #id#		
+	</select>	
+
+    <select id="findByResourceId"
+            parameterClass="SharingItem"
+            resultMap="SharingItemResult">
+		select
+		id,
+		credentialId,
+		credentialType,
+		resourceId,
+		resourceType,
+		email,
+		status,
+		token
+		FROM liiteri_sharing
+		WHERE 
+		resourceId = #resourceId# AND
+		resourceType = #resourceType#
+	</select>	
+
+    <select id="findByCredentialId"
+            parameterClass="SharingItem"
+            resultMap="SharingItemResult">
+		select
+		id,
+		credentialId,
+		credentialType,
+		resourceId,
+		resourceType,
+		email,
+		status,
+		token
+		FROM liiteri_sharing
+		WHERE 
+		credentialId = #credentialId# AND
+		credentialType = #credentialType# AND
+		resourceType = #resourceType#
+	</select>	
+	
+    <select id="findByCredentialType"
+            parameterClass="SharingItem"
+            resultMap="SharingItemResult">
+		select
+		id,
+		credentialId,
+		credentialType,
+		resourceId,
+		resourceType,
+		email,
+		status,
+		token
+		FROM liiteri_sharing
+		WHERE 
+		credentialType = #credentialType# AND
+		resourceType = #resourceType#
+	</select>		
+
+	<statement id="deleteByResourceId"
+            parameterClass="SharingItem">
+		DELETE
+		FROM liiteri_sharing
+		WHERE
+		resourceType = #resourceType# AND
+		resourceId = #resourceId#
+	</statement>
+	
+    <statement id="deleteByResourceIdAndCredenialId"
+            parameterClass="SharingItem">
+		DELETE
+		FROM liiteri_sharing
+		WHERE 
+		credentialId = #credentialId# AND
+		credentialType = #credentialType# AND
+		resourceType = #resourceType# AND
+		resourceId = #resourceId#
+	</statement>		
+
+</sqlMap>

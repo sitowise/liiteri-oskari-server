@@ -3,7 +3,8 @@ package fi.nls.oskari.wfs;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.*;
-import fi.nls.oskari.work.WFSMapLayerJob;
+import fi.nls.oskari.work.MapLayerJobType;
+
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.opengis.feature.simple.SimpleFeature;
@@ -21,11 +22,11 @@ public class WFSProcess {
     public static BufferedImage highlight(String session, String layerId, List<String> featureIds, Double[] bbox, String srs, long zoom, long width, long height) {
         BufferedImage bufferedImage;
 
-        String style = WFSMapLayerJob.Type.HIGHLIGHT.toString();
-        WFSMapLayerJob.Type processType = WFSMapLayerJob.Type.HIGHLIGHT;
+        String style = MapLayerJobType.HIGHLIGHT.toString();
+        MapLayerJobType processType = MapLayerJobType.HIGHLIGHT;
 
         // get layer configuration
-        WFSLayerStore layer = WFSMapLayerJob.getLayerConfiguration(layerId, session, null);
+        WFSLayerStore layer = null;
         if(layer == null) {
             log.warn("No layer configuration", layerId);
             return null;
@@ -56,14 +57,14 @@ public class WFSProcess {
         }
 
         // make request
-        BufferedReader res = WFSMapLayerJob.request(processType, layer, store, bounds, transformService);
+        BufferedReader res = null;
         if(res == null) {
             log.warn("Request failed for layer", layer.getLayerId());
             return null;
         }
 
         // parse response
-        FeatureCollection<SimpleFeatureType, SimpleFeature> features = WFSMapLayerJob.response(layer, res);
+        FeatureCollection<SimpleFeatureType, SimpleFeature> features = null;
         if(features == null || features.size() == 0) {
             log.warn("No features", layer.getLayerId());
             return null;

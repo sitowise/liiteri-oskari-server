@@ -2,9 +2,13 @@ package fi.nls.oskari.control.data;
 
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
+import fi.nls.oskari.map.layer.UserWmsLayerService;
+import fi.nls.oskari.map.layer.UserWmsLayerServiceIbatisImpl;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,6 +28,7 @@ import fi.nls.oskari.util.ResponseHelper;
 public class GetGeoPointDataHandler extends ActionHandler {
 
 	private final OskariLayerService mapLayerService = new OskariLayerServiceIbatisImpl();
+	private final UserWmsLayerService userWmsLayerService = new UserWmsLayerServiceIbatisImpl();
 	private final GetGeoPointDataService geoPointService = new GetGeoPointDataService();
     private final GeoServerProxyService myplacesService = new GeoServerProxyService();
 
@@ -64,6 +69,9 @@ public class GetGeoPointDataHandler extends ActionHandler {
         }
 
 		for (String id : layerIdsArr) {
+			OskariLayer layer;
+			String layerType;
+			
 			if (id.indexOf('_') >= 0) {
 			    if (id.startsWith("myplaces_")) {
 			        // Myplaces wfs query modifier
@@ -71,18 +79,28 @@ public class GetGeoPointDataHandler extends ActionHandler {
                     if(response != null) {
                         data.put(response);
                     }
+                    continue;
+                    
+			    } else if (id.startsWith(UserWmsLayer.PREFIX)) {
+			    	
+			    	String layerId = id.substring(id.indexOf("_") + 1);
+			    	layer = userWmsLayerService.find(layerId);
+					layerType = layer.getType();
+					
+			    } else {
+			    	continue;
 			    }
-			    continue;
+			} else {
+				final int layerId = ConversionHelper.getInt(id, -1);
+				if(layerId == -1) {
+	                log.warn("Couldnt parse layer id", id);
+	                continue;
+				}
+
+				layer = mapLayerService.find(layerId);
+				layerType = layer.getType();
 			}
 			
-			final int layerId = ConversionHelper.getInt(id, -1);
-			if(layerId == -1) {
-                log.warn("Couldnt parse layer id", id);
-                continue;
-			}
-
-			final OskariLayer layer = mapLayerService.find(layerId);
-			final String layerType = layer.getType();
 
 			if (OskariLayer.TYPE_WMS.equals(layerType)) {
 			    final GFIRequestParams gfiParams = new GFIRequestParams();

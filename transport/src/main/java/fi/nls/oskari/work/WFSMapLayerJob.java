@@ -4,62 +4,45 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.*;
 import fi.nls.oskari.transport.TransportService;
-import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.utils.HttpHelper;
 import fi.nls.oskari.wfs.WFSCommunicator;
 import fi.nls.oskari.wfs.WFSFilter;
 import fi.nls.oskari.wfs.WFSImage;
 import fi.nls.oskari.wfs.WFSParser;
-
 import fi.nls.oskari.wfs.extension.UserLayerFilter;
+
 import org.codehaus.jackson.map.ObjectMapper;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
-import org.json.JSONObject;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
+
 import org.opengis.filter.Filter;
 import org.opengis.referencing.operation.MathTransform;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.*;
 
 /**
  * Job for WFS Map Layer
  */
-public class WFSMapLayerJob extends Job {
+public class WFSMapLayerJob implements IDetailedMapLayerJob {
 	
 	private static final Logger log = LogFactory.getLogger(WFSMapLayerJob.class);
     private static final List<List<Object>> EMPTY_LIST = new ArrayList();
 
-    public static enum Type {
-        NORMAL ("normal"),
-        HIGHLIGHT ("highlight"),
-        MAP_CLICK ("mapClick"),
-        GEOJSON("geoJSON");
 
-        private final String name;
-
-        private Type(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString(){
-            return name;
-        }
-    }
 
     public static final String OUTPUT_LAYER_ID = "layerId";
     public static final String OUTPUT_ONCE = "once";
     public static final String OUTPUT_MESSAGE = "message";
     public static final String OUTPUT_FEATURES = "features";
+    public static final String OUTPUT_GEOMETRIES = "geometries";
     public static final String OUTPUT_FEATURE = "feature";
     public static final String OUTPUT_FIELDS = "fields";
     public static final String OUTPUT_LOCALES = "locales";
@@ -82,7 +65,7 @@ public class WFSMapLayerJob extends Job {
     public static final String PROCESS_ENDED = "Ended";
 
 	// process information
-	TransportService service;
+	private TransportService service;
 	private SessionStore session;
     private Layer sessionLayer;
 	private WFSLayerStore layer;
@@ -97,63 +80,52 @@ public class WFSMapLayerJob extends Job {
     private boolean sendHighlight;
     private MathTransform transformService;
     private MathTransform transformClient;
-	private Type type;
+	private MapLayerJobType type;
 	private FeatureCollection<SimpleFeatureType, SimpleFeature> features;
     private List<List<Object>> featureValuesList;
+    private List<List<Object>> geomValuesList;
     private List<String> processedFIDs = new ArrayList<String>();
     private WFSImage image = null;
     private Units units = new Units();
-	
-	// API
-	private static final String PERMISSIONS_API = "GetLayerIds";
-	private static final String LAYER_CONFIGURATION_API = "GetWFSLayerConfiguration&id=";
+    private Job parentJob = null;
 
     // COOKIE
     public static final String ROUTE_COOKIE_NAME = "ROUTEID=";
 
-	/**
-	 * Creates a new runnable job with own Jedis instance
-	 * 
-	 * Parameters define client's service (communication channel), session and layer's id.
-	 * Sends all resources that the layer configuration allows.
-	 * 
-	 * @param service
-	 * @param store
-	 * @param layerId
-	 */
-	public WFSMapLayerJob(TransportService service, Type type, SessionStore store, String layerId) {
-		this(service, type, store, layerId, true, true, true);
+	public WFSMapLayerJob() {
     }
 	
-	/**
-	 * Creates a new runnable job with own Jedis instance
-	 * 
-	 * Parameters define client's service (communication channel), session and layer's id.
-	 * Also sets resources that will be sent if the layer configuration allows.
-	 * 
-	 * @param service
-	 * @param store
-	 * @param layerId
-	 * @param reqSendFeatures
-	 * @param reqSendImage
-     * @param reqSendHighlight
-	 */
-	public WFSMapLayerJob(TransportService service, Type type, SessionStore store, String layerId,
+    public void init(Job parentJob, TransportService service, MapLayerJobType type, SessionStore store, 
+			String layerId,
+			boolean layerPermission, WFSLayerStore layer,
 			boolean reqSendFeatures, boolean reqSendImage, boolean reqSendHighlight) {
-		this.service = service;
+    	
+    	this.parentJob = parentJob;
+    	this.service = service;
         this.type = type;
 		this.session = store;
         this.layerId = layerId;
         this.sessionLayer = this.session.getLayers().get(this.layerId);
-		this.layer = null;
-		this.permissions = null;
-		this.layerPermission = false;
+		this.layer = layer;
+		this.layerPermission = layerPermission;
 		this.reqSendFeatures = reqSendFeatures;
 		this.reqSendImage = reqSendImage;
         this.reqSendHighlight = reqSendHighlight;
         this.transformService = null;
         this.transformClient = null;
     }
+    
+    private boolean goNext(boolean a) {
+    	return this.parentJob.goNext(a);
+    }
+    
+    private boolean goNext() {
+    	return this.parentJob.goNext();
+    }
+    
+    public String getKey() {
+		return this.parentJob.getKey();
+	}
 
     /**
      * Gets service path for local API
@@ -171,71 +143,6 @@ public class WFSMapLayerJob extends Job {
         return TransportService.SERVICE_URL + TransportService.SERVICE_URL_PATH + session + TransportService.SERVICE_URL_LIFERAY_PATH;
     }
 
-
-    /**
-     * Gets layer permissions (uses cache)
-     *
-     * @param layerId
-     * @param sessionId
-     * @param route
-     * @return <code>true</code> if rights to use the layer; <code>false</code>
-     *         otherwise.
-     */
-    public static boolean getPermissions(String layerId, String sessionId, String route) {
-        String json = WFSLayerPermissionsStore.getCache(sessionId);
-        boolean fromCache = (json != null);
-        if(!fromCache) {
-            log.warn(getAPIUrl(sessionId) + PERMISSIONS_API);
-            String cookies = null;
-            if(route != null && !route.equals("")) {
-                cookies = ROUTE_COOKIE_NAME + route;
-            }
-            json = HttpHelper.getRequest(getAPIUrl(sessionId) + PERMISSIONS_API, cookies);
-            if(json == null)
-                return false;
-        }
-        try {
-            WFSLayerPermissionsStore permissions = WFSLayerPermissionsStore.setJSON(json);
-            return permissions.isPermission(layerId);
-        } catch (IOException e) {
-            log.error(e, "JSON parsing failed for WFSLayerPermissionsStore \n" + json);
-        }
-
-        return false;
-    }
-
-    /**
-     * Gets layer configuration (uses cache)
-     *
-     * @param layerId
-     * @param sessionId
-     * @param route
-     * @return layer
-     */
-    public static WFSLayerStore getLayerConfiguration(String layerId, String sessionId, String route) {
-        String json = WFSLayerStore.getCache(layerId);
-        boolean fromCache = (json != null);
-        if(!fromCache) {
-            log.warn(getAPIUrl(sessionId) + LAYER_CONFIGURATION_API + layerId);
-            String cookies = null;
-            if(route != null && !route.equals("")) {
-                cookies = ROUTE_COOKIE_NAME + route;
-            }
-            // NOTE: result is not handled
-            String result = HttpHelper.getRequest(getAPIUrl(sessionId) + LAYER_CONFIGURATION_API + layerId, cookies);
-            json = WFSLayerStore.getCache(layerId);
-            if(json == null)
-                return null;
-        }
-        try {
-            return WFSLayerStore.setJSON(json);
-        } catch (Exception e) {
-            log.error(e, "JSON parsing failed for WFSLayerStore \n" + json);
-        }
-
-        return null;
-    }
-
     /**
      * Makes request
      *
@@ -246,7 +153,7 @@ public class WFSMapLayerJob extends Job {
      * @param transformService
      * @return response
      */
-    public static BufferedReader request(Type type, WFSLayerStore layer, SessionStore session, List<Double> bounds, MathTransform transformService) {
+    public static BufferedReader request(MapLayerJobType type, WFSLayerStore layer, SessionStore session, List<Double> bounds, MathTransform transformService) {
         BufferedReader response = null;
         if(layer.getTemplateType() == null) { // default
             String payload = WFSCommunicator.createRequestPayload(type, layer, session, bounds, transformService);
@@ -281,22 +188,6 @@ public class WFSMapLayerJob extends Job {
     }
 
     /**
-	 * Releases all when removed
-	 */
-    @Override
-    protected void finalize() throws Throwable {
-    	super.finalize();
-    }
-
-    /**
-     * Unique key definition 
-     */
-	@Override
-	public String getKey() {
-		return this.getClass().getSimpleName() + "_" + this.session.getClient() + "_" + this.layerId + "_" + this.type;
-	}
-
-    /**
 	 * Process of the job
 	 * 
 	 * Worker calls this when starts the job.
@@ -304,37 +195,6 @@ public class WFSMapLayerJob extends Job {
 	 */
 	@Override
 	public final void run() {
-        log.debug(PROCESS_STARTED, getKey());
-
-        if(!this.validateType()) {
-            log.warn("Not enough information to continue the task (" +  this.type + ")");
-            return;
-        }
-
-    	if(!goNext()) return;
-
-        this.layerPermission = getPermissions(layerId, this.session.getSession(), this.session.getRoute());
-        if(!this.layerPermission) {
-            log.warn("Session (" +  this.session.getSession() + ") has no permissions for getting the layer (" + this.layerId + ")");
-            Map<String, Object> output = new HashMap<String, Object>();
-            output.put(OUTPUT_LAYER_ID, this.layerId);
-            output.put(OUTPUT_ONCE, true);
-            output.put(OUTPUT_MESSAGE, "wfs_no_permissions");
-            this.service.send(session.getClient(), TransportService.CHANNEL_ERROR, output);
-            return;
-        }
-
-    	if(!goNext()) return;
-    	this.layer = getLayerConfiguration(this.layerId, this.session.getSession(), this.session.getRoute());
-        if(this.layer == null) {
-            log.warn("Layer (" +  this.layerId + ") configurations couldn't be fetched");
-            Map<String, Object> output = new HashMap<String, Object>();
-            output.put(OUTPUT_LAYER_ID, this.layerId);
-            output.put(OUTPUT_ONCE, true);
-            output.put(OUTPUT_MESSAGE, "wfs_configuring_layer_failed");
-            this.service.send(session.getClient(), TransportService.CHANNEL_ERROR, output);
-            return;
-        }
 
 		setResourceSending();
 
@@ -364,7 +224,7 @@ public class WFSMapLayerJob extends Job {
 
         log.debug(this.type);
 
-        if(this.type == Type.NORMAL) { // tiles for grid
+        if(this.type == MapLayerJobType.NORMAL) { // tiles for grid
             if(!this.layer.isTileRequest()) { // make single request
                 if(!this.normalHandlers(null, true)) {
                     return;
@@ -429,13 +289,18 @@ public class WFSMapLayerJob extends Job {
 				}
 				index++;
 			}
-		} else if(this.type == Type.HIGHLIGHT) {
+		} else if(this.type == MapLayerJobType.HIGHLIGHT) {
             if(this.sendHighlight) {
                 if(!this.requestHandler(null)) {
                     return;
                 }
                 this.featuresHandler();
                 if(!goNext()) return;
+                
+             // Send geometries, if requested as well
+                if(this.session.isGeomRequest()){
+                	this.sendWFSFeatureGeometries(this.geomValuesList, TransportService.CHANNEL_FEATURE_GEOMETRIES);
+                }
 
                 log.debug("highlight image handling", this.features.size());
 
@@ -446,7 +311,7 @@ public class WFSMapLayerJob extends Job {
                     this.image = new WFSImage(this.layer,
                             this.session.getClient(),
                             this.session.getLayers().get(this.layerId).getStyleName(),
-                            Type.HIGHLIGHT.toString());
+                            MapLayerJobType.HIGHLIGHT.toString());
                 }
                 BufferedImage bufferedImage = this.image.draw(this.session.getMapSize(),
                         location,
@@ -459,12 +324,12 @@ public class WFSMapLayerJob extends Job {
                 Double[] bbox = location.getBboxArray();
 
                 // cache (non-persistant)
-                setImageCache(bufferedImage, Type.HIGHLIGHT.toString() + "_" + this.session.getSession(), bbox, false);
+                setImageCache(bufferedImage, MapLayerJobType.HIGHLIGHT.toString() + "_" + this.session.getSession(), bbox, false);
 
-                String url = createImageURL(Type.HIGHLIGHT.toString(), bbox);
+                String url = createImageURL(MapLayerJobType.HIGHLIGHT.toString(), bbox);
                 this.sendWFSImage(url, bufferedImage, bbox, false, false);
             }
-        } else if(this.type == Type.MAP_CLICK) {
+        } else if(this.type == MapLayerJobType.MAP_CLICK) {
             if(!this.requestHandler(null)) {
                 this.sendWFSFeatures(EMPTY_LIST, TransportService.CHANNEL_MAP_CLICK);
                 return;
@@ -478,7 +343,7 @@ public class WFSMapLayerJob extends Job {
                 log.debug("No feature data!");
                 this.sendWFSFeatures(EMPTY_LIST, TransportService.CHANNEL_MAP_CLICK);
             }
-        } else if(this.type == Type.GEOJSON) {
+        } else if(this.type == MapLayerJobType.GEOJSON) {
             if(!this.requestHandler(null)) {
                 return;
             }
@@ -532,7 +397,7 @@ public class WFSMapLayerJob extends Job {
             log.warn("Request failed for layer", layer.getLayerId());
 	   	 	output.put(OUTPUT_LAYER_ID, layer.getLayerId());
 	   	 	output.put(OUTPUT_ONCE, true);
-	   	 	output.put(OUTPUT_MESSAGE, "wfs_request_failed");
+	   	 	output.put(OUTPUT_MESSAGE, TransportService.ERROR_WFS_REQUEST_FAILED);
 	    	this.service.send(session.getClient(), TransportService.CHANNEL_ERROR, output);
 	        log.debug(PROCESS_ENDED, getKey());
 			return false;
@@ -546,14 +411,14 @@ public class WFSMapLayerJob extends Job {
             log.warn("Parsing failed for layer",  this.layerId);
 	   	 	output.put(OUTPUT_LAYER_ID, this.layerId);
 	   	 	output.put(OUTPUT_ONCE, true);
-	   	 	output.put(OUTPUT_MESSAGE, "features_parsing_failed");
+	   	 	output.put(OUTPUT_MESSAGE, TransportService.ERROR_FEATURE_PARSING);
 	    	this.service.send(session.getClient(), TransportService.CHANNEL_ERROR, output);
 	        log.debug(PROCESS_ENDED, getKey());
 			return false;
 		}
 
         // 0 features found - send size
-        if(this.type == Type.MAP_CLICK && this.features.size() == 0) {
+        if(this.type == MapLayerJobType.MAP_CLICK && this.features.size() == 0) {
             log.debug("Empty result for map click",  this.layerId);
             output.put(OUTPUT_LAYER_ID, this.layerId);
             output.put(OUTPUT_FEATURES, "empty");
@@ -561,7 +426,7 @@ public class WFSMapLayerJob extends Job {
             this.service.send(session.getClient(), TransportService.CHANNEL_MAP_CLICK, output);
             log.debug(PROCESS_ENDED, getKey());
             return false;
-        } else if(this.type == Type.GEOJSON && this.features.size() == 0) {
+        } else if(this.type == MapLayerJobType.GEOJSON && this.features.size() == 0) {
             log.debug("Empty result for filter",  this.layerId);
             output.put(OUTPUT_LAYER_ID, this.layerId);
             output.put(OUTPUT_FEATURES, "empty");
@@ -588,7 +453,13 @@ public class WFSMapLayerJob extends Job {
         }
         catch (Exception ee)
         {
-            log.debug("exception: ", ee);
+            log.error("Unhandled exception during request: ", ee);
+	   	 	output.put(OUTPUT_LAYER_ID, this.layerId);
+	   	 	output.put(OUTPUT_ONCE, true);
+	   	 	output.put(OUTPUT_MESSAGE, TransportService.ERROR_WFS_REQUEST_FAILED);
+	    	this.service.send(session.getClient(), TransportService.CHANNEL_ERROR, output);
+	        log.debug(PROCESS_ENDED, getKey());
+            return false;
         }
 
         return true;
@@ -635,6 +506,7 @@ public class WFSMapLayerJob extends Job {
         FeatureIterator<SimpleFeature> featuresIter =  this.features.features();
 
         this.featureValuesList = new ArrayList<List<Object>>();
+        this.geomValuesList = new ArrayList<List<Object>>();
         while(goNext(featuresIter.hasNext())) {
             SimpleFeature feature = featuresIter.next();
 
@@ -655,6 +527,15 @@ public class WFSMapLayerJob extends Job {
                 // get feature geometry (transform if needed) and get geometry center
                 Geometry geometry = WFSParser.getFeatureGeometry(feature, this.layer.getGMLGeometryProperty(), this.transformClient);
 
+                // Add geometry property, if requested
+                if (this.session.isGeomRequest())
+                {
+                	List<Object> gvalues = new ArrayList<Object>();
+                	gvalues.add(fid);
+                	gvalues.add(geometry); //feature.getAttribute(this.layer.getGMLGeometryProperty()));
+                	this.geomValuesList.add(gvalues);
+                }
+                
                 // send values
                 if(this.sendFeatures) {
                     Point centerPoint = WFSParser.getGeometryCenter(geometry);
@@ -695,7 +576,7 @@ public class WFSMapLayerJob extends Job {
 
                     WFSParser.parseValuesForJSON(values);
 
-                    if(this.type == Type.NORMAL) {
+                    if(this.type == MapLayerJobType.NORMAL) {
                         this.sendWFSFeature(values);
                     } else {
                         this.featureValuesList.add(values);
@@ -750,34 +631,8 @@ public class WFSMapLayerJob extends Job {
         Map<String, Object> output = new HashMap<String, Object>();
         output.put(OUTPUT_LAYER_ID, this.layerId);
         output.put(OUTPUT_ONCE, true);
-        output.put(OUTPUT_MESSAGE, "wfs_image_parsing_failed");
+        output.put(OUTPUT_MESSAGE, TransportService.ERROR_WFS_IMAGE_PARSING);
         this.service.send(session.getClient(), TransportService.CHANNEL_ERROR, output);
-    }
-
-    /**
-     * Checks if enough information for running the task type
-     *
-     * @return <code>true</code> if enough information for type; <code>false</code>
-     *         otherwise.
-     */
-    private boolean validateType() {
-        if(this.type == Type.HIGHLIGHT) {
-            if(this.sessionLayer.getHighlightedFeatureIds() != null &&
-                    this.sessionLayer.getHighlightedFeatureIds().size() > 0) {
-                return true;
-            }
-        } else if(this.type == Type.MAP_CLICK) {
-            if(session.getMapClick() != null) {
-                return true;
-            }
-        } else if(this.type == Type.GEOJSON) {
-            if(session.getFilter() != null) {
-                return true;
-            }
-        } else if(this.type == Type.NORMAL) {
-            return true;
-        }
-        return false;
     }
 
 	/**
@@ -904,6 +759,25 @@ public class WFSMapLayerJob extends Job {
    	 	if(channel.equals(TransportService.CHANNEL_MAP_CLICK)) {
    	 		output.put(OUTPUT_KEEP_PREVIOUS, this.session.isKeepPrevious());
    	 	}
+
+    	this.service.send(this.session.getClient(), channel, output);
+    }
+    
+    /**
+     * Sends list of feature geometries
+     *
+     * @param geometries
+     * @param channel
+     */
+    private void sendWFSFeatureGeometries(List<List<Object>> geometries, String channel) {
+    	if(geometries == null || geometries.size() == 0) {
+    		log.warn("Failed to send feature geometries");
+    		return;
+    	}
+    	Map<String, Object> output = new HashMap<String, Object>();
+    	output.put(OUTPUT_LAYER_ID, this.layerId);
+    	output.put(OUTPUT_GEOMETRIES, geometries);
+    	output.put(OUTPUT_KEEP_PREVIOUS, this.session.isKeepPrevious());
 
     	this.service.send(this.session.getClient(), channel, output);
     }

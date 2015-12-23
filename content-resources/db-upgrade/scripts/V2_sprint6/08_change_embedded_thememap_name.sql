@@ -1,0 +1,1 @@
+update oskari_maplayer set locale = '{ fi:{name:"Teemakartta",subtitle:""},sv:{name:"Simple stats",subtitle:""},en:{name:"Simple stats",subtitle:""}}' where type = 'statslayer';

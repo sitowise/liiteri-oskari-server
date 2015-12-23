@@ -6,8 +6,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import fi.nls.oskari.work.WFSMapLayerJob;
+import fi.nls.oskari.work.MapLayerJobType;
 import fi.nls.test.util.ResourceHelper;
+
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.custommonkey.xmlunit.Diff;
@@ -25,7 +26,7 @@ import fi.nls.oskari.utils.XMLHelper;
 public class AnalysisFilterTest {
     private SessionStore session;
     private WFSLayerStore layer;
-    private WFSMapLayerJob.Type type;
+    private MapLayerJobType type;
     private GeoJSONFilter geojsonFilter;
     private GeoJSONFilter geojsonComplexFilter;
     private List<Double> emptyBounds;
@@ -73,7 +74,7 @@ public class AnalysisFilterTest {
 
     @Test
     public void testLocation() throws Exception {
-        type = WFSMapLayerJob.Type.NORMAL;
+        type = MapLayerJobType.NORMAL;
         AnalysisFilter analysisFilter = new AnalysisFilter();
         String filterStr = analysisFilter.create(type, layer, session, emptyBounds, null);
         OMElement filter = null;
@@ -87,7 +88,7 @@ public class AnalysisFilterTest {
 
     @Test
     public void testBounds() throws Exception {
-        type = WFSMapLayerJob.Type.NORMAL;
+        type = MapLayerJobType.NORMAL;
         AnalysisFilter analysisFilter = new AnalysisFilter();
         String filterStr = analysisFilter.create(type, layer, session, bounds, null);
         OMElement filter = null;
@@ -101,7 +102,7 @@ public class AnalysisFilterTest {
 
     @Test
     public void testMapClick() throws Exception {
-        type = WFSMapLayerJob.Type.MAP_CLICK;
+        type = MapLayerJobType.MAP_CLICK;
         session.setMapClick(new Coordinate(393893.0, 6692163.0));
 
         AnalysisFilter analysisFilter = new AnalysisFilter();
@@ -117,7 +118,7 @@ public class AnalysisFilterTest {
 
     @Test
     public void testGeoJson() throws Exception {
-        type = WFSMapLayerJob.Type.GEOJSON;
+        type = MapLayerJobType.GEOJSON;
         session.setFilter(geojsonFilter);
 
         AnalysisFilter analysisFilter = new AnalysisFilter();
@@ -146,7 +147,7 @@ public class AnalysisFilterTest {
 
     @Test
     public void testHighlight() throws Exception {
-        type = WFSMapLayerJob.Type.HIGHLIGHT;
+        type = MapLayerJobType.HIGHLIGHT;
         List<String> featureIds = new ArrayList<String>();
         featureIds.add("toimipaikat.6398");
         session.getLayers().get("analysis_216_710").setHighlightedFeatureIds(featureIds);

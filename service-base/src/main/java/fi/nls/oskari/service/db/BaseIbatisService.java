@@ -111,10 +111,13 @@ public abstract class BaseIbatisService<E> implements BaseService<E> {
      */
     @SuppressWarnings("unchecked")
     public <F> List<F> queryForList(String sqlId, Object o) {
+        return (List<F>) queryForRawList(sqlId, o);
+    }
+
+    public List<Object> queryForRawList(String sqlId, Object o) {
         try {
             client = getSqlMapClient();
-            List<F> results = client.queryForList(sqlId, o);
-            return results;
+            return client.queryForList(sqlId, o);
         } catch (Exception e) {
             throw new RuntimeException("Failed to query", e);
         }
@@ -148,9 +151,24 @@ public abstract class BaseIbatisService<E> implements BaseService<E> {
     @SuppressWarnings("unchecked")
     public E queryForObject(String sqlId, String objectIdentifier) {
         try {
+            return (E) queryForRawObject(sqlId, objectIdentifier);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to query", e);
+        }
+    }
+
+    public Object queryForRawObject(String sqlId, String objectIdentifier) {
+        try {
             client = getSqlMapClient();
-            E result = (E) client.queryForObject(sqlId, objectIdentifier);
-            return result;
+            return client.queryForObject(sqlId, objectIdentifier);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to query", e);
+        }
+    }
+    public Object queryForRawObject(String sqlId, Object o) {
+        try {
+            client = getSqlMapClient();
+            return client.queryForObject(sqlId, o);
         } catch (Exception e) {
             throw new RuntimeException("Failed to query", e);
         }
@@ -166,9 +184,7 @@ public abstract class BaseIbatisService<E> implements BaseService<E> {
     @SuppressWarnings("unchecked")
     public <F> F queryForObject(String sqlId, Object o) {
         try {
-            client = getSqlMapClient();
-            F result = (F) client.queryForObject(sqlId, o);
-            return result;
+            return (F) queryForRawObject(sqlId, o);
         } catch (Exception e) {
             throw new RuntimeException("Failed to query", e);
         }
@@ -281,6 +297,14 @@ public abstract class BaseIbatisService<E> implements BaseService<E> {
         }
     }
 
+    public void update(String sqlId, Map<String, String> parameterMap) {
+        try {
+            getSqlMapClient().update(sqlId, parameterMap);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update", e);
+        }
+    }
+
     /**
      * Deletes object
      * 
@@ -329,6 +353,10 @@ public abstract class BaseIbatisService<E> implements BaseService<E> {
     public E find(int id) {
         return queryForObject(getNameSpace() + ".find", id);
     }
+    
+    public E find(long id) {
+        return queryForObject(getNameSpace() + ".find", id);
+    }
 
     /**
      * Parameterized type for finding one object
@@ -369,6 +397,10 @@ public abstract class BaseIbatisService<E> implements BaseService<E> {
      * Parameterized type for deleting object
      */
     public void delete(int id) {
+        delete(getNameSpace() + ".delete", id);
+    }
+    
+    public void delete(long id) {
         delete(getNameSpace() + ".delete", id);
     }
 

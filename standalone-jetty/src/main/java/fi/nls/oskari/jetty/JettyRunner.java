@@ -26,7 +26,8 @@ public class JettyRunner {
                 PropertyUtil.get("db.url", "jdbc:postgresql://localhost:5432/oskaridb"),
                 username,
                 password,
-                PropertyUtil.get("db.jndi.name", "jdbc/OskariPool"));
+                PropertyUtil.get("db.jndi.name", "jdbc/OskariPool"),
+                PropertyUtil.get("oskari.authentication", ""));
         server.start();
         server.join();
     }

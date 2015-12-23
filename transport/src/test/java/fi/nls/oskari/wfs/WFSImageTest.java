@@ -149,7 +149,7 @@ public class WFSImageTest {
         WFSCustomStyleStore customStyle = null;
 
         try {
-            customStyle = WFSCustomStyleStore.setJSON(custom216JSON);
+            customStyle = (WFSCustomStyleStore) WFSCustomStyleStore.setJSON(custom216JSON);
             customStyle.save();
         } catch (IOException e) {
             fail("Should not throw exception");

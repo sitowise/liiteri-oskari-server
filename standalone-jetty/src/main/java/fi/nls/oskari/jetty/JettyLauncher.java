@@ -1,8 +1,11 @@
 package fi.nls.oskari.jetty;
 
+import fi.nls.oskari.map.servlet.IdaPrincipalAuthenticationFilter;
 import fi.nls.oskari.map.servlet.JaasAuthenticationFilter;
 import fi.nls.oskari.map.servlet.MapFullServlet;
+import fi.nls.oskari.map.servlet.MapFullServletContextListener;
 import fi.nls.oskari.util.PropertyUtil;
+
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.jasper.servlet.JspServlet;
 import org.eclipse.jetty.jaas.JAASLoginService;
@@ -21,6 +24,7 @@ import javax.naming.NamingException;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.servlet.DispatcherType;
+
 import java.util.EnumSet;
 import java.util.HashMap;
 
@@ -31,9 +35,10 @@ public class JettyLauncher {
                                 String jndiDbUrl,
                                 String jndiDbUsername,
                                 String jndiDbPassword,
-                                String jndiDbPoolName) throws Exception {
+                                String jndiDbPoolName,
+                                String authenticationType) throws Exception {
         Server server = new Server(serverPort);
-        server.setHandler(createServletContext(oskariClientVersion, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, jndiDbPoolName));
+        server.setHandler(createServletContext(oskariClientVersion, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, jndiDbPoolName, authenticationType));
         return server;
     }
 
@@ -42,7 +47,8 @@ public class JettyLauncher {
                                                       String jndiDbUrl,
                                                       String jndiDbUsername,
                                                       String jndiDbPassword,
-                                                      String jndiDbPoolName) throws Exception {
+                                                      String jndiDbPoolName,
+                                                      String authenticationType) throws Exception {
         WebAppContext servletContext = new WebAppContext();
         servletContext.setConfigurationClasses(new String[]{"org.eclipse.jetty.plus.webapp.EnvConfiguration", "org.eclipse.jetty.plus.webapp.PlusConfiguration"});
         servletContext.setResourceBase("src/main/webapp");
@@ -56,22 +62,35 @@ public class JettyLauncher {
 
         // map servlet
         servletContext.addServlet(createMapServlet(oskariClientVersion), "/");
+        
+        // ServletContextListener
+        servletContext.addEventListener(new MapFullServletContextListener());
 
         // TODO: replace these with actual impls
         servletContext.addServlet(NotImplementedYetServlet.class, "/transport/*");
         servletContext.addServlet(NotImplementedYetServlet.class, "/geoserver/*");
 
         setupDatabaseConnectionInContext(servletContext, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, jndiDbPoolName);
+        setupDatabaseConnectionInContext(servletContext, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, "jdbc/omat_paikatPool");
+        setupDatabaseConnectionInContext(servletContext, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, "jdbc/analysisPool");
+        setupDatabaseConnectionInContext(servletContext, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, "jdbc/userlayerPool");
 
-        setupJaasInContext(servletContext, jndiDbPoolName);
+        setupJaasInContext(servletContext, jndiDbPoolName, authenticationType);
 
         return servletContext;
     }
 
-    private static void setupJaasInContext(WebAppContext servletContext, String jndiDbPoolName) {
-        Configuration.setConfiguration(new JNDILoginConfiguration(jndiDbPoolName));
-        servletContext.setSecurityHandler(createJaasSecurityHandler());
-        servletContext.addFilter(JaasAuthenticationFilter.class, "/", EnumSet.noneOf(DispatcherType.class));
+    private static void setupJaasInContext(WebAppContext servletContext, String jndiDbPoolName, String authenticationType) {
+    	if ("ida".equals(authenticationType)) {
+    		Configuration.setConfiguration(new IDAJNDILoginConfiguration());
+    		servletContext.setSecurityHandler(createIdaJaasSecurityHandler());
+            servletContext.addFilter(IdaPrincipalAuthenticationFilter.class, "/", EnumSet.noneOf(DispatcherType.class));
+    	}
+    	else {
+    		Configuration.setConfiguration(new JNDILoginConfiguration(jndiDbPoolName));
+    		servletContext.setSecurityHandler(createJaasSecurityHandler());
+            servletContext.addFilter(JaasAuthenticationFilter.class, "/", EnumSet.noneOf(DispatcherType.class));
+    	}               
     }
 
     private static Resource createResourceCollection() throws Exception {
@@ -125,6 +144,18 @@ public class JettyLauncher {
         securityHandler.setRealmName("OskariRealm");
         return securityHandler;
     }
+    
+    private static SecurityHandler createIdaJaasSecurityHandler() {
+        ConstraintSecurityHandler securityHandler = new ConstraintSecurityHandler();
+        JAASLoginService loginService = new JAASLoginService();
+        loginService.setName("OskariRealm");
+        loginService.setLoginModuleName("oskariLoginModule");
+        loginService.setRoleClassNames(new String[] { "fi.nls.oskari.ida.authentication.principal.IdaRolePrincipal", "org.eclipse.jetty.jaas.JAASRole"});
+        securityHandler.setLoginService(loginService);
+        securityHandler.setAuthenticator(new FormAuthenticator("/", "/?loginState=failed", true));
+        securityHandler.setRealmName("OskariRealm");
+        return securityHandler;
+    }
 
     private static class JNDILoginConfiguration extends Configuration {
         private final String jndiDbPoolName;
@@ -147,7 +178,26 @@ public class JettyLauncher {
 
             return new AppConfigurationEntry[] {
                     new AppConfigurationEntry("org.eclipse.jetty.jaas.spi.DataSourceLoginModule",
-                            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, loginModuleOptions)
+                            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, loginModuleOptions)                                                      
+            };
+        }
+    }
+    
+    private static class IDAJNDILoginConfiguration extends Configuration {
+
+        public IDAJNDILoginConfiguration() {
+        }
+
+        @Override
+        public AppConfigurationEntry[] getAppConfigurationEntry(String name) {                    
+                    HashMap<String, String> loginModuleOptions = new HashMap<String, String>();
+                    loginModuleOptions.put("debug", "true");
+                    loginModuleOptions.put("loginUrl", "http://map11.sito.fi/Idatest/authenticate");                                      
+
+                    return new AppConfigurationEntry[] {
+                            new AppConfigurationEntry("fi.nls.oskari.ida.authentication.IdaLoggingModule",
+                                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, loginModuleOptions)                    
+                    
             };
         }
     }

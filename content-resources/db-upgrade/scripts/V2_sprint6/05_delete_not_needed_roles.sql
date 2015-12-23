@@ -1,0 +1,2 @@
+delete from oskari_role_oskari_user where role_id in (select id from oskari_roles where name in ('User', 'Admin', 'liiteri_authorized_user', ''));
+delete from oskari_roles where name in ('User', 'Admin', 'liiteri_authorized_user', '');

@@ -4,8 +4,10 @@ import fi.mml.map.mapwindow.service.wms.WebMapService;
 import fi.mml.map.mapwindow.service.wms.WebMapServiceFactory;
 import fi.mml.map.mapwindow.service.wms.WebMapServiceParseException;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.JSONHelper;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -115,10 +117,13 @@ public class LayerJSONFormatterWMS extends LayerJSONFormatter {
      */
     private WebMapService buildWebMapService(final OskariLayer layer) {
         try {
-            return WebMapServiceFactory.buildWebMapService(layer.getId(), layer.getName());
+        	boolean isUserWmsLayer = (layer instanceof UserWmsLayer);
+            return WebMapServiceFactory.buildWebMapService(layer.getId(), layer.getName(), isUserWmsLayer);
         } catch (WebMapServiceParseException e) {
             log.error("Failed to create WebMapService for layer id '" + layer.getId() + "'. No Styles available");
-        }
+        } catch (ServiceException e) {
+        	log.error("Failed to create WebMapService for layer id '" + layer.getId() + "'.");
+		}
         return null;
     }
 

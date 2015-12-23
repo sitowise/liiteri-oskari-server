@@ -1,0 +1,1 @@
+insert into oskari_role_oskari_user (user_name, role_id) select user_name, (select id from oskari_roles where name like 'liiteri_user') from oskari_users where not exists (select * from oskari_role_oskari_user where oskari_users.user_name = oskari_role_oskari_user.user_name and oskari_role_oskari_user.role_id = 4);

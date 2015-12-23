@@ -16,8 +16,10 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.util.JSONHelper;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -65,7 +67,13 @@ public class GetGeoPointDataService {
         if (gfiResponse != null && !gfiResponse.isEmpty()) {
             final JSONObject response = new JSONObject();
             JSONHelper.putValue(response, TYPE, params.getLayer().getType());
-            JSONHelper.putValue(response, LAYER_ID, params.getLayer().getId());
+            
+            if (params.getLayer() instanceof UserWmsLayer) {
+            	JSONHelper.putValue(response, LAYER_ID, UserWmsLayer.PREFIX + params.getLayer().getId());
+            } else {
+            	JSONHelper.putValue(response, LAYER_ID, params.getLayer().getId());
+            }
+            
             // try transform if XSLT is provided
             final String xslt = params.getLayer().getGfiXslt();
             JSONObject respObj = null;

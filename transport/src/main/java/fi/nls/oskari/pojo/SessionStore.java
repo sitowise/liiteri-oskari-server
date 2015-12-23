@@ -44,6 +44,8 @@ public class SessionStore {
 	private Coordinate mapClick; // passed parameter - not saved
 	private GeoJSONFilter filter; // passed parameter - not saved
 	private boolean keepPrevious = false; // passed parameter - not saved
+	private boolean geomRequest = false; // passed parameter - geom property returned or not - not saved
+	private boolean sendDefaultStyle = true;
 
 	/**
 	 * Constructor with defined session key
@@ -387,6 +389,23 @@ public class SessionStore {
 	}	
 	
 	/**
+	 *  Is geometry property in feature response
+	 * @return
+	 */
+	@JsonIgnore
+	public boolean isGeomRequest() {
+		return geomRequest;
+	}
+
+	/**
+	 * Geometry property in feature response
+	 * @param geomRequest  true (yes)
+	 */
+	public void setGeomRequest(boolean geomRequest) {
+		this.geomRequest = geomRequest;
+	}
+
+	/**
 	 * Saves into redis
 	 * 
 	 * @return <code>true</code> if saved a valid session; <code>false</code>
@@ -685,5 +704,14 @@ public class SessionStore {
 				this.mapScales.isEmpty())
 			return false;
 		return true;
+	}
+
+	@JsonIgnore
+	public boolean isSendDefaultStyle() {
+		return this.sendDefaultStyle;
+	}
+	
+	public void setSendDefaultStyle(boolean sendDefaultStyle) {
+		this.sendDefaultStyle = sendDefaultStyle;
 	}
 }

@@ -3,9 +3,12 @@ package fi.nls.oskari.printout.input.maplink;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -253,8 +256,36 @@ public class MapLinkParser {
 		}
 
 		mapLink.getValues().putAll(values);
+		
+		parseCopyrightText(mapLink, layers);
 
 		return mapLink;
+	}
+
+	private void parseCopyrightText(MapLink mapLink, MapLayerJSON layers)
+	{
+		HashSet<String> copyrightTexts = new HashSet<String>();
+		
+		for (Entry<String, LayerDefinition> entry : layers.getLayerDefs().entrySet())
+		{
+			if (entry.getValue().getCopyrightText() != null) {
+				copyrightTexts.add(entry.getValue().getCopyrightText());
+			}
+		}
+		
+		StringBuffer buffer = new StringBuffer();
+		int i = 0;
+		for (String item : copyrightTexts)
+		{
+			if (i != 0) {
+				buffer.append("|");				
+			}			
+			buffer.append(item);
+			
+			i = 1;
+		}		
+		
+		mapLink.getValues().put("COPYRIGHT", buffer.toString());
 	}
 
 	int maxWidth = 2560;

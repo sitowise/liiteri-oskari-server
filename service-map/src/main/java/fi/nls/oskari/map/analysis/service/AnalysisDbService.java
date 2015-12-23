@@ -2,6 +2,8 @@ package fi.nls.oskari.map.analysis.service;
 
 import java.util.List;
 
+import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseService;
@@ -17,4 +19,8 @@ public interface AnalysisDbService extends BaseService<Analysis> {
         public void deleteAnalysis(final Analysis analysis) throws ServiceException;
         public void mergeAnalysis(final Analysis analysis, final List<Long> ids) throws ServiceException;
         public int updatePublisherName(final long id, final String uuid, final String name);
+        
+        public List<Long> getSharedAnalysisIds(long userId);
+        public List<UserGisData> getSharedAnalysis(long userId);
+        public List<UserGisData> getUnexpiredAnalysis(long userId);
 }

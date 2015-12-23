@@ -100,6 +100,7 @@ public class GetPermissionsLayerHandlers extends ActionHandler {
 
         }
 
-        ResponseHelper.writeResponse(params, root.toString());
+        ResponseHelper.writeResponseAsJson(params, root);
+        //ResponseHelper.writeResponse(params, root.toString());
     }
 }

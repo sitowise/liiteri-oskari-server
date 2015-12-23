@@ -1,7 +1,10 @@
 package fi.nls.oskari.map.userlayer.service;
 
 import com.ibatis.sqlmap.client.SqlMapSession;
+
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
+import fi.nls.oskari.domain.workspaces.WorkSpace;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
@@ -9,6 +12,10 @@ import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseIbatisService;
 
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -132,4 +139,58 @@ public class UserLayerDbServiceIbatisImpl extends
         }
         return 0;
     }
+    
+    @Override
+    public List<UserGisData> getSharedUserLayers(long userId) {
+    	List<UserGisData> resultList = queryForList(getNameSpace() + ".findSharedUserLayers", userId);
+    	
+    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
+
+	@Override
+	public List<UserGisData> getUnexpiredUserLayers(long userId) {
+		List<UserGisData> resultList = queryForList(getNameSpace() + ".findUnexpiredUserLayers", userId);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
+
+	@Override
+	public List<Long> getSharedUserLayerIds(long userId) {
+		List<Long> ids = new ArrayList<Long>();
+    	List<String> stringIds = queryForList(getNameSpace() + ".findSharedUserLayerIds", userId);
+    	for (String strId : stringIds) {
+    		int pos = strId.lastIndexOf('_');
+    		Long id = Long.parseLong(strId.substring(pos + 1));
+    		ids.add(id);
+    	}
+		return ids;
+	}
 }

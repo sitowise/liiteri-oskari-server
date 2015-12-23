@@ -19,8 +19,8 @@ public class ResponseHelper {
      */
     public static final void writeResponse(ActionParameters params, final Object response) {
         try {
+            params.getResponse().setCharacterEncoding("UTF-8");
             if(response instanceof JSONObject) {
-                params.getResponse().setCharacterEncoding("UTF-8");
                 params.getResponse().setContentType("application/json;charset=UTF-8");
             }
             params.getResponse().getWriter().print(response);
@@ -29,6 +29,32 @@ public class ResponseHelper {
             e.printStackTrace();
         }
     }
+    
+    public static final void writeResponseAsJson(ActionParameters params, final Object response) {
+        try {
+            params.getResponse().setCharacterEncoding("UTF-8");
+            params.getResponse().setContentType("application/json;charset=UTF-8");
+            params.getResponse().getWriter().print(response);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+    
+    public static final void writeResponseAsImage(ActionParameters params, final byte[] bytes) {    	
+        try {
+            params.getResponse().setCharacterEncoding("UTF-8");
+            params.getResponse().setContentType("image/png");
+            params.getResponse().getOutputStream().write(bytes, 0, bytes.length);
+            params.getResponse().getOutputStream().flush();
+            params.getResponse().getOutputStream().close(); 
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }        	    	
+    }
+    
+
 
     /**
      * Writes a generic error message as response with error code 500

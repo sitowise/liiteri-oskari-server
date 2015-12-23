@@ -52,7 +52,7 @@ public class WFSCustomStyleStoreTest {
 
     @Test
     public void testSetJSON() throws IOException {
-        customStyle = WFSCustomStyleStore.setJSON(jsonResult);
+        customStyle = (WFSCustomStyleStore) WFSCustomStyleStore.setJSON(jsonResult);
         String color = customStyle.getFillColor();
         assertTrue("should have same fill color", color.equals("#ffde00"));
     }

@@ -98,6 +98,22 @@ public class JSONHelper {
         }
         return false;
     }
+    
+    public static final boolean putNullAwareValue(final JSONObject json, final String key, final String value) {
+        try {
+        	if (value == null) {
+        		json.put(key, JSONObject.NULL);
+        	}
+        	else {
+        		json.put(key, value);	
+        	}
+            
+            return true;
+        } catch (Exception ignore) {
+            log.warn("Cant put", key, "value", value, "to json");
+        }
+        return false;
+    }
 
     /*
     // TODO: why not just have value be of type Object and remove all the duplicate methods?

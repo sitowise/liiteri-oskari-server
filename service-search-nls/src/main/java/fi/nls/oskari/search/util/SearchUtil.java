@@ -8,6 +8,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.search.channel.RegisterOfNomenclatureChannelSearchService;
 import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.PropertyUtil;
+
 import org.apache.xmlbeans.XmlObject;
 import org.json.XMLTokener;
 import org.w3c.dom.Document;
@@ -20,6 +21,7 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -206,6 +208,14 @@ public class SearchUtil {
 	
 	public static String getNameRegisterUrl() throws Exception {
 		return PropertyUtil.get(NAME_REGISTER_URL_PROPERTY);
+	}
+	
+	public static String getNameRegisterUser() throws Exception {
+		return PropertyUtil.get(NAME_REGISTER_USER_PROPERTY);
+	}
+	
+	public static String getNameRegisterPassword() throws Exception {
+		return PropertyUtil.get(NAME_REGISTER_PASSWORD_PROPERTY);
 	}
 	
 	public static URL getVillagesUrl() throws Exception {

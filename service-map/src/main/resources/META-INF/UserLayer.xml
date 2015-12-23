@@ -9,6 +9,8 @@
     <!-- Use type aliases to avoid typing the full classname every time. -->
     <typeAlias alias="UserLayer"
         type="fi.nls.oskari.domain.map.userlayer.UserLayer" />
+        
+    <typeAlias alias="UserGisData" type="fi.nls.oskari.domain.map.UserGisData" />
 
 
     <resultMap id="UserLayerResult" class="UserLayer">
@@ -21,7 +23,12 @@
         <result property="publisher_name" column="publisher_name" />
         <result property="style_id" column="style_id" />
     </resultMap>
-
+    
+    <resultMap id="UserGisDataResult" class="UserGisData">
+		<result property="dataId" column="data_id" />
+		<result property="downloadServiceUrl" column="download_service_url" />
+		<result property="expirationDate" column="expirationdate" />
+	</resultMap>
 
 
     <select id="findUserLayer" parameterClass="long" resultMap="UserLayerResult">
@@ -127,5 +134,46 @@
             publisher_name = #publisher_name:VarChar#
         where uuid = #uuid# and id = #id#
     </update>
+    
+    <select id="findSharedUserLayers" 
+        resultMap="UserGisDataResult" parameterClass="java.lang.Long">
+        select 
+            oskari_user_gis_data.data_id,
+            oskari_user_gis_data.download_service_url,
+            oskari_user_gis_data.expirationdate
+        from 
+            oskari_user_gis_data
+        INNER JOIN liiteri_sharing ON liiteri_sharing.resourceid = oskari_user_gis_data.id
+        WHERE liiteri_sharing.credentialtype = 'USER' 
+        	AND liiteri_sharing.credentialid = #userId#
+			AND liiteri_sharing.resourcetype = 'LAYER'
+        	AND oskari_user_gis_data.data_type = 'IMPORTED_PLACES'
+    </select>
+    
+	<!-- TODO: move it to java -->
+    <select id="findUnexpiredUserLayers" 
+    resultMap="UserGisDataResult" parameterClass="java.lang.Long">
+        select 
+            oskari_user_gis_data.data_id,
+            oskari_user_gis_data.download_service_url,
+            oskari_user_gis_data.expirationdate
+        from 
+            oskari_user_gis_data
+        WHERE oskari_user_gis_data.userId = #userId#
+        	AND oskari_user_gis_data.data_type = 'IMPORTED_PLACES'
+    </select>
+    
+    <select id="findSharedUserLayerIds" 
+        resultClass="java.lang.String" parameterClass="java.lang.Long">
+        select 
+            oskari_user_gis_data.data_id
+        from 
+            oskari_user_gis_data
+        INNER JOIN liiteri_sharing ON liiteri_sharing.resourceid = oskari_user_gis_data.id
+        WHERE liiteri_sharing.credentialtype = 'USER' 
+        	AND liiteri_sharing.credentialid = #userId#
+			AND liiteri_sharing.resourcetype = 'LAYER'
+        	AND oskari_user_gis_data.data_type = 'IMPORTED_PLACES'
+    </select>
 
 </sqlMap>

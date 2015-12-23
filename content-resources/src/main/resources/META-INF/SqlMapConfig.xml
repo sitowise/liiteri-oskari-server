@@ -30,4 +30,11 @@ PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
   <sqlMap resource="META-INF/BackendStatus.xml" />
   <sqlMap resource="META-INF/PublishedMap.xml" />
   <sqlMap resource="META-INF/WFSLayerConfiguration.xml" />
+  <sqlMap resource="META-INF/Groupings.xml" />
+<sqlMap resource="META-INF/GroupingThemes.xml" />
+<sqlMap resource="META-INF/GroupingThemeData.xml" />
+  <sqlMap resource="META-INF/Users.xml" />
+  <sqlMap resource="META-INF/Roles.xml" />
+  <sqlMap resource="META-INF/Announcements.xml" />
+  <sqlMap resource="META-INF/UserGisData.xml" />
 </sqlMapConfig>

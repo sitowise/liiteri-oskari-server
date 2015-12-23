@@ -150,6 +150,9 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
 
         result.setCreated((Date) data.get("created"));
         result.setUpdated((Date) data.get("updated"));
+        
+        result.setDownloadServiceUrl((String) data.get("download_service_url"));
+        result.setCopyrightInfo((String) data.get("copyright_info"));
 
         // populate groups/themes for top level layers
         if(result.getParentId() == -1) {
@@ -343,5 +346,15 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
             log.error(e, "Couldn't query list. SqlId:", sqlId);
         }
         return Collections.emptyList();
+    }
+
+	@Override
+	public OskariLayer find(long id)
+	{
+		return this.find((int)id);
+	}
+	@Override
+    public void delete(long id) {
+    	this.delete((int)id);
     }
 }

@@ -18,6 +18,7 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     public static final String TYPE_STATS = "statslayer";
     public static final String TYPE_ANALYSIS = "analysislayer";
     public static final String TYPE_USERLAYER = "userlayer";
+    public static final String TYPE_ARCGISLAYER = "arcgislayer";
 
     private int id = -1;
     private int parentId = -1;
@@ -63,6 +64,9 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     private Set<InspireTheme> inspireThemes = new HashSet<InspireTheme>();
     private Set<LayerGroup> groups = new HashSet<LayerGroup>();
     private List<OskariLayer> sublayers = new ArrayList<OskariLayer>();
+    
+    private String downloadServiceUrl;
+    private String copyrightInfo;
 
 
     public boolean isCollection() {
@@ -369,4 +373,20 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
             this.refreshRate = refreshRate;
         }
     }
+
+	public String getDownloadServiceUrl() {
+		return downloadServiceUrl;
+	}
+
+	public void setDownloadServiceUrl(String downloadServiceUrl) {
+		this.downloadServiceUrl = downloadServiceUrl;
+	}
+	
+	public String getCopyrightInfo() {
+		return this.copyrightInfo;
+	}
+
+	public void setCopyrightInfo(String copyrightInfo) {
+		this.copyrightInfo = copyrightInfo;
+	}
 }

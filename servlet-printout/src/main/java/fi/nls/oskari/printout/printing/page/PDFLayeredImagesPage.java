@@ -30,6 +30,7 @@ import org.apache.pdfbox.pdmodel.graphics.optionalcontent.PDOptionalContentPrope
 import org.apache.pdfbox.pdmodel.graphics.xobject.PDPixelMap;
 import org.apache.pdfbox.pdmodel.graphics.xobject.PDXObjectImage;
 import org.apache.pdfbox.pdmodel.markedcontent.PDPropertyList;
+import org.apache.poi.util.StringUtil;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.renderer.lite.RendererUtilities;
 import org.jsoup.Jsoup;
@@ -40,6 +41,7 @@ import org.opengis.referencing.operation.TransformException;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Point;
 
+import fi.nls.oskari.printout.config.CopyrightTitleProvider;
 import fi.nls.oskari.printout.input.content.PrintoutContent;
 import fi.nls.oskari.printout.input.content.PrintoutContentPage;
 import fi.nls.oskari.printout.input.content.PrintoutContentPart;
@@ -65,6 +67,9 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
 	private List<BufferedImage> images;
 	private Envelope env;
 	private Point centre;
+	private CopyrightTitleProvider _copyrightTitleProvider;
+	
+	public final float PX_TO_PT_FACTOR = 2.54f/72f; 
 
 	public PDFLayeredImagesPage(Page page, Options opts, PDFont font,
 			CoordinateReferenceSystem coordinateReferenceSystem,
@@ -76,6 +81,7 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
 
 		this.env = env;
 		this.centre = centre;
+		_copyrightTitleProvider = new CopyrightTitleProvider();
 	}
 
 	/**
@@ -323,8 +329,8 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
 			PDOptionalContentProperties ocprops, PDPropertyList props,
 			Envelope env, Point centre) throws IOException, TransformException {
 
-		float logoWidth = 16;
-		float logoHeight = 16;
+		float logoWidth = 24;
+		float logoHeight = 24;
 
 		PDXObjectImage xlogo = null;
 
@@ -337,18 +343,18 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
 			InputStream inp = getClass().getResourceAsStream("logo.png");
 			try {
 				BufferedImage imageBuf = ImageIO.read(inp);
-				int w = imageBuf.getWidth(null);
-				int h = imageBuf.getHeight(null);
-				BufferedImage bi = new BufferedImage(w, h,
-						BufferedImage.TYPE_4BYTE_ABGR);
-				Graphics2D g = (Graphics2D) bi.getGraphics();
-				g.drawImage(imageBuf, 0, 0, null);
-				g.dispose();
+//				int w = imageBuf.getWidth(null);
+//				int h = imageBuf.getHeight(null);
+//				BufferedImage bi = new BufferedImage(w, h,
+//						BufferedImage.TYPE_4BYTE_ABGR);
+//				Graphics2D g = (Graphics2D) bi.getGraphics();
+//				g.drawImage(imageBuf, 0, 0, null);
+//				g.dispose();
+//
+//				bi = doScaleWithFilters(bi, (int) logoWidth * 4,
+//						(int) logoHeight * 4);
 
-				bi = doScaleWithFilters(bi, (int) logoWidth * 4,
-						(int) logoHeight * 4);
-
-				xlogo = new PDPixelMap(targetDoc, bi);
+				xlogo = new PDPixelMap(targetDoc, imageBuf);
 			} finally {
 				inp.close();
 			}
@@ -382,7 +388,7 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
 			Locale l = new Locale("fi");
 			Date dte = Calendar.getInstance(l).getTime();
 
-			String dateStr = sdf.format(dte);
+			String dateStr =  sdf.format(dte);
 
 			createTextAt(contentStream, dateStr, page.getWidth() - 4f,
 					page.getHeight() - 1f, opts.getFontSize(), 0, 0, 0);
@@ -408,7 +414,38 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
 					logoHeight);
 
 		}
-
+		String copyTtile = _copyrightTitleProvider.GetCopyrightTitle();
+		float titleWidth = font.getStringWidth(copyTtile);
+		float y = 0.5f;
+		float maxWidth = 0;
+		float width = page.getMapWidthTargetInPoints(opts) * PX_TO_PT_FACTOR;
+		if (opts.getCopyrightText() != null) {			
+			String[] lines = opts.getCopyrightText().split("\\|");
+			List<String> escapedLines = new ArrayList<String>();									
+			for (String line : lines)
+			{
+				String escapedLine = StringEscapeUtils.unescapeHtml4(Jsoup.clean(
+					line, Whitelist.simpleText()));
+				escapedLines.add(escapedLine);				
+				float lineWidth = font.getStringWidth(escapedLine);
+				if (lineWidth > maxWidth)
+					maxWidth = lineWidth;													
+			}		
+			escapedLines.add(copyTtile);			
+			if (titleWidth > maxWidth)
+				maxWidth = titleWidth;							
+			float x = width - (maxWidth / 1000 * opts.getFontSize()) * PX_TO_PT_FACTOR;			
+			for (String escapedLine : escapedLines) {
+				createTextAt(contentStream, escapedLine, x, y,
+						opts.getFontSize(), 0, 0, 0);
+				y += opts.getFontSize() * PX_TO_PT_FACTOR;
+			}			
+		}
+		else
+		{
+			createTextAt(contentStream,copyTtile,width - (titleWidth / 1000 * opts.getFontSize()) * PX_TO_PT_FACTOR,y,opts.getFontSize(), 0, 0, 0);
+		}
+		
 		/* END overlay content */
 
 		contentStream.endMarkedContentSequence();

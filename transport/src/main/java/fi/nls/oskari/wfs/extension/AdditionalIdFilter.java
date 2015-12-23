@@ -1,6 +1,7 @@
 package fi.nls.oskari.wfs.extension;
 
 import com.vividsolutions.jts.geom.Coordinate;
+
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.GeoJSONFilter;
@@ -8,7 +9,8 @@ import fi.nls.oskari.pojo.Location;
 import fi.nls.oskari.pojo.SessionStore;
 import fi.nls.oskari.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.WFSFilter;
-import fi.nls.oskari.work.WFSMapLayerJob;
+import fi.nls.oskari.work.MapLayerJobType;
+
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.referencing.operation.MathTransform;
@@ -46,7 +48,7 @@ public class AdditionalIdFilter extends WFSFilter {
      * @param transform
      */
     @Override
-    public String create(final WFSMapLayerJob.Type type, final WFSLayerStore layer, final SessionStore session,
+    public String create(final MapLayerJobType type, final WFSLayerStore layer, final SessionStore session,
                          final List<Double> bounds, final MathTransform transform) {
         if(type == null || layer == null || session == null) {
             log.error("Parameters not set (type, layer, session)", type, layer, session);
@@ -55,11 +57,11 @@ public class AdditionalIdFilter extends WFSFilter {
         super.create(type, layer, session, bounds, transform, false);
 
         Filter filter = null;
-        if(type == WFSMapLayerJob.Type.HIGHLIGHT) {
+        if(type == MapLayerJobType.HIGHLIGHT) {
             log.debug("Filter: highlight");
             List<String> featureIds = session.getLayers().get(layer.getLayerId()).getHighlightedFeatureIds();
             filter = super.initFeatureIdFilter(featureIds);
-        } else if(type == WFSMapLayerJob.Type.MAP_CLICK) {
+        } else if(type == MapLayerJobType.MAP_CLICK) {
             log.debug("Filter: map click");
             super.setDefaultBuffer(session.getMapScales().get((int) session.getLocation().getZoom()));
             Coordinate coordinate = session.getMapClick();
@@ -69,7 +71,7 @@ public class AdditionalIdFilter extends WFSFilter {
             Filter idFilter = initIdFilter(layer.getLayerId(), session.getUuid());
             filter = ff.and(filter, idFilter);
 
-        } else if(type == WFSMapLayerJob.Type.GEOJSON) {
+        } else if(type == MapLayerJobType.GEOJSON) {
             log.debug("Filter: GeoJSON");
             super.setDefaultBuffer(session.getMapScales().get((int) session.getLocation().getZoom()));
             GeoJSONFilter geoJSONFilter = session.getFilter();
@@ -79,7 +81,7 @@ public class AdditionalIdFilter extends WFSFilter {
             Filter idFilter = initIdFilter(layer.getLayerId(), session.getUuid());
             filter = ff.and(filter, idFilter);
 
-        } else if(type == WFSMapLayerJob.Type.NORMAL) {
+        } else if(type == MapLayerJobType.NORMAL) {
             log.debug("Filter: normal");
             Location location;
             if(bounds != null) {

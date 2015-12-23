@@ -6,6 +6,8 @@ import fi.nls.oskari.control.*;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceIbatisImpl;
+import fi.nls.oskari.map.userowndata.GisDataDbService;
+import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.ConversionHelper;
@@ -25,6 +27,7 @@ public class DeleteUserLayerHandler extends ActionHandler {
     //private final static Logger log = LogFactory.getLogger(DeleteAnalysisDataHandler.class);
 
     private UserLayerDbService userLayerDbService = null;
+    private static final GisDataDbService gisDataService = new GisDataDbServiceImpl();
 
     public void setUserLayerDbService(final UserLayerDbService service) {
         userLayerDbService = service;
@@ -59,6 +62,11 @@ public class DeleteUserLayerHandler extends ActionHandler {
         try {
             // remove userLayer
             userLayerDbService.deleteUserLayer(userLayer);
+            
+            String dataId = "userlayer_" + userLayer.getId();
+            //remove rows related to this analysis in oskari_user_gis_data table
+            gisDataService.deleteGisData(dataId, "IMPORTED_PLACES", params.getUser().getId(), "false");
+            
             // write static response to notify success {"result" : "success"}
             ResponseHelper.writeResponse(params, JSONHelper.createJSONObject("result", "success"));
         } catch (ServiceException ex) {

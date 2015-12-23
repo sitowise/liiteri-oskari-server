@@ -96,11 +96,10 @@ public class JobQueue
                 try {
                     r.run();
                     jobs.remove(((Job) r).getKey());
-                    if(r instanceof WFSMapLayerJob) {
-                        // finish job
-                    }
                     log.debug("Finished", ((Job) r).getKey());
-                } catch (RuntimeException e) { }
+                } catch (RuntimeException e) { 
+                	log.error(e, "Runtime exception");
+                }
             }
         }
     }

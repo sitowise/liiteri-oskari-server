@@ -143,6 +143,18 @@ public class WFSLayerConfiguration {
 	public void setLayerId(String layerId) {
 		this.layerId = layerId;
 	}
+	
+    public int getLayerIdInt() {  
+    	int result = -1;
+    	
+    	result = Integer.parseInt(getLayerId());
+    	
+		return result;
+	}
+
+	public void setLayerIdInt(int layerId) {
+		this.layerId = "" + layerId;
+	}
 
 	public String getNameLocales() {
 		return nameLocales;
@@ -208,10 +220,8 @@ public class WFSLayerConfiguration {
 		GMLVersion = gMLVersion;
 	}
 
-    public String isGML2Separator() {
-        if(GML2Separator)
-            return "true";
-        return "false";
+    public boolean isGML2Separator() {
+        return this.GML2Separator;
     }
 
     public void setGML2Separator(boolean GML2Separator) {
@@ -302,40 +312,32 @@ public class WFSLayerConfiguration {
 		this.geometryType = geometryType;
 	}
 
-	public String isGetMapTiles() {
-		if(getMapTiles)
-			return "true";
-		return "false";
+	public boolean isGetMapTiles() {
+		return this.getMapTiles;
 	}
 
 	public void setGetMapTiles(boolean getMapTiles) {
 		this.getMapTiles = getMapTiles;
 	}
 
-    public String isGetHighlightImage() {
-        if(getHighlightImage)
-            return "true";
-        return "false";
+    public boolean isGetHighlightImage() {
+    	return this.getHighlightImage;
     }
 
     public void setGetHighlightImage(boolean getHighlightImage) {
         this.getHighlightImage = getHighlightImage;
     }
 
-	public String isGetFeatureInfo() {
-		if(getFeatureInfo)
-			return "true";
-		return "false";
+	public boolean isGetFeatureInfo() {
+		return this.getFeatureInfo;
 	}
 
 	public void setGetFeatureInfo(boolean getFeatureInfo) {
 		this.getFeatureInfo = getFeatureInfo;
 	}
 
-    public String isTileRequest() {
-        if(tileRequest)
-            return "true";
-        return "false";
+    public boolean isTileRequest() {
+        return this.tileRequest;
     }
 
     public void setTileRequest(boolean tileRequest) {
@@ -375,10 +377,8 @@ public class WFSLayerConfiguration {
         this.wps_params = wps_params;
     }
 
-    public String isCustomParser() {
-        if(customParser)
-            return "true";
-        return "false";
+    public boolean isCustomParser() {
+        return this.customParser;
     }
 
     public void setCustomParser(boolean customParser) {
@@ -528,7 +528,7 @@ public class WFSLayerConfiguration {
 		JedisManager.setex(KEY + this.layerId, 86400, getAsJSON()); // expire in 1 day
 	}
 
-	public void destroy(String layerId) {
+	public void destroy() {
 		JedisManager.del(KEY + this.layerId);
 	}
 

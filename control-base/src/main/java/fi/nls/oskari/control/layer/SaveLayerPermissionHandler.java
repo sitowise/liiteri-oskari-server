@@ -5,8 +5,10 @@ import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.*;
+import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -18,12 +20,13 @@ public class SaveLayerPermissionHandler extends ActionHandler {
 
     private final static Logger log = LogFactory.getLogger(SaveLayerPermissionHandler.class);
     private final static PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
+    private final static String[] AUTHORIZED_ROLES = new String [] { Role.GROUPINGS_ADMIN };
 
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
         log.debug("PERMISSION HANDLER LAYER");
 
-        if (!params.getUser().isAdmin()) {
+        if (!params.getUser().isAdmin() && !params.getUser().hasAnyRoleIn(AUTHORIZED_ROLES)) {
             throw new ActionDeniedException("Denied, user not admin");
         }
 
@@ -79,7 +82,7 @@ public class SaveLayerPermissionHandler extends ActionHandler {
                     addPermissions(permissions, Permissions.PERMISSION_TYPE_VIEW_PUBLISHED);
                 } else {
                     log.warn("Changing permissions (DELETE) by user '" + whoMakesThisModification + "': " + permissions);
-                    deletePermissions(permissions, Permissions.PERMISSION_TYPE_DOWNLOAD);
+                    deletePermissions(permissions, Permissions.PERMISSION_TYPE_VIEW_PUBLISHED);
                 }
 
 

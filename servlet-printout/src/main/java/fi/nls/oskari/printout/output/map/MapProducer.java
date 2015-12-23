@@ -6,7 +6,9 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.HashMap;
@@ -716,6 +718,48 @@ public class MapProducer {
 
 		return image;
 
+	}
+	
+	public MapProducerAdditionalData getAdditionalData(final List<LayerDefinition> layers) {
+		
+		MapProducerAdditionalData result = new MapProducerAdditionalData();
+		List<URL> legendUrls = new Vector<URL>();
+		
+		for (final LayerDefinition layerDefinition : layers) {
+			
+			if (!layerDefinition.isShowLegend())
+				continue;
+			
+			String legendUrl = layerDefinition.getLegendUrl();
+					
+			if (legendUrl == null || legendUrl.isEmpty()) {
+			        continue;
+			}
+			
+			URL url = null;
+			//Add proxy if URL is malformed
+			try {
+				url = new URL(legendUrl);	
+			}
+			catch (MalformedURLException mfe) {
+				legendUrl = ConfigValue.LAYER_LEGEND_PROXY.getConfigProperty(props) + legendUrl;
+				try {
+					url = new URL(legendUrl);	
+				}
+				catch (MalformedURLException mfe2) {
+					log.warn("Incorrect url " + legendUrl);
+				}
+			}
+			
+			if (url != null) {
+				log.info("Adding LEGEND Url for Layer " + layerDefinition.getLayerid() + ". Url " + url);
+				legendUrls.add(url);
+			}										
+		}
+		
+		result.setLegendUrls(legendUrls);
+		
+		return result;
 	}
 
 	public MapLinkWorkingSetProcessor getProcessor() {

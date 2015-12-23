@@ -532,8 +532,8 @@ public class IOHelper {
             HttpRequest.keepAlive(false);
             if (username != null && !username.isEmpty()) {
                 request = HttpRequest.post(url).basic(username, password)
-                        .contentType(contentType).connectTimeout(30)
-                        .acceptGzipEncoding().uncompress(true).trustAllCerts()
+                        .contentType(contentType).connectTimeout(CONNECTION_TIMEOUT_MS)
+                        .acceptGzipEncoding().uncompress(true).trustAllCerts().readTimeout(READ_TIMEOUT_MS)
                         .trustAllHosts().send(data);
             } else {
                 request = HttpRequest.post(url).contentType(contentType)

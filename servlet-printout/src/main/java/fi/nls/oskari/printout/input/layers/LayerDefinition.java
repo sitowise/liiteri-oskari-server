@@ -59,9 +59,10 @@ public class LayerDefinition {
 		public void setTitle(String title) {
 			this.title = title;
 		}
-
 	}
 
+	String copyrightText;
+	
 	String wmsname;
 	String wmsurl;
 
@@ -76,6 +77,8 @@ public class LayerDefinition {
 	String layerType;
 
 	boolean isCacheable = true;
+	boolean showLegend = false;
+	String legendUrl;
 
 	String credentials;
 
@@ -115,12 +118,26 @@ public class LayerDefinition {
 		def.setTileMatrixSetId(tileMatrixSetId);
 		def.setFormat(format);
 		def.setUrlTemplatesForFormat(urlTemplatesForFormat);
+		def.setCopyrightText(copyrightText);
+		def.setShowLegend(showLegend);
+		def.setLegendUrl(legendUrl);
 
 		for (LayerDefinition subdef : getSubLayers()) {
 			LayerDefinition subCopy = new LayerDefinition();
 			subdef.copyTo(subCopy);
 			def.getSubLayers().add(subCopy);
 		}
+	}
+	
+
+	public String getCopyrightText()
+	{
+		return copyrightText;
+	}
+
+	public void setCopyrightText(String copyrightText)
+	{
+		this.copyrightText = copyrightText;
 	}
 
 	public String getCredentials() {
@@ -297,4 +314,19 @@ public class LayerDefinition {
 		this.urlTemplatesForFormat = urlTemplatesForFormat;
 	}
 
+	public void setShowLegend(boolean value) {
+		this.showLegend = value;
+	}
+	
+	public boolean isShowLegend() {
+		return this.showLegend;
+	}
+
+	public void setLegendUrl(String legendUrl) {
+		this.legendUrl = legendUrl;
+	}
+
+	public String getLegendUrl() {
+		return this.legendUrl;
+	}
 }

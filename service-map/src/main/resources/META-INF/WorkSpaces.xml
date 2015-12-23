@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="WorkSpaces">
+
+	<typeAlias alias="WorkSpace" type="fi.nls.oskari.domain.workspaces.WorkSpace" />
+	<typeAlias alias="WorkSpaceSharing"
+		type="fi.nls.oskari.domain.workspaces.WorkSpaceSharing" />
+	<resultMap id="WorkSpaceResult" class="WorkSpace">
+		<result property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="expirationDate" column="expirationdate" />
+		<result property="userId" column="userid" />
+		<result property="settings" column="settings" />
+		<result property="status" column="status" />
+	</resultMap>
+
+	<resultMap id="WorkSpaceSharingResult" class="WorkSpaceSharing">
+		<result property="id" column="id" />
+		<result property="externalId" column="externalid" />
+		<result property="externalType" column="externaltype" />
+		<result property="workSpaceId" column="workspaceid" />
+		<result property="email" column="email" />
+	</resultMap>
+
+	<select id="getAllWorkSpaces" resultMap="WorkSpaceResult">
+		SELECT id,name,settings,expirationdate,userid,status FROM
+		oskari_workspaces
+	</select>
+
+	<select id="getHiddenWorkSpaceById" resultMap="WorkSpaceResult"
+		parameterClass="java.lang.Long">
+		SELECT id,name,settings,expirationdate,userid,status FROM
+		oskari_workspaces WHERE
+		id =#workspaceId# AND hidden = true
+	</select>
+
+	<select id="getUserWorkSpaces" resultMap="WorkSpaceResult"
+		parameterClass="java.lang.Long">
+		SELECT id,name,settings,expirationdate,userid,status FROM
+		oskari_workspaces WHERE
+		userid =#userId#
+	</select>
+
+	<select id="getUserVisibleWorkSpaces" resultMap="WorkSpaceResult"
+		parameterClass="java.lang.Long">
+		SELECT id,name,settings,expirationdate,userid,status FROM
+		oskari_workspaces WHERE
+		userid =#userId#
+		AND hidden = FALSE
+	</select>
+
+	<select id="getVisibleWorkSpacesAmount" parameterClass="java.lang.Long"
+		resultClass="java.lang.Long">
+		SELECT COUNT(*) FROM
+		oskari_workspaces 
+		WHERE userid = #userId#
+		AND expirationdate > current_date
+		AND HIDDEN = FALSE 
+	</select>
+	
+    <select id="maxId" resultClass="int">
+        select max(id) from oskari_workspaces
+    </select>	
+	
+	<statement id="insert" resultClass="java.lang.Long"
+		parameterClass="WorkSpace">
+		INSERT INTO oskari_workspaces(
+		name,
+		settings,
+		expirationdate,
+		userid,
+		status,
+		hidden
+		)
+		VALUES (
+		#name#,
+		#settings#,
+		#expirationDate#,
+		#userId#,
+		#status#,
+		#hidden#
+		)
+		RETURNING
+		id
+	</statement>	
+	
+	<update id="update" parameterClass="WorkSpace">
+		update
+		oskari_workspaces set
+		name = #name#,
+		settings =#settings#,
+		expirationdate =#expirationDate#,
+		userid =#userId#,
+		status = #status#
+		WHERE id
+		=#id#
+	</update>	
+	
+    <select id="find" parameterClass="long" resultMap="WorkSpaceResult">
+        select
+        id,
+        name,
+        settings,
+        expirationdate,
+        userid,
+        status
+        from
+        oskari_workspaces
+        where id = #id# 
+    </select>	
+
+	<statement id="delete" parameterClass="java.lang.Long"
+		resultClass="java.lang.Integer">
+		DELETE FROM oskari_workspaces WHERE
+		id = #id#
+	</statement>
+
+
+</sqlMap>

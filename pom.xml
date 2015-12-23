@@ -12,11 +12,14 @@
 	<name>Oskari parent POM</name>
     <description>Contains common properties and managed dependencies for the Oskari modules.</description>
 
+	
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jdk.version>1.6</jdk.version>
 		<fi.nls.oskari.version>${project.version}</fi.nls.oskari.version>
 		<fi.nls.oskari.service.version>${project.version}</fi.nls.oskari.service.version>
+		
+		<liiteri.development>true</liiteri.development>
 		
 		<javax.servlet.version>2.4</javax.servlet.version>
 		<javax.servlet.jsp.version>2.0</javax.servlet.jsp.version>
@@ -261,12 +264,15 @@
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-jaas</artifactId>
 				<version>${jetty.version}</version>
-			</dependency>
+			</dependency>		
+			
 			<dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
 				<version>${jetty.version}</version>
 			</dependency>
+			
+
 
 			<dependency>
 				<groupId>postgresql</groupId>
@@ -443,6 +449,14 @@
 				<version>${powermock.version}</version>
 				<scope>test</scope>
 			</dependency>
+			
+		<dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcomponents-client</artifactId>
+            <version>4.3.4</version>
+        </dependency>
+		
+
 
 
 		</dependencies>
@@ -504,37 +518,46 @@
 			</plugin>
 		</plugins>
 	</build>
- 	<repositories>
- 		<!-- In Project repository -->
-		<repository>
-		    <id>in-project</id>
-		    <name>In Project Repo</name>
-		    <url>file://${project.basedir}/../external-libs/</url>
-		</repository>
-	    <repository>
-	      <id>central</id>
-	      <name>Central Repository</name>
-	      <url>http://repo.maven.apache.org/maven2</url>
-	      <layout>default</layout>
-	      <snapshots>
-	        <enabled>false</enabled>
-	      </snapshots>
-	    </repository>
-		<repository>
-			<id>codehaus-snapshots</id>
-			<url>http://snapshots.repository.codehaus.org</url>
-		</repository>
-		<repository>
-			<id>maven2-repository.dev.java.net</id>
-			<name>Java.net repository</name>
-			<url>http://download.java.net/maven/2</url>
-		</repository>
-		<repository>
-			<id>osgeo</id>
-			<name>Open Source Geospatial Foundation Repository</name>
-			<url>http://download.osgeo.org/webdav/geotools/</url>
-		</repository>
-	</repositories>
+    <repositories>
+        <!-- In Project repository -->
+        <repository>
+            <id>in-project</id>
+            <name>In Project Repo</name>
+            <url>file://${project.basedir}/../external-libs/</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>http://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>maven2-repository.dev.java.net</id>
+            <name>Java.net repository</name>
+            <url>http://download.java.net/maven/2</url>
+        </repository>
+        <repository>
+            <id>thecentral</id>
+            <name>The Central repository</name>
+            <url>http://repo1.maven.org/maven2</url>
+        </repository>
+        <repository>
+            <id>osgeo</id>
+            <name>Open Source Geospatial Foundation Repository</name>
+            <url>http://download.osgeo.org/webdav/geotools/</url>
+        </repository>
+        <repository>
+            <id>boundless</id>
+            <name>Boundless Maven Repository</name>
+            <url>http://repo.boundlessgeo.com/main</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 
   <pluginRepositories>
@@ -552,26 +575,31 @@
     </pluginRepository>
   </pluginRepositories>
   
-    <modules>
-        <module>shared-test-resources</module>
+    <modules>			
+				<module>shared-test-resources</module>
+				
+				<module>service-base</module>
+				<module>service-users</module>
+				<module>service-permissions</module>
+				<module>service-map</module>
+				<module>service-search</module>
+				<module>service-search-nls</module>
+				<module>service-control</module>
 
-        <module>service-base</module>
-        <module>service-users</module>
-        <module>service-permissions</module>
-        <module>service-map</module>
+				<module>control-base</module>
+				<module>control-example</module>
+				<module>control-myplaces</module>
+				<module>content-resources</module>
+		
+		<!--
+				<module>jetty-extensions</module>
+		-->	
+				<module>servlet-map</module>		
+				<module>webapp-map</module>		
 
-        <module>service-search</module>
-        <module>service-search-nls</module>
-        <module>service-control</module>
-
-        <module>control-base</module>
-        <module>control-example</module>
-        <module>control-myplaces</module>
-        <module>content-resources</module>
-
-        <module>servlet-map</module>
-        <module>webapp-map</module>
-        <module>standalone-jetty</module>
+				<!--
+				<module>standalone-jetty</module>				
+				-->
     </modules>
 
 </project>

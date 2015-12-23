@@ -27,10 +27,6 @@
 			<artifactId>content-resources</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>fi.nls.oskari.service</groupId>
-			<artifactId>oskari-users</artifactId>
-		</dependency>
 
 		<!-- artifactId "oskari-control-base" is implied by adding extended actions -->
 		<dependency>
@@ -42,6 +38,18 @@
 			<groupId>fi.nls.oskari.service</groupId>
 			<artifactId>oskari-control-myplaces</artifactId>
 		</dependency>
+		
+		        <dependency>
+            <groupId>fi.nls.oskari.service</groupId>
+            <artifactId>oskari-search-nls</artifactId>
+        </dependency>
+		
+		<dependency>
+			<groupId>fi.nls.oskari.service</groupId>
+			<artifactId>jetty-extensions</artifactId>
+			<version>${fi.nls.oskari.service.version}</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>servlet-api</artifactId>
@@ -84,6 +92,24 @@
 	</build>
 
 	<profiles>
+		<profile>
+			<id>debug-pl</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<resources>
+					<resource>
+						<directory>src/main/resources</directory>
+						<filtering>true</filtering>
+					</resource>			
+					<resource>
+						<directory>local/resources</directory>
+						<filtering>true</filtering>
+					</resource>			
+				</resources>
+			</build>
+		</profile>
 		<profile>
 			<id>tomcat-profile</id>
 			<activation>

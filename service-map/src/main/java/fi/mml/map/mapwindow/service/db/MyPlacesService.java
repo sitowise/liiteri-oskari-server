@@ -5,6 +5,7 @@ import java.util.List;
 
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.service.db.BaseService;
 import org.json.JSONObject;
@@ -28,5 +29,8 @@ public interface MyPlacesService extends BaseService<MyPlaceCategory>{
     public boolean canModifyCategory(final User user, final String layerId);
     public Resource getResource(final long categoryId);
     public Resource getResource(final String myplacesLayerId);
-
+    
+    public List<UserGisData> getSharedMyPlaceLayers(long userId);
+    public List<UserGisData> getUnexpiredMyPlaceLayers(long userId);
+    
 }

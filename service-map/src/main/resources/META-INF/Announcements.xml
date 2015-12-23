@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="Announcements">
+	<typeAlias alias="Announcement" type="fi.nls.oskari.domain.announcements.Announcement" />
+
+	<resultMap id="AnnouncementMap" class="Announcement">
+		<result property="id" column="id" />
+		<result property="title" column="title" />
+		<result property="message" column="message" />
+		<result property="expirationDate" column="expiration_date" />
+	</resultMap>
+
+	<select id="getAllAnnouncements" resultMap="AnnouncementMap">
+		SELECT id, title, message, expiration_date
+  			FROM oskari_announcements;
+	</select>
+	
+	<statement id="insertAnnouncement" resultClass="java.lang.Long" parameterClass="Announcement">
+		INSERT INTO oskari_announcements(
+            title, message, expiration_date)
+    		VALUES (#title#, #message#, #expirationDate#)
+    	RETURNING id 
+	</statement>
+	
+	<update id="updateAnnouncement" parameterClass="Announcement">
+		UPDATE oskari_announcements SET 
+			title= #title#, 
+			message= #message#, 
+			expiration_date= #expirationDate#
+		 	WHERE 
+		 	id = #id#
+	</update>
+	
+    <statement id="deleteAnnouncement" parameterClass="java.lang.Long">
+    	DELETE FROM oskari_announcements
+ 			WHERE id = #id#;
+    </statement>
+    
+</sqlMap>

@@ -14,10 +14,13 @@ import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.map.analysis.domain.AnalysisLayer;
-import fi.nls.oskari.map.analysis.service.AnalysisDataService;
 import fi.nls.oskari.map.analysis.service.AnalysisDbService;
 import fi.nls.oskari.map.analysis.service.AnalysisDbServiceIbatisImpl;
+import fi.nls.oskari.map.layer.UserWmsLayerService;
+import fi.nls.oskari.map.layer.UserWmsLayerServiceIbatisImpl;
+import fi.nls.oskari.map.layer.formatters.LayerJSONFormatter;
 import fi.nls.oskari.view.modifier.ModifierException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,6 +29,7 @@ import fi.mml.map.mapwindow.service.db.MyPlacesService;
 import fi.mml.map.mapwindow.service.db.MyPlacesServiceIbatisImpl;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.domain.map.view.ViewTypes;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.view.modifier.ModifierParams;
@@ -49,6 +53,7 @@ public class MapfullHandler extends BundleHandler {
     private static final String KEY_NICKNAME = "nickName";
     private static final String KEY_USERUUID = "userUUID";
     private static final String KEY_USERID = "userID";
+    private static final String KEY_TOSACCEPTED = "tosAccepted";
 
 
     private final static String KEY_ROLE_ID = "id";
@@ -62,6 +67,7 @@ public class MapfullHandler extends BundleHandler {
 
     private static final String PREFIX_MYPLACES = "myplaces_";
     private static final String PREFIX_ANALYSIS = "analysis_";
+    private static final String PREFIX_USERWMS = "userwms_";
 
     private static final String PLUGIN_LAYERSELECTION = "Oskari.mapframework.bundle.mapmodule.plugin.LayerSelectionPlugin";
     private static final String PLUGIN_GEOLOCATION = "Oskari.mapframework.bundle.mapmodule.plugin.GeoLocationPlugin";
@@ -69,7 +75,10 @@ public class MapfullHandler extends BundleHandler {
 
     private static final MyPlacesService myPlaceService = new MyPlacesServiceIbatisImpl();
     private static final AnalysisDbService analysisService = new AnalysisDbServiceIbatisImpl();
+    private static final UserWmsLayerService userWmsLayerService = new UserWmsLayerServiceIbatisImpl();
 
+    private final static LayerJSONFormatter FORMATTER = new LayerJSONFormatter();
+    
     public boolean modifyBundle(final ModifierParams params) throws ModifierException {
 
         final JSONObject mapfullConfig = getBundleConfig(params.getConfig());
@@ -126,6 +135,26 @@ public class MapfullHandler extends BundleHandler {
             log.info("locationModifiedByParams -> disabling GeoLocationPlugin");
             removePlugin(PLUGIN_GEOLOCATION, mapfullConfig);
         }
+        
+        //Add statsgrid permissions here
+        //Ugly, but we can't make BundleHandler for it because there already is a ParamHandler with same name
+		
+		final List<String> permissionsList = permissionsService.getResourcesWithGrantedPermissions(
+                "operation", params.getUser(), Permissions.PERMISSION_TYPE_EXECUTE);
+
+		boolean functionalIntersectionAllowed = permissionsList.contains("statistics+functional_intersection");
+		boolean gridDataAllowed = permissionsList.contains("statistics+grid");
+		
+		try {
+			if(params.getConfig().has(BUNDLE_STATSGRID)) {
+				final JSONObject config = getBundleConfig(params.getConfig(), BUNDLE_STATSGRID);
+				config.put("functionalIntersectionAllowed", functionalIntersectionAllowed);
+                config.put("gridDataAllowed", gridDataAllowed);
+			}
+		} catch (JSONException e) {
+			log.error(e, "Adding extra permissions failed");
+		}
+        
         return false;
     }
 
@@ -158,6 +187,7 @@ public class MapfullHandler extends BundleHandler {
         final List<String> layerIdList = new ArrayList<String>();
         final List<Long> publishedMyPlaces = new ArrayList<Long>();
         final List<Long> publishedAnalysis = new ArrayList<Long>();
+        final List<Long> publishedUserWms = new ArrayList<Long>();
 
         for (int i = 0; i < layersArray.length(); i++) {
             String layerId = null;
@@ -183,6 +213,14 @@ public class MapfullHandler extends BundleHandler {
                     } else {
                         log.warn("Found analysis layer in selected. Error parsing id with category id: ", layerId);
                     }
+                } else if (layerId.startsWith(PREFIX_USERWMS)) {
+                    final long categoryId =
+                            ConversionHelper.getLong(layerId.substring(PREFIX_USERWMS.length()), -1);
+                    if (categoryId != -1) {
+                        publishedUserWms.add(categoryId);
+                    } else {
+                        log.warn("Found analysis layer in selected. Error parsing id with category id: ", layerId);
+                    }
                 } else {
                     // these should all be pointing at a layer in oskari_maplayer
                     layerIdList.add(layerId);
@@ -204,8 +242,47 @@ public class MapfullHandler extends BundleHandler {
         final JSONArray prefetch = getLayersArray(struct);
         appendMyPlacesLayers(prefetch, publishedMyPlaces, user, viewID, lang, bundleIds, useDirectURLForMyplaces, modifyURLs);
         appendAnalysisLayers(prefetch, publishedAnalysis, user, viewID, lang, bundleIds, useDirectURLForMyplaces, modifyURLs);
+        appendUserWmsLayers(prefetch, publishedUserWms, user, viewID, lang, bundleIds, useDirectURLForMyplaces, modifyURLs);
         return prefetch;
     }
+
+    private static void appendUserWmsLayers(final JSONArray layerList,
+                                             final List<Long> publishedUserWms,
+                                             final User user,
+                                             final long viewID,
+                                             final String lang,
+                                             final Set<String> bundleIds,
+                                             final boolean useDirectURL,
+                                             final boolean modifyURLs) {
+        final boolean userLayerBundlePresent = bundleIds.contains(BUNDLE_USERWMS);
+        if(userLayerBundlePresent) {
+            // skip it's an own bundle and bundle is present -> will be loaded via bundle
+            return;
+        }
+        
+        for(Long id : publishedUserWms) {
+            final UserWmsLayer userwms = userWmsLayerService.find(id);
+            if (userwms.getUserId() != user.getId()) {
+                log.info("Found user wms layer in selected that is no longer published. ViewID:",
+                        viewID, "User wms id:", id);
+                continue;
+            }
+            
+            final JSONObject json = FORMATTER.getJSON(userwms, lang, false);
+            try {
+                long layerId = json.getLong("id");
+                json.remove("id");
+                json.put("id", "userwms_" + layerId);
+            } catch (JSONException e) {
+                log.info(e, "Can't modify user wms layer id, User wms id:", id);
+                continue;
+            }
+            if(json != null) {
+                layerList.put(json);
+            }
+        }
+    }
+    
     private static void appendAnalysisLayers(final JSONArray layerList,
                                              final List<Long> publishedAnalysis,
                                              final User user,
@@ -336,6 +413,7 @@ public class MapfullHandler extends BundleHandler {
             userData.put(KEY_NICKNAME, user.getScreenname());
             userData.put(KEY_USERUUID, user.getUuid());
             userData.put(KEY_USERID, user.getId());
+            userData.put(KEY_TOSACCEPTED, user.getTosAccepted());
 
             JSONArray roles = getUserRolesJSON(user);
             userData.put(KEY_ROLES, roles);

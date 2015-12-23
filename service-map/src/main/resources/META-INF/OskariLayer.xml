@@ -44,6 +44,9 @@
 
         <parameter property="created" jdbcType="DATETIME" javaType="java.util.Date" />
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
+        
+        <parameter property="downloadServiceUrl" />
+		<parameter property="copyrightInfo" />
 
         <!-- parameter property="id" jdbcType="INTEGER" javaType="java.lang.Integer" mode="OUT" / -->
     </parameterMap>
@@ -79,6 +82,9 @@
 
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
 
+		<parameter property="downloadServiceUrl" />
+		<parameter property="copyrightInfo" />
+		
         <parameter property="id" />
     </parameterMap>
 
@@ -119,7 +125,10 @@
         m.geom,
 
         l.created,
-        l.updated
+        l.updated,
+        
+        l.download_service_url,
+		l.copyright_info
 
         FROM
         oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
@@ -167,7 +176,10 @@
         m.geom,
 
         l.created,
-        l.updated
+        l.updated,
+        
+        l.download_service_url,
+		l.copyright_info
 
         FROM
         oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
@@ -215,7 +227,10 @@
         m.geom,
 
         l.created,
-        l.updated
+        l.updated,
+        
+        l.download_service_url,
+		l.copyright_info
 
         FROM
         oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
@@ -263,7 +278,10 @@
     m.geom,
 
     l.created,
-    l.updated
+    l.updated,
+    
+    l.download_service_url,
+	l.copyright_info
 
     FROM
     oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
@@ -311,8 +329,11 @@
             refresh_rate,
 
             created,
-            updated)
-        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            updated,
+            
+            download_service_url,
+			copyright_info)
+        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     </statement>
 
     <statement id="update" parameterMap="LayerUpdateParameter">
@@ -346,7 +367,11 @@
         realtime = ?,
         refresh_rate = ?,
 
-        updated=?
+        updated=?,
+        
+        download_service_url=?,
+		copyright_info=?
+        
         WHERE id = ?
     </statement>
 </sqlMap>

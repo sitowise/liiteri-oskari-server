@@ -1,6 +1,7 @@
 package fi.nls.oskari.domain;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +19,7 @@ public class User {
 
     private String uuid = "";
     private Set<Role> roles = new HashSet<Role>();
+    private Date tosAccepted;
 
 
     public void addRole(final Role role) {
@@ -131,6 +133,12 @@ public class User {
 
     public String getFirstname() {
         return firstname;
+    }
+    public Date getTosAccepted() {
+        return tosAccepted;
+    }
+    public void setTosAccepted(Date tosAccepted) {
+        this.tosAccepted = tosAccepted;
     }
 
 }

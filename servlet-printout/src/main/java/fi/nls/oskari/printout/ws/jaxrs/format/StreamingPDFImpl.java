@@ -16,6 +16,7 @@ import javax.xml.stream.XMLStreamException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pdfbox.exceptions.COSVisitorException;
+import org.geotools.filter.expression.AddImpl;
 import org.geowebcache.GeoWebCacheException;
 import org.geowebcache.filter.request.RequestFilterException;
 import org.opengis.referencing.FactoryException;
@@ -30,6 +31,7 @@ import fi.nls.oskari.printout.input.layers.LayerDefinition;
 import fi.nls.oskari.printout.input.maplink.MapLink;
 import fi.nls.oskari.printout.output.layer.AsyncLayerProcessor;
 import fi.nls.oskari.printout.output.map.MapProducer;
+import fi.nls.oskari.printout.output.map.MapProducerAdditionalData;
 import fi.nls.oskari.printout.printing.PDFProducer;
 
 /**
@@ -44,6 +46,7 @@ public class StreamingPDFImpl implements StreamingOutput {
 	final ScaleOps scaleOps = new ScaleOps();
 
 	final ArrayList<BufferedImage> images = new ArrayList<BufferedImage>();
+	final MapProducerAdditionalData additionalData = new MapProducerAdditionalData();
 
 	final PDFProducer.Page page;
 	final private Envelope env;
@@ -101,7 +104,6 @@ public class StreamingPDFImpl implements StreamingOutput {
 		try {
 
 			for (LayerDefinition ldef : mapLink.getMapLinkLayers()) {
-
 				LayerDefinition inScale = mapLink
 						.selectLayerDefinitionForScale(ldef);
 				if (inScale == null) {
@@ -115,6 +117,9 @@ public class StreamingPDFImpl implements StreamingOutput {
 				BufferedImage image = producer.getMap(asyncProc, env,
 						mapLink.getZoom(), width, height, overlayLayers,
 						MapProducer.ImageType.ARGB, null);
+				
+				MapProducerAdditionalData additionalData = producer.getAdditionalData(overlayLayers);
+				this.additionalData.merge(additionalData);
 
 				if (image != null) {
 
@@ -289,7 +294,7 @@ public class StreamingPDFImpl implements StreamingOutput {
 			 * int width = mapLink.getWidth(); int height = mapLink.getHeight();
 			 */
 
-			pdf.createLayeredPDFFromImages(images, outputStream, env, centre);
+			pdf.createLayeredPDFFromImages(images, additionalData, outputStream, env, centre);
 
 		} catch (COSVisitorException e) {
 

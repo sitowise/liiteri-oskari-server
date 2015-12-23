@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="GroupingThemes">
+
+	<typeAlias alias="GroupingTheme"
+		type="fi.nls.oskari.domain.groupings.GroupingTheme" />
+
+	<resultMap id="GroupingThemeResult" class="GroupingTheme">
+		<result property="id" column="Id" />
+		<result property="name" column="Name" />
+		<result property="parentThemeId" column="ParentThemeId" />
+		<result property="themeType" column="ThemeType" />
+		<result property="oskariGroupingId" column="OskariGroupingId" />
+		<result property="mainThemeId" column="MainThemeId" />
+		<result property="isPublic" column="is_public" />
+		<result property="status" column="status" />
+	</resultMap>
+
+	<select id="findAll" resultMap="GroupingThemeResult">
+		select Id,
+		Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status
+		from
+		oskari_groupings_themes
+		where
+		unbound_layers = false
+	</select>
+	
+	<select id="getPublicThemes" resultMap="GroupingThemeResult">
+		select Id,Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status 
+		from oskari_groupings_themes
+		where is_public = TRUE
+	</select>
+	
+	<select id="getServicePackageThemesById" resultMap="GroupingThemeResult" parameterClass="list">
+		select Id,Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status 
+		from oskari_groupings_themes
+		where oskariGroupingId IN 
+		<iterate open="(" close=")" conjunction=",">
+			#[]#
+		</iterate>
+	</select>	
+	
+	<select id="getThemesById" resultMap="GroupingThemeResult" parameterClass="list">
+		select Id,Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status 
+		from oskari_groupings_themes
+		where id IN 
+		<iterate open="(" close=")" conjunction=",">
+			#[]#
+		</iterate>
+	</select>		
+	
+	<select id="getStatisticsThemesForParentId" resultMap="GroupingThemeResult"
+		parameterClass="java.lang.Long">
+		select Id,
+		Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status
+		from
+		oskari_groupings_themes
+		where ThemeType = 1
+		and ParentThemeId = #id#
+	</select>
+	
+	<select id="getTopLevelStatisticsThemes" resultMap="GroupingThemeResult" parameterClass="java.lang.Long">
+		SELECT Id,
+		Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status
+		FROM
+		oskari_groupings_themes
+		WHERE ThemeType = 1
+		AND ParentThemeId is null
+		AND
+		(
+			is_public = TRUE
+			OR
+			id IN (
+				SELECT resourceid FROM
+				liiteri_sharing where
+				credentialid =#id# and credentialtype ='USER' and resourcetype = 'THEME'
+			)
+		)
+	</select>
+	
+	<select id="getAllStatisticsThemes" resultMap="GroupingThemeResult">
+		select Id,
+		Name,ParentThemeId,ThemeType,OskariGroupingId,MainThemeId,is_public,status
+		from
+		oskari_groupings_themes
+		where ThemeType = 1
+	</select>
+	
+<!-- 
+	<select id="getMainStatsThemesForGroupingId" resultMap="GroupingThemeResult"
+		parameterClass="java.lang.Long">
+		select Id,
+		Name,ParentThemeId,ThemeType,OskariGroupingId from
+		oskari_groupings_themes
+		WHERE oskariGroupingId = #oskariGroupingId#
+		AND ThemeType =1
+		AND ParentThemeId is NULL
+	</select>
+	
+	<select id="getMainUnbindedStatsTheme" resultMap="GroupingThemeResult"
+		parameterClass="java.lang.Long">
+		select Id,
+		Name,ParentThemeId,ThemeType,OskariGroupingId from
+		oskari_groupings_themes
+		WHERE oskariGroupingId = #id#
+		AND ThemeType =1
+		AND ParentThemeId is NULL
+	</select>
+ -->
+</sqlMap>

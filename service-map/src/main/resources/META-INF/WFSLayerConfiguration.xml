@@ -8,7 +8,88 @@
 
     <typeAlias alias="WFSLayerConfiguration" type="fi.nls.oskari.wfs.WFSLayerConfiguration" />
     <typeAlias alias="WFSSLDStyle" type="fi.nls.oskari.domain.map.wfs.WFSSLDStyle" />
+	
+	<select id="maxId" resultClass="int">
+        select max(id) from portti_wfs_layer
+    </select>
     
+    <parameterMap class="WFSLayerConfiguration" id="WFSLayerConfigurationInsertParameter">
+        <parameter property="layerIdInt"/>
+        <parameter property="URL"/>
+        <parameter property="username"/>
+        <parameter property="password"/>
+
+        <parameter property="layerName"/>
+      
+        <parameter property="GMLGeometryProperty"/>
+        <parameter property="SRSName"/>
+        <parameter property="GMLVersion"/>
+        <parameter property="GML2Separator"/>
+        <parameter property="WFSVersion"/>
+        <parameter property="maxFeatures" />
+        <parameter property="featureNamespace"/>
+        <parameter property="featureNamespaceURI" />
+        <parameter property="geometryNamespaceURI" />
+        <parameter property="featureElement" />
+        <parameter property="outputFormat" />
+        
+        <parameter property="featureType" />
+        <parameter property="selectedFeatureParams" />
+        <parameter property="featureParamsLocales" />
+        <parameter property="geometryType" />
+        <parameter property="getMapTiles" />
+        <parameter property="getHighlightImage" />
+        <parameter property="getFeatureInfo" />
+        <parameter property="tileRequest" />
+        <parameter property="tileBuffer" />
+        <parameter property="WMSLayerId" />
+
+        <parameter property="wps_params" />
+
+        <parameter property="customParser" />
+        <parameter property="testLocation" />
+        <parameter property="testZoom" />
+    </parameterMap>	
+	
+    <parameterMap class="WFSLayerConfiguration" id="WFSLayerConfigurationUpdateParameter">        
+        <parameter property="URL"/>
+        <parameter property="username"/>
+        <parameter property="password"/>
+
+        <parameter property="layerName"/>
+      
+        <parameter property="GMLGeometryProperty"/>
+        <parameter property="SRSName"/>
+        <parameter property="GMLVersion"/>
+        <parameter property="GML2Separator"/>
+        <parameter property="WFSVersion"/>
+        <parameter property="maxFeatures" />
+        <parameter property="featureNamespace"/>
+        <parameter property="featureNamespaceURI" />
+        <parameter property="geometryNamespaceURI" />
+        <parameter property="featureElement" />
+        <parameter property="outputFormat" />
+        
+        <parameter property="featureType" />
+        <parameter property="selectedFeatureParams" />
+        <parameter property="featureParamsLocales" />
+        <parameter property="geometryType" />
+        <parameter property="getMapTiles" />
+        <parameter property="getHighlightImage" />
+        <parameter property="getFeatureInfo" />
+        <parameter property="tileRequest" />
+        <parameter property="tileBuffer" />
+        <parameter property="WMSLayerId" />
+
+        <parameter property="wps_params" />
+
+        <parameter property="customParser" />
+        <parameter property="testLocation" />
+        <parameter property="testZoom" />
+		
+		<parameter property="layerIdInt"/>
+    </parameterMap>		
+	
     <resultMap class="WFSLayerConfiguration" id="WFSLayerConfiguration">
         <result property="layerId" column="maplayer_id"/>
         <result property="nameLocales" column="locale"/>
@@ -70,9 +151,12 @@
         <property name="CacheSize" value="100"/>
     </cacheModel>
 
+	<!--
+	cacheModel="wfs-layer-cache">
+	-->
 
-    <select id="findLayer" parameterClass="int" resultMap="WFSLayerConfiguration"
-            cacheModel="wfs-layer-cache">
+    <select id="findLayer" parameterClass="int" resultMap="WFSLayerConfiguration">
+            
     	SELECT
 			l.maplayer_id,
 			map.locale,
@@ -125,6 +209,92 @@
 		LEFT OUTER JOIN portti_wfs_template_model m ON m.id = l.wfs_template_model_id
 		WHERE l.maplayer_id = #id#
     </select>
+	
+    <statement id="delete" parameterClass="int">
+        delete from portti_wfs_layer where maplayer_id=#id#
+    </statement>	
+	
+	<statement id="insert" parameterMap="WFSLayerConfigurationInsertParameter" resultClass="int">
+        <!--  resultClass="java.lang.Integer" -->
+        insert into portti_wfs_layer (
+            maplayer_id,
+            url,
+            username,
+			password,
+
+            layer_name,
+			
+            gml_geometry_property,
+            srs_name,
+			gml_version,
+            gml2_separator,
+            wfs_version,
+            max_features,
+            feature_namespace,
+			feature_namespace_uri,
+			geometry_namespace_uri,
+			feature_element,
+			output_format,
+
+            feature_type,
+            selected_feature_params,
+            feature_params_locales,
+			geometry_type,
+			get_map_tiles,
+			get_highlight_image,
+			get_feature_info,
+			tile_request,
+			tile_buffer,
+			wms_layer_id,
+			
+			wps_params,
+			
+			custom_parser,
+			test_location,
+			test_zoom)
+        values (?,?,?,?, ?, ?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?,?, ?, ?,?,?)
+    </statement>
+	
+	<statement id="update" parameterMap="WFSLayerConfigurationUpdateParameter">
+        UPDATE portti_wfs_layer 
+		SET
+            url = ?,
+            username = ?,
+			password = ?,
+
+            layer_name = ?,
+			
+            gml_geometry_property = ?,
+            srs_name = ?,
+			gml_version = ?,
+            gml2_separator = ?,
+            wfs_version = ?,
+            max_features = ?,
+            feature_namespace = ?,
+			feature_namespace_uri = ?,
+			geometry_namespace_uri = ?,
+			feature_element = ?,
+			output_format = ?,
+
+            feature_type = ?,
+            selected_feature_params = ?,
+            feature_params_locales = ?,
+			geometry_type = ?,
+			get_map_tiles = ?,
+			get_highlight_image = ?,
+			get_feature_info = ?,
+			tile_request = ?,
+			tile_buffer = ?,
+			wms_layer_id = ?,
+		
+			wps_params = ?,
+			
+			custom_parser = ?,
+			test_location = ?,
+			test_zoom = ?
+        where
+			maplayer_id = ?
+    </statement>	
     
     <select id="findStylesForLayer" parameterClass="int" resultMap="WFSSLDStyle">
     	SELECT

@@ -15,6 +15,7 @@ import fi.nls.oskari.control.view.GetAppSetupHandler;
 import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -24,6 +25,11 @@ import fi.nls.oskari.map.analysis.service.AnalysisWebProcessingService;
 import fi.nls.oskari.map.data.domain.OskariLayerResource;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
+import fi.nls.oskari.map.userowndata.GisDataDbService;
+import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
+import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbService;
+import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbServiceImpl;
+import fi.nls.oskari.map.userowndata.GisDataService;
 import fi.nls.oskari.permission.domain.Permission;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.service.ServiceException;
@@ -31,10 +37,16 @@ import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.util.ResponseHelper;
+
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import pl.sito.liiteri.arcgis.ArcgisAnalysisMapper;
+
 import java.net.URL;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Set;
 
 @OskariActionRoute("CreateAnalysisLayer")
@@ -46,6 +58,10 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     private AnalysisWebProcessingService wpsService = new AnalysisWebProcessingService();
     private AnalysisParser analysisParser = new AnalysisParser();
     private OskariLayerService mapLayerService = new OskariLayerServiceIbatisImpl();
+    
+    private static final GisDataService gisService = GisDataService.getInstance();
+    
+    private ArcgisAnalysisMapper arcgisAnalysisMapper = new ArcgisAnalysisMapper();
 
     private static PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
 
@@ -68,6 +84,8 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     private static final String ERROR_UNABLE_TO_GET_FEATURES_FOR_UNION = "Unable_to_get_features_for_union";
     private static final String ERROR_UNABLE_TO_STORE_ANALYSIS_DATA = "Unable_to_store_analysis_data";
     private static final String ERROR_UNABLE_TO_GET_ANALYSISLAYER_DATA = "Unable_to_get_analysisLayer_data";
+    private static final String ERROR_UNABLE_TO_GET_ARCGIS_FEATURES = "Unable_to_get_arcgis_features";
+    private static final String ERROR_LIMITATIONS = "server_error_key_limit";
 
 
     final private static String GEOSERVER_PROXY_BASE_URL = PropertyUtil.getOptional("analysis.baseproxy.url");
@@ -81,7 +99,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     public void handleAction(ActionParameters params) throws ActionException {
 
         // TODO: use params.getRequiredParam(PARAM_ANALYSE, ERROR_ANALYSE_PARAMETER_MISSING); instead
-        final String analyse = params.getHttpParam(PARAM_ANALYSE);
+        String analyse = params.getHttpParam(PARAM_ANALYSE);
         if (analyse == null) {
             this.MyError(ERROR_ANALYSE_PARAMETER_MISSING, params, null);
             return;
@@ -96,11 +114,25 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
         final String filter = params.getHttpParam(PARAM_FILTER);
 
         // Get baseProxyUrl
+        //http://liiteri.sitois.local
         final String baseUrl = getBaseProxyUrl(params);
         AnalysisLayer analysisLayer = null;
 
         // User
         String uuid = params.getUser().getUuid();
+        
+        // Arcgis mapping
+        if (arcgisAnalysisMapper.isArcgisAnalysis(analyse)) {
+        	try
+			{
+				analyse = arcgisAnalysisMapper.MapArcgisAnalysisConfiguration(analyse, filter);
+			} catch (Exception e)
+			{
+				this.MyError(ERROR_UNABLE_TO_GET_ARCGIS_FEATURES, params, e);
+				return;
+			}
+        }
+        
         try {
             analysisLayer = analysisParser.parseAnalysisLayer(analyse, filter, baseUrl, uuid);
         } catch (ServiceException e) {
@@ -114,6 +146,17 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
             analysis = analysisDataService.mergeAnalysisData(
                     analysisLayer, analyse, params.getUser());
         } else {
+        	
+        	//check limitations
+        	try {
+				if (!gisService.canUserAddNewDataset(params.getUser())) {
+					throw new ServiceException("server_error_key_limit");
+				}
+			} catch (ServiceException e) {
+				this.MyError(ERROR_LIMITATIONS, params, e);
+                return;
+			}
+        	
             // Generate WPS XML
             String featureSet;
             try {
@@ -173,7 +216,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
         if (analysis == null) {
             this.MyError(ERROR_UNABLE_TO_STORE_ANALYSIS_DATA, params, null);
             return;
-        }
+        }       
 
         analysisLayer.setWpsLayerId(analysis.getId()); // aka. analysis_id
         // Analysis field mapping
@@ -201,6 +244,17 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
 
         // Get analysisLayer JSON for response to front
         final JSONObject analysisLayerJSON = AnalysisHelper.getlayerJSON(analysis);
+        
+        String dataId = JSONHelper.getStringFromJSON(analysisLayerJSON, "id", null);        
+        if (dataId != null) {
+            //create reference to analysis layer in oskari_user_gis_data table
+    	    try {    		
+    			gisService.insertUserGisData(params.getUser(), dataId, "ANALYSIS", null);
+    		} catch (Exception e) {
+    			log.error(e, "Cannot save layer as user gis data");
+    			/* suppress */
+    		}	
+        }
 
         // Additional param for new layer creation when merging layers:
         // - Notify client to remove merged layers since they are removed from backend
@@ -299,5 +353,5 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
         log.error(mes.replace("_", " "), ee);
         JSONHelper.putValue(errorResponse, "error", mes);
         ResponseHelper.writeResponse(params, errorResponse);
-    }
+    }    
 }

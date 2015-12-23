@@ -12,10 +12,13 @@ import java.util.Properties;
 import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.cache.LayerUpdateSubscriber;
 import fi.nls.oskari.pojo.*;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
+import fi.nls.oskari.pojo.style.CustomStyleStoreFactory;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.utils.HttpHelper;
 import fi.nls.oskari.wfs.WFSImage;
+
 import org.codehaus.jackson.map.ObjectMapper;
 import org.cometd.bayeux.Message;
 import org.cometd.bayeux.server.BayeuxServer;
@@ -27,9 +30,11 @@ import com.vividsolutions.jts.geom.Coordinate;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.wfs.CachingSchemaLocator;
+import fi.nls.oskari.work.GeneralMapLayerJob;
 import fi.nls.oskari.work.Job;
+import fi.nls.oskari.work.JobFactory;
 import fi.nls.oskari.work.JobQueue;
-import fi.nls.oskari.work.WFSMapLayerJob;
+import fi.nls.oskari.work.MapLayerJobType;
 
 /**
  * Handles all incoming requests (channels) and manages Job queues
@@ -85,24 +90,9 @@ public class TransportService extends AbstractService {
 	public static final String PARAM_LAYER_VISIBLE = "visible";
 	public static final String PARAM_FEATURE_IDS = "featureIds";
 	public static final String PARAM_KEEP_PREVIOUS = "keepPrevious";
+	public static final String PARAM_GEOM_REQUEST = "geomRequest";
 
-    // custom style params
-    public static final String PARAM_FILL_COLOR = "fill_color";
-    public static final String PARAM_FILL_PATTERN = "fill_pattern";
-    public static final String PARAM_BORDER_COLOR = "border_color";
-    public static final String PARAM_BORDER_LINEJOIN = "border_linejoin";
-    public static final String PARAM_BORDER_DASHARRAY = "border_dasharray";
-    public static final String PARAM_BORDER_WIDTH = "border_width";
 
-    public static final String PARAM_STROKE_LINECAP = "stroke_linecap";
-    public static final String PARAM_STROKE_COLOR = "stroke_color";
-    public static final String PARAM_STROKE_LINEJOIN = "stroke_linejoin";
-    public static final String PARAM_STROKE_DASHARRAY = "stroke_dasharray";
-    public static final String PARAM_STROKE_WIDTH = "stroke_width";
-
-    public static final String PARAM_DOT_COLOR = "dot_color";
-    public static final String PARAM_DOT_SHAPE = "dot_shape";
-    public static final String PARAM_DOT_SIZE = "dot_size";
 
 	public static final String CHANNEL_INIT = "/service/wfs/init";
 	public static final String CHANNEL_ADD_MAP_LAYER = "/service/wfs/addMapLayer";
@@ -125,12 +115,29 @@ public class TransportService extends AbstractService {
 	public static final String CHANNEL_MAP_CLICK = "/wfs/mapClick";
 	public static final String CHANNEL_FILTER = "/wfs/filter";
 	public static final String CHANNEL_RESET = "/wfs/reset";
+	public static final String CHANNEL_FEATURE_GEOMETRIES = "/wfs/featureGeometries";
+	public static final String CHANNEL_DEFAULT_STYLE = "/wfs/defaultStyle";
+	public static final String CHANNEL_STATUS = "/wfs/status";
 
 	// API URL (action routes)
 	public static String SERVICE_URL;
     public static String SERVICE_URL_PATH;
     public static String SERVICE_URL_SESSION_PARAM;
     public static String SERVICE_URL_LIFERAY_PATH;
+    
+    // Error messages    
+    public static String ERROR_CONNECTION_NOT_AVAILABLE = "connection_not_available";
+    public static String ERROR_CONNECTION_BROKEN = "connection_broken";
+    public static String ERROR_NO_PERMISSIONS = "wfs_no_permissions";
+    public static String ERROR_CONFIGURATION_FAILED = "wfs_configuring_layer_failed";
+    public static String ERROR_REST_CONFIGURATION_FAILED = "arcgis_configuring_layer_failed";
+    public static String ERROR_WFS_REQUEST_FAILED = "wfs_request_failed";
+    public static String ERROR_REST_REQUEST_FAILED = "arcgis_request_failed";
+    public static String ERROR_FEATURE_PARSING = "features_parsing_failed";
+    public static String ERROR_WFS_IMAGE_PARSING = "wfs_image_parsing_failed";
+    public static String ERROR_REST_IMAGE_PARSING = "arcgis_image_parsing_failed";
+    
+    public static String JOB_FINISHED_INFO = "job_finished";
 
     // action user uid API
     private static final String UID_API = "GetCurrentUser";
@@ -144,6 +151,8 @@ public class TransportService extends AbstractService {
 	private JobQueue jobs;
 
     private LayerUpdateSubscriber sub;
+    
+    private JobFactory jobFactory;
 
 	/**
 	 * Constructs TransportService with BayeuxServer instance
@@ -179,6 +188,8 @@ public class TransportService extends AbstractService {
         // subscribe to schema channel
         sub = new LayerUpdateSubscriber();
         JedisManager.subscribe(sub, LayerUpdateSubscriber.CHANNEL);
+        
+        jobFactory = new JobFactory();
 
         CachingSchemaLocator.init(); // init schemas
 
@@ -251,8 +262,19 @@ public class TransportService extends AbstractService {
      */
     private void save(SessionStore store) {
         if (!store.save()) {
+			//log.warn("Sending reset");
             this.send(store.getClient(), CHANNEL_RESET, "reset");
         }
+    }
+	
+	private void saveAndSendErrorIfFailed(SessionStore store) {
+        if (!store.save()) {			
+			log.warn("Request failed because init parameters are invalid");
+			Map<String, Object> output = new HashMap<String, Object>();
+            output.put("once", false);
+            output.put("message", "parameters_init_invalid");
+			this.send(store.getClient(), CHANNEL_ERROR, output);
+		}	
     }
 
     /**
@@ -344,6 +366,9 @@ public class TransportService extends AbstractService {
      */
     public void processInit(ServerSession client, SessionStore store,
             String json) {
+		
+		//log.info("Init " + json);
+			
         try {
             store = SessionStore.setParamsJSON(json);
         } catch (IOException e) {
@@ -351,7 +376,8 @@ public class TransportService extends AbstractService {
         }
         store.setClient(client.getId());
         store.setUuid(getOskariUid(store));
-        this.save(store);
+			
+        this.saveAndSendErrorIfFailed(store);			
 
         // layers
         Map<String, Layer> layers = store.getLayers();
@@ -380,10 +406,11 @@ public class TransportService extends AbstractService {
     	
     	if(!store.containsLayer(layerId)) {
             Layer tmpLayer = new Layer(layerId, layerStyle);
-    		store.setLayer(layerId, tmpLayer);
+    		store.setLayer(layerId, tmpLayer);    		
         	this.save(store);
     	}
-
+    	
+    	store.setSendDefaultStyle(true);
     }
 
     /**
@@ -393,7 +420,9 @@ public class TransportService extends AbstractService {
      * @param layerId
      */
     private void initMapLayerJob(SessionStore store, String layerId) {
-        Job job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.NORMAL, store, layerId);
+    	
+    	Job job = jobFactory.newJob(this, MapLayerJobType.NORMAL, store, layerId);    	
+    	
         jobs.remove(job);
         jobs.add(job);
     }
@@ -401,12 +430,12 @@ public class TransportService extends AbstractService {
     private String getOskariUid(SessionStore store) {
         String sessionId = store.getSession();
         String route = store.getRoute();
-        log.warn( WFSMapLayerJob.getAPIUrl(sessionId) + UID_API);
+        log.warn( GeneralMapLayerJob.getAPIUrl(sessionId) + UID_API);
         String cookies = null;
         if(route != null && !route.equals("")) {
-            cookies = WFSMapLayerJob.ROUTE_COOKIE_NAME + route;
+            cookies = GeneralMapLayerJob.ROUTE_COOKIE_NAME + route;
         }
-        return HttpHelper.getHeaderValue(WFSMapLayerJob.getAPIUrl(sessionId) + UID_API, cookies, KEY_UID);
+        return HttpHelper.getHeaderValue(GeneralMapLayerJob.getAPIUrl(sessionId) + UID_API, cookies, KEY_UID);
     }
     /**
      * Removes map layer from session and jobs
@@ -423,7 +452,8 @@ public class TransportService extends AbstractService {
         String layerId = layer.get(PARAM_LAYER_ID).toString(); //(Long) layer.get(PARAM_LAYER_ID);
         if (store.containsLayer(layerId)) {
             // first remove from jobs then from store
-            Job job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.NORMAL, store, layerId);
+            Job job = jobFactory.newJob(this, MapLayerJobType.NORMAL, store, layerId); 
+            		
             jobs.remove(job);
 
             store.removeLayer(layerId);
@@ -480,7 +510,8 @@ public class TransportService extends AbstractService {
         Layer layer = store.getLayers().get(layerId);
         if(layer.isVisible()) {
             layer.setTiles(tiles); // selected tiles to render
-            Job job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.NORMAL, store, layerId);
+            Job job = jobFactory.newJob(this, MapLayerJobType.NORMAL, store, layerId);
+            		
             jobs.remove(job);
             jobs.add(job);
         }
@@ -531,7 +562,8 @@ public class TransportService extends AbstractService {
                 this.save(store);
                 if(tmpLayer.isVisible()) {
                     tmpLayer.setTiles(store.getGrid().getBounds()); // init bounds to tiles (render all)
-                    Job job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.NORMAL, store, layerId, false, true, false); // no features
+                    Job job = jobFactory.newJob(this, MapLayerJobType.NORMAL, store, layerId, false, true, false); // no features 
+                    		
                     jobs.remove(job);
                     jobs.add(job);
                 }
@@ -546,51 +578,32 @@ public class TransportService extends AbstractService {
      * @param style
      */
     private void setMapLayerCustomStyle(SessionStore store, Map<String, Object> style) {
-        if(!style.containsKey(PARAM_LAYER_ID) ||
-                !style.containsKey(PARAM_FILL_COLOR) ||
-                !style.containsKey(PARAM_FILL_PATTERN) ||
-                !style.containsKey(PARAM_BORDER_COLOR) ||
-                !style.containsKey(PARAM_BORDER_LINEJOIN) ||
-                !style.containsKey(PARAM_BORDER_DASHARRAY) ||
-                !style.containsKey(PARAM_BORDER_WIDTH) ||
-
-                !style.containsKey(PARAM_STROKE_LINECAP) ||
-                !style.containsKey(PARAM_STROKE_COLOR) ||
-                !style.containsKey(PARAM_STROKE_LINEJOIN) ||
-                !style.containsKey(PARAM_STROKE_DASHARRAY) ||
-                !style.containsKey(PARAM_STROKE_WIDTH) ||
-
-                !style.containsKey(PARAM_DOT_COLOR) ||
-                !style.containsKey(PARAM_DOT_SHAPE) ||
-                !style.containsKey(PARAM_DOT_SIZE)) {
-            log.warn("Failed to set map layer custom style");
-            return;
-        }
+//        if(!style.containsKey(PARAM_LAYER_ID) ||
+//                !style.containsKey(PARAM_FILL_COLOR) ||
+//                !style.containsKey(PARAM_FILL_PATTERN) ||
+//                !style.containsKey(PARAM_BORDER_COLOR) ||
+//                !style.containsKey(PARAM_BORDER_LINEJOIN) ||
+//                !style.containsKey(PARAM_BORDER_DASHARRAY) ||
+//                !style.containsKey(PARAM_BORDER_WIDTH) ||
+//
+//                !style.containsKey(PARAM_STROKE_LINECAP) ||
+//                !style.containsKey(PARAM_STROKE_COLOR) ||
+//                !style.containsKey(PARAM_STROKE_LINEJOIN) ||
+//                !style.containsKey(PARAM_STROKE_DASHARRAY) ||
+//                !style.containsKey(PARAM_STROKE_WIDTH) ||
+//
+//                !style.containsKey(PARAM_DOT_COLOR) ||
+//                !style.containsKey(PARAM_DOT_SHAPE) ||
+//                !style.containsKey(PARAM_DOT_SIZE)) {
+//            log.warn("Failed to set map layer custom style");
+//            return;
+//        }
+    	
+    	//TODO: validation
 
         String layerId = style.get(PARAM_LAYER_ID).toString();
-
-        WFSCustomStyleStore customStyle = new WFSCustomStyleStore();
-
-        customStyle.setLayerId(layerId);
-        customStyle.setClient(store.getClient());
-
-        customStyle.setFillColor(style.get(PARAM_FILL_COLOR).toString());
-        customStyle.setFillPattern(((Long)style.get(PARAM_FILL_PATTERN)).intValue());
-        customStyle.setBorderColor(style.get(PARAM_BORDER_COLOR).toString());
-        customStyle.setBorderLinejoin(style.get(PARAM_BORDER_LINEJOIN).toString());
-        customStyle.setBorderDasharray(style.get(PARAM_BORDER_DASHARRAY).toString());
-        customStyle.setBorderWidth(((Long)style.get(PARAM_BORDER_WIDTH)).intValue());
-
-        customStyle.setStrokeLinecap(style.get(PARAM_STROKE_LINECAP).toString());
-        customStyle.setStrokeColor(style.get(PARAM_STROKE_COLOR).toString());
-        customStyle.setStrokeLinejoin(style.get(PARAM_STROKE_LINEJOIN).toString());
-        customStyle.setStrokeDasharray(style.get(PARAM_STROKE_DASHARRAY).toString());
-        customStyle.setStrokeWidth(((Long)style.get(PARAM_STROKE_WIDTH)).intValue());
-
-        customStyle.setDotColor(style.get(PARAM_DOT_COLOR).toString());
-        customStyle.setDotShape(((Long)style.get(PARAM_DOT_SHAPE)).intValue());
-        customStyle.setDotSize(((Long)style.get(PARAM_DOT_SIZE)).intValue());
-
+        
+        CustomStyleStore customStyle = CustomStyleStoreFactory.createFromJson(layerId, store.getClient(), style);
         customStyle.save();
     }
 
@@ -606,7 +619,7 @@ public class TransportService extends AbstractService {
         if (!point.containsKey(PARAM_LONGITUDE)
                 || !point.containsKey(PARAM_LATITUDE)
                 || !point.containsKey(PARAM_KEEP_PREVIOUS)) {
-            log.warn("Failed to set a map click");
+            log.warn("Failed to set a map click", point);
             return;
         }
 
@@ -635,7 +648,8 @@ public class TransportService extends AbstractService {
         for (Entry<String, Layer> e : store.getLayers().entrySet()) {
             if (e.getValue().isVisible()) {
                 // job without image drawing
-                job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.MAP_CLICK, store, e.getValue().getId(), true, false, false);
+                job = jobFactory.newJob(this, MapLayerJobType.MAP_CLICK, store, e.getValue().getId(), true, false, false);
+                		
                 jobs.remove(job);
                 jobs.add(job);
             }
@@ -660,7 +674,8 @@ public class TransportService extends AbstractService {
         for (Entry<String, Layer> e : store.getLayers().entrySet()) {
             if (e.getValue().isVisible()) {
                 // job without image drawing
-                job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.GEOJSON, store, e.getValue().getId(), true, false, false);
+                job = jobFactory.newJob(this, MapLayerJobType.GEOJSON, store, e.getValue().getId(), true, false, false);
+                		
                 jobs.remove(job);
                 jobs.add(job);
             }
@@ -691,7 +706,8 @@ public class TransportService extends AbstractService {
 	    		this.save(store);
 	    		if(layerVisible) {
                     tmpLayer.setTiles(store.getGrid().getBounds()); // init bounds to tiles (render all)
-		    		Job job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.NORMAL, store, layerId);
+		    		Job job = jobFactory.newJob(this, MapLayerJobType.NORMAL, store, layerId); 
+		    				
 		        	jobs.remove(job);
 		        	jobs.add(job);
 	    		}
@@ -711,7 +727,8 @@ public class TransportService extends AbstractService {
             Map<String, Object> layer) {
         if (!layer.containsKey(PARAM_LAYER_ID)
                 || !layer.containsKey(PARAM_FEATURE_IDS)
-                || !layer.containsKey(PARAM_KEEP_PREVIOUS)) {
+                || !layer.containsKey(PARAM_KEEP_PREVIOUS)
+                || !layer.containsKey(PARAM_GEOM_REQUEST)) {
             log.warn("Layer features not defined");
     		return;
     	}
@@ -719,6 +736,7 @@ public class TransportService extends AbstractService {
     	String layerId = layer.get(PARAM_LAYER_ID).toString();
     	List<String> featureIds = new ArrayList<String>();
     	boolean keepPrevious;
+    	boolean geomRequest;
     	
     	Object[] tmpfids = (Object[])layer.get(PARAM_FEATURE_IDS);
     	for(Object obj : tmpfids) {
@@ -727,12 +745,15 @@ public class TransportService extends AbstractService {
     	
     	keepPrevious = (Boolean)layer.get(PARAM_KEEP_PREVIOUS);
     	store.setKeepPrevious(keepPrevious);
+    	geomRequest = (Boolean) layer.get(PARAM_GEOM_REQUEST);
+    	store.setGeomRequest(geomRequest);
     	
     	if(store.containsLayer(layerId)) {
     		store.getLayers().get(layerId).setHighlightedFeatureIds(featureIds);
     		if(store.getLayers().get(layerId).isVisible()) {
             	// job without feature sending
-    			Job job = new WFSMapLayerJob(this, WFSMapLayerJob.Type.HIGHLIGHT, store, layerId, false, true, true);
+    			Job job = jobFactory.newJob(this, MapLayerJobType.HIGHLIGHT, store, layerId, false, true, true); 
+    					
 	        	jobs.remove(job);
 	        	jobs.add(job);
     		}

@@ -12,7 +12,10 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.map.layout.OskariLayoutWorker;
 import fi.nls.oskari.service.ProxyService;
 import fi.nls.oskari.util.JSONHelper;
+
 import org.apache.commons.codec.binary.Base64;
+import org.geotools.data.wms.xml.WMSDescribeLayerTypes._LayerDescription;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -55,7 +58,7 @@ public class GetPreviewHandler extends ActionHandler {
     // Tiles json param keys
     private static final String KEY_TILES = "tiles";
     private static final String KEY_BBOX = "bbox";
-    private static final String KEY_IS_STATS = "action_route=GetStatsTile";
+    private static final String KEY_IS_STATS = "action_route=GetArcGisStatsTile";
     private static final String KEY_URL = "url";
     private static final String VALUE_STATSLAYER = "statslayer";
 
@@ -130,7 +133,8 @@ public class GetPreviewHandler extends ActionHandler {
             con.setDoInput(true);
             HttpURLConnection.setFollowRedirects(false);
             con.setUseCaches(false);
-            con.setRequestProperty(HEADER_CONTENT_TYPE, "application/json");
+            con.setRequestProperty(HEADER_CONTENT_TYPE, "application/json;charset=UTF-8");
+            con.setRequestProperty("Accept-Charset", "UTF-8");
             con.connect();
             if (log.isDebugEnabled()) {
                 log.debug(jsonprint.toString(2));
@@ -141,6 +145,8 @@ public class GetPreviewHandler extends ActionHandler {
             final byte[] presponse = IOHelper.readBytes(con.getInputStream());
             // Save plot for future use
             if (!file_save.isEmpty()) savePdfPng(presponse, file_save, pformat);
+            
+            //savePdfPng(presponse, "GETPREVIEWFINAL", pformat);
 
             final String contentType = con.getHeaderField(HEADER_CONTENT_TYPE);
             response.addHeader(HEADER_CONTENT_TYPE, contentType);
@@ -262,7 +268,7 @@ public class GetPreviewHandler extends ActionHandler {
             final JSONArray fullLayersConfigJson = MapfullHandler
                     .getFullLayerConfig(configLayers, params.getUser(), params
                             .getLocale().getLanguage(),
-                            PRINT_VIEW, ViewTypes.PRINT, Collections.EMPTY_SET, useDirectURLForMyplaces);
+                            PRINT_VIEW, ViewTypes.PRINT, Collections.EMPTY_SET, useDirectURLForMyplaces);                       
 
             // GeoJson graphics layers + styles
             if (geojs != null) {
@@ -279,20 +285,56 @@ public class GetPreviewHandler extends ActionHandler {
 
                     JSONArray tiles = getTilesJSON(params);
                     addTiles2Layers(fullLayersConfigJson, tiles);
-
+                    fixStatsOrganization(fullLayersConfigJson, tiles);
                 }
-        //    }
-
-            jsonprint.put(KEY_LAYERS, fullLayersConfigJson);
+        //    }            
+                
+            jsonprint.put(KEY_LAYERS, fullLayersConfigJson);                        
 
         } catch (Exception e) {
+        	log.error(e);
             throw new ActionException("Failed to create image", e);
         }
 
         return jsonprint;
     }
 
-    private JSONArray getTilesJSON(ActionParameters params)
+    private void fixStatsOrganization(JSONArray fullLayersConfigJson, JSONArray tilesConfig)
+	{
+    	for (int i = 0; i < fullLayersConfigJson.length(); i++)
+		{
+			try
+			{
+				JSONObject layerObj = fullLayersConfigJson.getJSONObject(i);
+				if ("statslayer".equals(layerObj.get("type"))) {
+					String layerId = layerObj.getString("id");
+					JSONObject indicatorData = null;
+					for (int j = 0; j < tilesConfig.length(); j++)
+					{
+						if (!tilesConfig.getJSONObject(j).has(layerId))
+							continue;
+						JSONArray tileConfig = tilesConfig.getJSONObject(j).getJSONArray(layerId);
+						for (int k = 0; k < tileConfig.length(); k++)
+						{
+							if (tileConfig.getJSONObject(k).has("indicator")) {
+								indicatorData = tileConfig.getJSONObject(k).getJSONObject("indicator");
+								break;
+							}
+						}
+					}
+					
+					if (indicatorData != null && indicatorData.has("dataSource"))
+						layerObj.put("copyrightInfo", indicatorData.get("dataSource"));
+				}
+				
+			} catch (JSONException e)
+			{
+				log.warn(e, "Cannot get layer configuration");
+			}
+		}
+	}
+
+	private JSONArray getTilesJSON(ActionParameters params)
             throws ActionException {
         JSONArray tilesjs = null;
         try {
@@ -343,6 +385,7 @@ public class GetPreviewHandler extends ActionHandler {
                 JSONObject layer = geojs.getJSONObject(i);
                 JSONObject geojslayer = new JSONObject();
                 Double opa = 0.0;
+                boolean opacityPresent = false;
 
                 Iterator<?> keys = layer.keys();
 
@@ -380,9 +423,12 @@ public class GetPreviewHandler extends ActionHandler {
                                                 JSONObject defa = stylemap
                                                         .getJSONObject(KEY_GJS_DEFAULT);
                                                 if (defa
-                                                        .has(KEY_GJS_FILLOPACITY))
-                                                    opa = defa
+                                                        .has(KEY_GJS_FILLOPACITY)) {
+                                                	opa = defa
                                                             .getDouble(KEY_GJS_FILLOPACITY);
+                                                	opacityPresent = true;
+                                                }
+                                                    
                                             }
                                         }
                                     }
@@ -395,7 +441,7 @@ public class GetPreviewHandler extends ActionHandler {
                     }
 
                 }
-                if (opa > -1.0 && opa < 1.001) {
+                if (opacityPresent && opa > -1.0 && opa < 1.001) {
                     opa = opa * 100;
                     geojslayer.accumulate(KEY_GJS_OPACITY, Integer.toString(opa
                             .intValue())); // fillOpacity
@@ -440,44 +486,51 @@ public class GetPreviewHandler extends ActionHandler {
                         // There is only one key
                         if (keys.hasNext()) {
                             String key = (String) keys.next();
-                            // Stats layer in one tile
-                            JSONObject tile0 = tile.getJSONArray(key).getJSONObject(0);
-                            List boxpoints = new ArrayList();
-                            boxpoints.add(minxy.getInt(0));
-                            boxpoints.add(minxy.getInt(1));
-                            boxpoints.add(maxxy.getInt(0));
-                            boxpoints.add(maxxy.getInt(1));
+                            // Stats layer in one tile                            
+                            for (int ix = 0; ix < tile.getJSONArray(key).length(); ix++)
+                            {															
+                            	JSONObject tile0 = tile.getJSONArray(key).getJSONObject(ix);
+                            	List boxpoints = new ArrayList();
+                            	boxpoints.add(minxy.getInt(0));
+                            	boxpoints.add(minxy.getInt(1));
+                            	boxpoints.add(maxxy.getInt(0));
+                            	boxpoints.add(maxxy.getInt(1));
 
-                            tile0.remove(KEY_BBOX);
-                            tile0.put(KEY_BBOX, boxpoints);
+                            	tile0.remove(KEY_BBOX);
+                            	tile0.put(KEY_BBOX, boxpoints);
 
-                            // replace &BBOX, WIDTH and HEIGHT
-                            // &BBOX=-508380,5983042,1543620,7765042&WIDTH=1539&HEIGHT=1336
-                            String myurl = tile0.getString(KEY_URL);
-                            String[] tem1 = myurl.split("&");
-                            for (int i = 0; i < tem1.length; i++) {
-                                if (tem1[i].contains("BBOX")) {
-                                    tem1[i] = "BBOX=" + boxpoints.get(0).toString()
-                                            + "," + boxpoints.get(1).toString() + ","
-                                            + boxpoints.get(2).toString() + ","
-                                            + boxpoints.get(3).toString();
-                                } else if (tem1[i].contains("WIDTH")) {
-                                    tem1[i] = "WIDTH=" + Integer.toString(targetWidth);
-                                } else if (tem1[i].contains("HEIGHT")) {
-                                    tem1[i] = "HEIGHT="
-                                            + Integer.toString(targetHeight);
-                                }
+                            	// replace &BBOX, WIDTH and HEIGHT or SIZE (for REST)
+                            	// &BBOX=-508380,5983042,1543620,7765042&WIDTH=1539&HEIGHT=1336
+                            	String myurl = tile0.getString(KEY_URL);
+                            	String[] tem1 = myurl.split("&");
+                            	for (int i = 0; i < tem1.length; i++) {
+                            		if (tem1[i].contains("BBOX")) {
+                            			tem1[i] = "BBOX=" + boxpoints.get(0).toString()
+                            					+ "," + boxpoints.get(1).toString() + ","
+                            					+ boxpoints.get(2).toString() + ","
+                            					+ boxpoints.get(3).toString();
+                            		} else if (tem1[i].contains("WIDTH")) {
+                            			tem1[i] = "WIDTH=" + Integer.toString(targetWidth);
+                            		} else if (tem1[i].contains("HEIGHT")) {
+                            			tem1[i] = "HEIGHT="
+                            					+ Integer.toString(targetHeight);
+                            		} else if (tem1[i].contains("SIZE")) {
+                            			tem1[i] = "SIZE="
+                            					+ Integer.toString(targetWidth)
+                            					+ ","
+                            					+ Integer.toString(targetHeight);
+                            		}
+                            	}
+                            	// new url
+                            	myurl = "";
+                            	for (int i = 0; i < tem1.length; i++) {
+                            		myurl = myurl + tem1[i] + "&";
+                            	}
+                            	myurl = myurl.substring(0, myurl.length() - 1);
+
+                            	tile0.remove(KEY_URL);
+                            	tile0.put(KEY_URL, myurl);
                             }
-                            // new url
-                            myurl = "";
-                            for (int i = 0; i < tem1.length; i++) {
-                                myurl = myurl + tem1[i] + "&";
-                            }
-                            myurl = myurl.substring(0, myurl.length() - 1);
-
-                            tile0.remove(KEY_URL);
-                            tile0.put(KEY_URL, myurl);
-
                         }
                     }
                 }

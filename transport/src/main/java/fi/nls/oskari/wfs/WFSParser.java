@@ -419,7 +419,6 @@ public class WFSParser {
         if(geometry == null || geometry.getCoordinates().length == 0) {
             return null;
         }
-
         return geometry.getCentroid();
     }
 

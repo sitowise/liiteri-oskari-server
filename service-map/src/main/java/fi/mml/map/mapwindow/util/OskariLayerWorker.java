@@ -90,6 +90,7 @@ public class OskariLayerWorker {
         start = System.currentTimeMillis();
         final Set<String> editAccessList = permissionsService.getEditPermissions();
         log.debug("Edit permissions loaded in", System.currentTimeMillis() - start, "ms");
+        final Set<String> downloadAccessList = permissionsService.getDownloadPermissions();
 
         final JSONArray layersList = new JSONArray();
         start = System.currentTimeMillis();
@@ -105,7 +106,7 @@ public class OskariLayerWorker {
                 //log.debug("Generated JSON");
                 if (layerJson != null) {
                     //log.debug("Generating permissions JSON");
-                    JSONObject permissions = getPermissions(user, permissionKey, permissionsList, editAccessList);
+                    JSONObject permissions = getPermissions(user, permissionKey, permissionsList, editAccessList, downloadAccessList);
                     JSONHelper.putValue(layerJson, "permissions", permissions);
                     if(permissions.optBoolean("edit")) {
                         // has edit rights, alter JSON/add info for admin bundle
@@ -180,6 +181,11 @@ public class OskariLayerWorker {
             JSONHelper.putValue(adminData, "inspireId", layer.getInspireTheme().getId());
         }
     }
+    
+    public static JSONObject getPermissions(final User user, final String layerPermissionKey,
+            final Set<String> permissionsList, final Set<String> editAccessList) {
+    	return getPermissions(user, layerPermissionKey, permissionsList, editAccessList, null);
+    }
 
     /**
      * Create permission information for JSON
@@ -190,7 +196,7 @@ public class OskariLayerWorker {
      * @param editAccessList     List of user edit permissions
      */
     public static JSONObject getPermissions(final User user, final String layerPermissionKey,
-                                             final Set<String> permissionsList, final Set<String> editAccessList) {
+                                             final Set<String> permissionsList, final Set<String> editAccessList, final Set<String> downloadAccessList) {
 
         final JSONObject permission = new JSONObject();
         if (user.isAdmin()) {
@@ -208,9 +214,27 @@ public class OskariLayerWorker {
                 }
             }
         }
+        
+        if (downloadAccessList != null) {
+        	for (Role role : user.getRoles()) {
+                if (downloadAccessList.contains(layerPermissionKey + ":" + role.getId())) {
+                    JSONHelper.putValue(permission, "download", true);
+                }
+            }	
+        }
+        
+        
         return permission;
     }
+    
+    public static JSONObject getAllowedPermissions() {
+        final JSONObject permissions = new JSONObject();
+        JSONHelper.putValue(permissions, "edit", true);
+        JSONHelper.putValue(permissions, "publish", PUBLICATION_PERMISSION_OK);
 
+        return permissions;
+    }
+    
     private static String getPermissionType(final boolean isPublished) {
         if (isPublished) {
             return Permissions.PERMISSION_TYPE_VIEW_PUBLISHED;

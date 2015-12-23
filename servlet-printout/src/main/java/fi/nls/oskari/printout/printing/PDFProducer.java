@@ -34,6 +34,7 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Point;
 
 import fi.nls.oskari.printout.input.content.PrintoutContent;
+import fi.nls.oskari.printout.output.map.MapProducerAdditionalData;
 import fi.nls.oskari.printout.printing.page.PDFContentPage;
 import fi.nls.oskari.printout.printing.page.PDFLayeredImagesPage;
 import fi.nls.oskari.printout.printing.page.PDFLegendPage;
@@ -55,6 +56,7 @@ public class PDFProducer {
 		Float[] pageMapRect = null;
 		String pageTitle;
 		String pageTemplate;
+		String copyrightText;
 		float fontSize = 12f;
 		PrintoutContent content = null;
 
@@ -147,6 +149,15 @@ public class PDFProducer {
 
 		public void setContent(PrintoutContent content) {
 			this.content = content;
+		}
+
+		public String getCopyrightText()
+		{
+			return this.copyrightText;
+		}
+		
+		public void setCopyrightText(String copyrightText) {
+			this.copyrightText = copyrightText;
 		}
 
 	};
@@ -338,16 +349,16 @@ public class PDFProducer {
 		}
 	}
 
-	public void createLayeredPDFFromImages(List<BufferedImage> images,
+	public void createLayeredPDFFromImages(List<BufferedImage> images, MapProducerAdditionalData additionalData,
 			OutputStream outputStream, Envelope env, Point centre)
 			throws Exception {
 
 		PDDocument targetDoc = createDoc();
 
 		try {
-			createLayeredPDFPages(targetDoc, images, env, centre);
+			createLayeredPDFPages(targetDoc, images, additionalData, env, centre);
 			createMetadata(targetDoc);
-			createIcc(targetDoc);
+			//createIcc(targetDoc);
 			shaveTemplatePages(targetDoc);
 
 			targetDoc.save(outputStream);
@@ -385,13 +396,13 @@ public class PDFProducer {
 	 *            The file to write to the pdf to.
 	 * @throws Exception
 	 */
-	public void createLayeredPDFFromImages(List<BufferedImage> images,
+	public void createLayeredPDFFromImages(List<BufferedImage> images, MapProducerAdditionalData additionalData,
 			String outputFile, Envelope env, Point centre) throws Exception {
 		PDDocument targetDoc = createDoc();
 		try {
-			createLayeredPDFPages(targetDoc, images, env, centre);
+			createLayeredPDFPages(targetDoc, images, additionalData, env, centre);
 			createMetadata(targetDoc);
-			createIcc(targetDoc);
+			//createIcc(targetDoc);
 
 			shaveTemplatePages(targetDoc);
 
@@ -406,7 +417,7 @@ public class PDFProducer {
 	}
 
 	void createLayeredPDFPages(PDDocument targetDoc,
-			List<BufferedImage> images, Envelope env, Point centre)
+			List<BufferedImage> images, MapProducerAdditionalData additionalData, Envelope env, Point centre)
 			throws IOException, TransformException {
 
 		InputStream fontStream = getClass().getResourceAsStream(
@@ -433,18 +444,15 @@ public class PDFProducer {
 			}
 		}
 
-		if (opts.isPageLegend()) {
-
-			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font);
-
+		if (opts.isPageLegend() && additionalData.getLegendUrls().size() > 0) {
+			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font, additionalData.getLegendUrls());
 			pageLegend.createPages(targetDoc, pageCounter);
-
 		}
 
 	}
 
 	void createLayeredPDFPagesWithTemplate(PDDocument targetDoc,
-			List<BufferedImage> images, int width, int height, Envelope env,
+			List<BufferedImage> images, MapProducerAdditionalData additionalData, int width, int height, Envelope env,
 			Point centre, String templateResource) throws IOException,
 			TransformException {
 
@@ -472,9 +480,9 @@ public class PDFProducer {
 			}
 		}
 
-		if (opts.isPageLegend()) {
+		if (opts.isPageLegend() && additionalData.getLegendUrls().size() > 0) {
 
-			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font);
+			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font, additionalData.getLegendUrls());
 
 			pageLegend.createPages(targetDoc, pageCounter);
 
@@ -549,7 +557,7 @@ public class PDFProducer {
 			oi.setRegistryName("http://www.color.org");
 
 			PDDocumentCatalog cat = targetDoc.getDocumentCatalog();
-			cat.addOutputIntent(oi);
+			cat.addOutputIntent(oi);		
 
 		} finally {
 			colorProfile.close();

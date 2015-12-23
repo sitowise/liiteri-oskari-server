@@ -1,0 +1,1 @@
+ALTER TABLE oskari_groupings ADD COLUMN mapstate text;

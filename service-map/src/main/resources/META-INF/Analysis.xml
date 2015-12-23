@@ -10,7 +10,7 @@
     <typeAlias alias="Analysis"
         type="fi.nls.oskari.domain.map.analysis.Analysis" />
 
-
+	<typeAlias alias="UserGisData" type="fi.nls.oskari.domain.map.UserGisData" />
 
     <resultMap id="AnalysisResult" class="Analysis">
         <result property="id" column="id" />
@@ -32,6 +32,12 @@
         <result property="select_to_data" column="select_to_data" />
 
     </resultMap>
+    
+    <resultMap id="UserGisDataResult" class="UserGisData">
+		<result property="dataId" column="data_id" />
+		<result property="downloadServiceUrl" column="download_service_url" />
+		<result property="expirationDate" column="expirationdate" />
+	</resultMap>
 
 
 
@@ -214,5 +220,45 @@
             publisher_name = #publisher_name:VarChar#
         where uuid = #uuid# and id = #id#
     </update>
+    
+    <select id="findSharedAnalysisIds" 
+        resultClass="java.lang.String" parameterClass="java.lang.Long">
+        select 
+            oskari_user_gis_data.data_id
+        from 
+            oskari_user_gis_data
+        INNER JOIN liiteri_sharing ON liiteri_sharing.resourceid = oskari_user_gis_data.id
+        WHERE liiteri_sharing.credentialtype = 'USER' 
+        	AND liiteri_sharing.credentialid = #userId#
+			AND liiteri_sharing.resourcetype = 'LAYER'
+        	AND oskari_user_gis_data.data_type = 'ANALYSIS'
+    </select>
+    
+    <select id="findSharedAnalysis" 
+        resultMap="UserGisDataResult" parameterClass="java.lang.Long">
+        select 
+            oskari_user_gis_data.data_id,
+            oskari_user_gis_data.download_service_url,
+            oskari_user_gis_data.expirationdate
+        from 
+            oskari_user_gis_data
+        INNER JOIN liiteri_sharing ON liiteri_sharing.resourceid = oskari_user_gis_data.id
+        WHERE liiteri_sharing.credentialtype = 'USER' 
+        	AND liiteri_sharing.credentialid = #userId#
+			AND liiteri_sharing.resourcetype = 'LAYER'
+        	AND oskari_user_gis_data.data_type = 'ANALYSIS'
+    </select>
+    
+    <select id="findUnexpiredAnalysis" 
+    resultMap="UserGisDataResult" parameterClass="java.lang.Long">
+        select 
+            oskari_user_gis_data.data_id,
+            oskari_user_gis_data.download_service_url,
+            oskari_user_gis_data.expirationdate
+        from 
+            oskari_user_gis_data
+        WHERE oskari_user_gis_data.userId = #userId#
+        	AND oskari_user_gis_data.data_type = 'ANALYSIS'
+    </select>
 
 </sqlMap>

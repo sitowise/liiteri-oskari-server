@@ -1,18 +1,24 @@
 package fi.nls.oskari.printout.printing.page;
 
+import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
 
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
@@ -42,16 +48,20 @@ import fi.nls.oskari.printout.printing.PDPageContentStream;
  */
 public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 
+    private static Log log = LogFactory.getLog(PDFLegendPage.class);
+	public final float PT_TO_PX_FACTOR = 72f/2.54f; 
+	
 	class LegendImage {
 		PDXObjectImage ximage;
 		int w;
 		int h;
-
 	}
+	
+	private List<URL> imageUrls;
 
-	public PDFLegendPage(Page page, Options opts, PDFont font) {
+	public PDFLegendPage(Page page, Options opts, PDFont font, List<URL> imageUrls) {
 		super(page, opts, font);
-
+		this.imageUrls = imageUrls;
 	}
 
 	public void createPages(PDDocument targetDoc, PageCounter pageCounter)
@@ -75,15 +85,117 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 		}
 
 		PDPropertyList props = new PDPropertyList();
-		resources.setProperties(props);
+		resources.setProperties(props);		
 
 		PDPageContentStream contentStream = page.createContentStreamTo(
 				targetDoc, targetPage, opts.getPageTemplate() != null);
 
-		createTextLayerOverlay(targetDoc, contentStream, ocprops, props);
+		Vector<LegendImage> legendImages = new Vector<LegendImage>();		
+		createLegendImages(targetDoc, legendImages, this.imageUrls);
+		
+		createMapLayersOverlay(targetDoc, targetPage, contentStream, ocprops,
+				props, legendImages);
+		
+		createTextLayerOverlay(targetDoc, contentStream, ocprops, props);				
 		
 		contentStream.close();
 
+	}
+	
+	protected void createLegendImages(PDDocument targetDoc,
+			List<LegendImage> legendImages, List<URL> urls)
+			throws IOException {
+
+		List<BufferedImage> images = new Vector<BufferedImage>();
+		
+		for (URL url : this.imageUrls)
+		{
+			BufferedImage image = ImageIO.read(url);
+			if(image != null) {
+			    images.add(image);
+			} else {
+			    log.warn("No legend graphic found " + url);
+			}
+		}				
+		
+		legendImages.addAll(fitToPageHeight(targetDoc, images));
+	}
+	
+	protected void createMapLayersOverlay(PDDocument targetDoc,
+			PDPage targetPage, PDPageContentStream contentStream,
+			PDOptionalContentProperties ocprops, PDPropertyList props,
+			Vector<LegendImage> legendImages) throws IOException {
+
+		float f[] = { 1.0f, 1.5f };
+
+		if (opts.getPageMapRect() != null) {
+			f[0] = opts.getPageMapRect()[0];
+			f[1] = opts.getPageMapRect()[1];
+		}
+//		int width = page.getMapWidthTargetInPoints(opts);
+//		int height = page.getMapHeightTargetInPoints(opts);
+
+		page.getTransform().transform(f, 0, f, 0, 1);
+		
+		PDOptionalContentGroup layerGroup = new PDOptionalContentGroup("legend");
+		ocprops.addGroup(layerGroup);				
+
+		COSName mc0 = COSName.getPDFName("MClegend");
+		props.putMapping(mc0, layerGroup);
+		/* PDFont font = PDType1Font.HELVETICA_BOLD; */
+		contentStream.beginMarkedContentSequence(COSName.OC, mc0);
+
+		for (LegendImage legendImage : legendImages) {
+			
+			PDXObjectImage ximage = legendImage.ximage;
+			contentStream.drawXObject(ximage, f[0], f[1], legendImage.w, legendImage.h);			
+			f[1] += legendImage.h;
+		}
+		
+		contentStream.endMarkedContentSequence();
+	}
+
+
+	private List<LegendImage> fitToPageHeight(PDDocument targetDoc, List<BufferedImage> images) throws IOException
+	{
+		Vector<LegendImage> legendImages = new Vector<LegendImage>();
+		float pageHeight = page.getHeight() * PT_TO_PX_FACTOR;
+		float totalLegendHeight = 0;
+		for (BufferedImage image : images) {
+			totalLegendHeight += image.getHeight();
+		}	
+		
+		for (BufferedImage image : images) {
+			LegendImage legendImage = new LegendImage();
+			int width = image.getWidth();
+	    	int height = image.getHeight();
+			
+			if (totalLegendHeight > pageHeight) {
+				float factor = pageHeight / totalLegendHeight;
+				int newWidth = (int) (width * factor);
+				int newHeight = (int) (height * factor);
+				BufferedImage resizedImage = new BufferedImage(newWidth, newHeight, image.getType());
+				Graphics2D g = resizedImage.createGraphics();
+				g.drawImage(image, 0, 0, newWidth, newHeight, null);				
+				g.setComposite(AlphaComposite.Src);
+				g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+				g.setRenderingHint(RenderingHints.KEY_RENDERING,RenderingHints.VALUE_RENDER_QUALITY);
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+				g.dispose();
+				
+				legendImage.ximage = new PDPixelMap(targetDoc, resizedImage);
+	
+				legendImage.w = newWidth;
+		    	legendImage.h = newHeight;
+			} else {
+				legendImage.ximage = new PDPixelMap(targetDoc, image);
+				legendImage.w = width;
+		    	legendImage.h = height;
+			}
+			legendImages.add(legendImage);
+		}																      	    	
+    			
+		return legendImages;
 	}
 
 	void createTextLayerOverlay(PDDocument targetDoc,
@@ -91,11 +203,10 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 			PDOptionalContentProperties ocprops, PDPropertyList props)
 			throws IOException, TransformException {
 
-		float logoWidth = 16;
-		float logoHeight = 16;
+		float logoWidth = 24;
+		float logoHeight = 24;
 
-		PDXObjectImage xlogo = null;
-		Vector<LegendImage> legends = new Vector<LegendImage>();
+		PDXObjectImage xlogo = null;		
 
 		if (opts.isPageLogo()) {
 			/* MUST create before optiona content group is created */
@@ -106,45 +217,11 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 			InputStream inp = getClass().getResourceAsStream("logo.png");
 			try {
 				BufferedImage imageBuf = ImageIO.read(inp);
-				int w = imageBuf.getWidth(null);
-				int h = imageBuf.getHeight(null);
-				BufferedImage bi = new BufferedImage(w, h,
-						BufferedImage.TYPE_4BYTE_ABGR);
-				Graphics2D g = (Graphics2D) bi.getGraphics();
-				g.drawImage(imageBuf, 0, 0, null);
-				g.dispose();
-
-				bi = doScaleWithFilters(bi, (int) logoWidth * 4,
-						(int) logoHeight * 4);
-
-				xlogo = new PDPixelMap(targetDoc, bi);
+				xlogo = new PDPixelMap(targetDoc, imageBuf);
 			} finally {
 				inp.close();
 			}
-		}
-
-		/*
-		 * { URL url = new URL(
-		 * "http://xml.nls.fi/Rasteriaineistot/Merkkienselitykset/2010/01/peruskartta_mk25000.png"
-		 * );
-		 * 
-		 * InputStream inp = url.openStream(); try { BufferedImage imageBuf =
-		 * ImageIO.read(inp); int w = imageBuf.getWidth(null); int h =
-		 * imageBuf.getHeight(null);
-		 * 
-		 * LegendImage limage = new LegendImage(); limage.ximage = new
-		 * PDPixelMap(targetDoc, imageBuf); limage.w = w; limage.h = h;
-		 * 
-		 * legends.add( limage ); } finally { inp.close(); } }
-		 */
-
-		PDOptionalContentGroup layerGroup = new PDOptionalContentGroup("legend");
-		ocprops.addGroup(layerGroup);
-
-		COSName mc0 = COSName.getPDFName("MClegend");
-		props.putMapping(mc0, layerGroup);
-		/* PDFont font = PDType1Font.HELVETICA_BOLD; */
-		contentStream.beginMarkedContentSequence(COSName.OC, mc0);
+		}	
 
 		/* BEGIN overlay content */
 

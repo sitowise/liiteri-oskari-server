@@ -32,6 +32,17 @@
             </New>
         </Arg>
     </New>
+    <New id="userlayerdb" class="org.eclipse.jetty.plus.jndi.EnvEntry">
+        <Arg>${db.userlayer.jndi.name}</Arg>
+        <Arg>
+            <New class="org.apache.commons.dbcp.BasicDataSource">
+                <Set name="driverClassName">${db.jndi.driverClassName}</Set>
+                <Set name="url">${db.userlayer.url}</Set>
+                <Set name="username">${db.userlayer.username}</Set>
+                <Set name="password">${db.userlayer.password}</Set>
+            </New>
+        </Arg>
+    </New>
     <Set name="securityHandler">
         <New class="org.eclipse.jetty.security.ConstraintSecurityHandler">
             <Set name="loginService">

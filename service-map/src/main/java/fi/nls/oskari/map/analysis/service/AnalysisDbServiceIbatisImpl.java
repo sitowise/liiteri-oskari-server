@@ -3,6 +3,8 @@ package fi.nls.oskari.map.analysis.service;
 import com.ibatis.sqlmap.client.SqlMapSession;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
+import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -13,6 +15,10 @@ import fi.nls.oskari.service.db.BaseIbatisService;
 import fi.nls.oskari.util.ConversionHelper;
 
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,4 +178,58 @@ public class AnalysisDbServiceIbatisImpl extends
         }
         return 0;
     }
+    
+    @Override
+    public List<Long> getSharedAnalysisIds(long userId) {
+    	List<Long> ids = new ArrayList<Long>();
+    	List<String> stringIds = queryForList(getNameSpace() + ".findSharedAnalysisIds", userId);
+    	for (String strId : stringIds) {
+    		int pos = strId.lastIndexOf('_');
+    		Long id = Long.parseLong(strId.substring(pos + 1));
+    		ids.add(id);
+    	}
+		return ids;
+	}
+
+	@Override
+	public List<UserGisData> getSharedAnalysis(long userId) {
+		List<UserGisData> resultList = queryForList(getNameSpace() + ".findSharedAnalysis", userId);
+    	
+    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
+
+	@Override
+	public List<UserGisData> getUnexpiredAnalysis(long userId) {
+		List<UserGisData> resultList = queryForList(getNameSpace() + ".findUnexpiredAnalysis", userId);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
 }

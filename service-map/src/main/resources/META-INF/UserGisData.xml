@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="UserGisData">
+
+	<typeAlias alias="UserGisData" type="fi.nls.oskari.domain.map.UserGisData" />
+	
+	<typeAlias alias="UserGisDataSharing" type="fi.nls.oskari.domain.map.UserGisDataSharing" />
+	
+	<resultMap id="UserGisDataResult" class="UserGisData">
+		<result property="id" column="id" />
+		<result property="dataId" column="data_id" />
+		<result property="dataType" column="data_type" />
+		<result property="expirationDate" column="expirationdate" />
+		<result property="userId" column="userid" />
+		<result property="status" column="status" />
+		<result property="downloadServiceUrl" column="download_service_url" />
+	</resultMap>
+	
+	<resultMap id="UserGisDataSharingResult" class="UserGisDataSharing">
+		<result property="id" column="id" />
+		<result property="datasetId" column="dataset_id" />
+		<result property="externalId" column="external_id" />
+		<result property="externalType" column="external_type" />
+		<result property="email" column="email" />
+		<result property="emailSent" column="email_sent" />
+	</resultMap>
+	
+	<statement id="insert" resultClass="java.lang.Long"
+		parameterClass="UserGisData">
+		INSERT INTO oskari_user_gis_data(
+            data_id, data_type, expirationdate, userid, status, download_service_url)
+    	VALUES (#dataId#, #dataType#, #expirationDate#, #userId#, #status#, #downloadServiceUrl#)
+		RETURNING id
+	</statement>	
+	
+	<select id="findGisData" resultMap="UserGisDataResult" parameterClass="UserGisData">
+		SELECT id, data_id, data_type, expirationdate, userid, status, download_service_url
+  		FROM oskari_user_gis_data
+  		WHERE data_id = #dataId#
+  		AND data_type = #dataType#
+	</select>
+
+	<select id="getAllUserGisData" resultMap="UserGisDataResult">
+		SELECT id, data_id, data_type, expirationdate, userid, status, download_service_url
+  		FROM oskari_user_gis_data
+	</select>
+
+	<select id="getUserGisDataList" resultMap="UserGisDataResult"
+		parameterClass="java.lang.Long">
+		SELECT id, data_id, data_type, expirationdate, userid, status, download_service_url
+  		FROM oskari_user_gis_data
+		WHERE
+		userid =#userId#
+	</select>
+
+	<update id="updateUserGisData" parameterClass="UserGisData">
+		UPDATE oskari_user_gis_data
+		SET id=#id#, data_id=#dataId#, data_type=#dataType#, expirationdate=#expirationDate#, userid=#userId#, status=#status#,
+		download_service_url=#downloadServiceUrl#
+		WHERE id = #id#
+	</update>
+	
+	<update id="update" parameterClass="UserGisData">
+		update
+		oskari_user_gis_data set
+		data_id=#dataId#, data_type=#dataType#, expirationdate=#expirationDate#, userid=#userId#, status=#status#,
+		download_service_url=#downloadServiceUrl#
+		WHERE id = #id#
+	</update>	
+
+    <select id="find" parameterClass="long" resultMap="UserGisDataResult">
+        select
+        id,
+        data_id,
+        data_type,
+        expirationdate,
+        userid,
+        status,
+		download_service_url
+        from
+        oskari_user_gis_data
+        where id = #id# 
+    </select>	
+	
+	<statement id="insertUserGisDataSharing" resultClass="java.lang.Long"
+		parameterClass="UserGisDataSharing">
+		INSERT INTO oskari_user_gis_data_sharing(
+		dataset_id,
+		external_id,
+		external_type,
+		email,
+		email_sent
+		)
+		VALUES (
+		#datasetId#,
+		#externalId#,
+		#externalType#,
+		#email#,
+		#emailSent#
+		)
+		RETURNING
+		id
+	</statement>
+	
+	<statement id="deleteUserGisData" parameterClass="UserGisData"
+		resultClass="java.lang.Integer">
+		DELETE FROM oskari_user_gis_data 
+		WHERE data_id = #dataId#
+		AND data_type = #dataType#
+	</statement>
+	
+	<select id="getVisibleGisDatasetsAmount" parameterClass="java.lang.Long"
+		resultClass="java.lang.Long">
+		SELECT COUNT(*) FROM
+		oskari_user_gis_data 
+		WHERE userid = #userId#
+		AND expirationdate > current_date
+	</select>
+
+    <select id="maxId" resultClass="int">
+        select max(id) from oskari_user_gis_data
+    </select>	
+
+</sqlMap>
