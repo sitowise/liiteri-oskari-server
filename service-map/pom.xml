@@ -6,9 +6,9 @@
 	<parent>
 		<groupId>fi.nls.oskari</groupId>
 		<artifactId>oskari-parent</artifactId>
-        <version>1.20</version>
+        <version>1.34.1</version>
 	</parent>
-    
+
     <groupId>fi.nls.oskari.service</groupId>
     <artifactId>oskari-map</artifactId>
     <packaging>jar</packaging>
@@ -20,18 +20,25 @@
             <artifactId>oskari-search</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+        </dependency>
+        <dependency>
             <groupId>fi.nls.oskari.service</groupId>
             <artifactId>oskari-permissions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ws.commons.axiom</groupId>
+            <artifactId>axiom-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ws.commons.axiom</groupId>
+            <artifactId>axiom-impl</artifactId>
         </dependency>
         <dependency>
             <groupId>xerces</groupId>
             <artifactId>xercesImpl</artifactId>
         </dependency>
-        <!-- dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
-            <version>2.1.5</version>
-        </dependency -->
 
         <dependency>
             <groupId>fi.mml</groupId>
@@ -81,6 +88,21 @@
             <groupId>org.geotools.xsd</groupId>
             <artifactId>gt-xsd-kml</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-ogr-core</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-ogr-bridj</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>fi.nls.oskari</groupId>
+            <artifactId>shared-test-resources</artifactId>
+            <scope>test</scope>
+        </dependency>
         
        	<dependency>
         	<groupId>org.apache.httpcomponents</groupId>
@@ -101,3 +123,4 @@
     </dependencies>
 
 </project>
+

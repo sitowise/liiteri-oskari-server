@@ -15,6 +15,7 @@ import fi.nls.oskari.util.ResponseHelper;
 import org.apache.axiom.om.OMElement;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.Enumeration;
 
 @OskariActionRoute("GetStatsLayerSLD")
 public class GetStatsLayerSLDHandler extends ActionHandler {
@@ -46,6 +47,8 @@ public class GetStatsLayerSLDHandler extends ActionHandler {
 
     private String getSLD(final ActionParameters params)
             throws ActionException {
+    	
+    	printParameters(params);
 
         final String lang = params.getHttpParam(PARAM_LANGUAGE, params
                 .getLocale().getLanguage());
@@ -65,12 +68,30 @@ public class GetStatsLayerSLDHandler extends ActionHandler {
             if (modeXML) {
                 return xml.toString();
             } else {
-                return service.transform(xml, service.getDefaultXSLT());
+//                return service.transform(xml, service.getDefaultXSLT());
+            	String xmlString = service.transform(xml, service.getDefaultXSLT());
+            	
+            	return xmlString;
             }
         } catch (Exception e) {
             throw new ActionException("Unable to create SLD", e);
         }
     }
+    
+    private void printParameters(ActionParameters params){
+    	Enumeration e = params.getRequest().getParameterNames();
+    	
+    	log.debug("print keys");
+    	while(e.hasMoreElements()){
+    		String key = (String)e.nextElement();
+    		log.debug("Key: " +key);
+    		String[] values = params.getRequest().getParameterValues(key);
+    		
+    		for(String value : values){
+    			log.debug("  value: " + value);
+    		}
+    	}
+    }    
 
     /**
      * Constructs visualization parameters from request parameters
@@ -79,12 +100,9 @@ public class GetStatsLayerSLDHandler extends ActionHandler {
      * @return Visualization parameters required to generate an SLD or empty/invalid StatsVisualization object if parameters were missing
      */
     private StatsVisualization getVisualization(final ActionParameters params) {
-        final int statsLayerId = ConversionHelper.getInt(
-                params.getHttpParam(PARAM_LAYER_ID), -1);
         final int visId = ConversionHelper.getInt(
                 params.getHttpParam(PARAM_VISUALIZATION_ID), -1);
         final StatsVisualization vis = service.getVisualization(
-                statsLayerId,
                 visId,
                 params.getHttpParam(PARAM_VISUALIZATION_CLASSES),
                 params.getHttpParam(PARAM_VISUALIZATION_NAME),

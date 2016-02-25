@@ -16,12 +16,20 @@ import org.apache.commons.logging.LogFactory;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
-
 import fi.nls.oskari.printout.input.content.PrintoutContent;
 import fi.nls.oskari.printout.input.content.PrintoutContentParser;
 import fi.nls.oskari.printout.input.layers.LayerDefinition;
 import fi.nls.oskari.printout.input.layers.MapLayerJSON;
 import fi.nls.oskari.printout.output.map.MetricScaleResolutionUtils.ScaleResolution;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class parses MapLink from URL or map of URL parameter values.
@@ -74,6 +82,9 @@ public class MapLinkParser {
 
 			Integer zoomLevel = ((Number) stateInfo.get("zoom")).intValue();
 			zoomLevel += zoomOffset;
+            if(zoomLevel >= resolutions.length) {
+                zoomLevel = resolutions.length - 1;
+            }
 
 			mapLink.setZoom(zoomLevel);
 			mapLink.setScale(sr.getScaleFromResolution(resolutions[zoomLevel]));
@@ -154,6 +165,9 @@ public class MapLinkParser {
 				.get("ZOOMLEVEL") : Integer.valueOf(
 				(String) values.get("ZOOMLEVEL"), 10);
 		zoomLevel += zoomOffset;
+        if(zoomLevel >= resolutions.length) {
+            zoomLevel = resolutions.length - 1;
+        }
 		mapLink.setZoom(zoomLevel);
 		mapLink.setScale(sr.getScaleFromResolution(resolutions[zoomLevel]));
 

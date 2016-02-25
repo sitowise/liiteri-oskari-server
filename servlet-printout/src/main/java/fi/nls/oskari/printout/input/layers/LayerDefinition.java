@@ -1,135 +1,145 @@
 package fi.nls.oskari.printout.input.layers;
 
+import com.vividsolutions.jts.geom.Geometry;
+import org.geotools.feature.FeatureCollection;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.geotools.feature.FeatureCollection;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.simple.SimpleFeatureType;
-
-import com.vividsolutions.jts.geom.Geometry;
-
 public class LayerDefinition {
 
-	public static class Style {
-		String title;
-		String legend;
-		String name;
-		Map<String, ?> styleMap;
-		String sld;
+    public static class Style {
+        String title;
+        String legend;
+        String name;
+        Map<String, ?> styleMap;
+        String sld;
 
-		public String getLegend() {
-			return legend;
-		}
+        public String getLegend() {
+            return legend;
+        }
 
-		public String getName() {
-			return name;
-		}
+        public String getName() {
+            return name;
+        }
 
-		public String getSld() {
-			return sld;
-		}
+        public String getSld() {
+            return sld;
+        }
 
-		public Map<String, ?> getStyleMap() {
-			return styleMap;
-		}
+        public Map<String, ?> getStyleMap() {
+            return styleMap;
+        }
 
-		public String getTitle() {
-			return title;
-		}
+        public String getTitle() {
+            return title;
+        }
 
-		public void setLegend(String legend) {
-			this.legend = legend;
-		}
+        public void setLegend(String legend) {
+            this.legend = legend;
+        }
 
-		public void setName(String name) {
-			this.name = name;
-		}
+        public void setName(String name) {
+            this.name = name;
+        }
 
-		public void setSld(String sld) {
-			this.sld = sld;
-		}
+        public void setSld(String sld) {
+            this.sld = sld;
+        }
 
-		public void setStyleMap(Map<String, ?> styleMap) {
-			this.styleMap = styleMap;
-		}
+        public void setStyleMap(Map<String, ?> styleMap) {
+            this.styleMap = styleMap;
+        }
 
-		public void setTitle(String title) {
-			this.title = title;
-		}
-	}
+        public void setTitle(String title) {
+            this.title = title;
+        }
 
+    }
+
+    String wmsname;
+    String wmsurl;
+    String wmsversion;
+    Double minScale;
+    Double maxScale;
+    Double scale;
+    int opacity;
+    String style;
+
+    String layerid;
 	String copyrightText;
-	
-	String wmsname;
-	String wmsurl;
 
-	Double minScale;
-	Double maxScale;
-	Double scale;
-	int opacity;
-	String style;
+    String layerType;
 
-	String layerid;
+    boolean isSingleTile = false;
 
-	String layerType;
+    boolean isCacheable = true;
 
-	boolean isCacheable = true;
+    String credentials;
 	boolean showLegend = false;
 	String legendUrl;
 
-	String credentials;
+    String format;
+    Map<String, String> urlTemplatesForFormat = new HashMap<String, String>();
 
-	String format ;
-	Map<String, String> urlTemplatesForFormat = new HashMap<String, String>();
+    final ArrayList<LayerDefinition> subLayers = new ArrayList<LayerDefinition>();
+    final HashMap<String, Style> styles = new HashMap<String, Style>();
 
-	final ArrayList<LayerDefinition> subLayers = new ArrayList<LayerDefinition>();
-	final HashMap<String, Style> styles = new HashMap<String, Style>();
+    boolean visibility = true;
 
-	boolean visibility = true;
+    Geometry geom;
 
-	Geometry geom;
+    FeatureCollection<SimpleFeatureType, SimpleFeature> data;
 
-	FeatureCollection<SimpleFeatureType, SimpleFeature> data;
+    List<Map<String, ?>> tiles;
 
-	List<Map<String, ?>> tiles;
+    /* WMTS */
+    String tileMatrixSetId = null;
 
-	/* WMTS */
-	String tileMatrixSetId = null;
+    public void copyTo(LayerDefinition def) {
+        def.setWmsname(wmsname);
+        def.setWmsurl(wmsurl);
+        def.setWmsVersion(wmsversion);
+        def.setMinScale(minScale);
+        def.setMaxScale(maxScale);
+        def.setOpacity(opacity);
+        def.setLayerid(layerid);
+        def.setScale(scale);
+        def.setLayerType(layerType);
+        def.setCacheable(isCacheable);
+        def.setCredentials(credentials);
+        def.setStyle(style);
+        def.setGeom(geom);
+        def.getStyles().putAll(styles);
+        def.setData(data);
+        def.setTiles(tiles);
+        def.setTileMatrixSetId(tileMatrixSetId);
+        def.setFormat(format);
+        def.setUrlTemplatesForFormat(urlTemplatesForFormat);
+        def.setSingleTile(isSingleTile);
 
-	public void copyTo(LayerDefinition def) {
-		def.setWmsname(wmsname);
-		def.setWmsurl(wmsurl);
-		def.setMinScale(minScale);
-		def.setMaxScale(maxScale);
-		def.setOpacity(opacity);
-		def.setLayerid(layerid);
-		def.setScale(scale);
-		def.setLayerType(layerType);
-		def.setCacheable(isCacheable);
-		def.setCredentials(credentials);
-		def.setStyle(style);
-		def.setGeom(geom);
-		def.getStyles().putAll(styles);
-		def.setData(data);
-		def.setTiles(tiles);
-		def.setTileMatrixSetId(tileMatrixSetId);
-		def.setFormat(format);
-		def.setUrlTemplatesForFormat(urlTemplatesForFormat);
+        for (LayerDefinition subdef : getSubLayers()) {
+            LayerDefinition subCopy = new LayerDefinition();
+            subdef.copyTo(subCopy);
+            def.getSubLayers().add(subCopy);
+        }
+    }
 		def.setCopyrightText(copyrightText);
 		def.setShowLegend(showLegend);
 		def.setLegendUrl(legendUrl);
 
-		for (LayerDefinition subdef : getSubLayers()) {
-			LayerDefinition subCopy = new LayerDefinition();
-			subdef.copyTo(subCopy);
-			def.getSubLayers().add(subCopy);
-		}
-	}
+    public String getCredentials() {
+        return credentials;
+    }
 	
 
+    public FeatureCollection<SimpleFeatureType, SimpleFeature> getData() {
+        return data;
+    }
 	public String getCopyrightText()
 	{
 		return copyrightText;
@@ -140,179 +150,187 @@ public class LayerDefinition {
 		this.copyrightText = copyrightText;
 	}
 
-	public String getCredentials() {
-		return credentials;
-	}
+    public Geometry getGeom() {
+        return geom;
+    }
 
-	public FeatureCollection<SimpleFeatureType, SimpleFeature> getData() {
-		return data;
-	}
+    public String getLayerid() {
+        return layerid;
+    }
 
-	public Geometry getGeom() {
-		return geom;
-	}
+    public String getLayerType() {
+        return layerType;
+    }
 
-	public String getLayerid() {
-		return layerid;
-	}
+    public Double getMaxScale() {
+        return maxScale;
+    }
 
-	public String getLayerType() {
-		return layerType;
-	}
+    public Double getMinScale() {
+        return minScale;
+    }
 
-	public Double getMaxScale() {
-		return maxScale;
-	}
+    public int getOpacity() {
+        return opacity;
+    }
 
-	public Double getMinScale() {
-		return minScale;
-	}
+    public Double getScale() {
+        return scale;
+    }
 
-	public int getOpacity() {
-		return opacity;
-	}
+    public String getStyle() {
 
-	public Double getScale() {
-		return scale;
-	}
+        if (style == null) {
+            return null;
+        }
+        if (getStyles() == null || getStyles().size() == 0) {
+            return null;
+        }
 
-	public String getStyle() {
+        Style mappedStyle = getStyles().get(style);
+        if (mappedStyle == null) {
+            return null;
+        }
 
-		if (style == null) {
-			return null;
-		}
-		if (getStyles() == null || getStyles().size() == 0) {
-			return null;
-		}
+        return mappedStyle.getName();
+    }
 
-		Style mappedStyle = getStyles().get(style);
-		if (mappedStyle == null) {
-			return null;
-		}
+    public HashMap<String, Style> getStyles() {
+        return styles;
+    }
 
-		return mappedStyle.getName();
-	}
+    public ArrayList<LayerDefinition> getSubLayers() {
+        return subLayers;
+    }
 
-	public HashMap<String, Style> getStyles() {
-		return styles;
-	}
+    public String getTileMatrixSetId() {
+        return tileMatrixSetId;
+    }
 
-	public ArrayList<LayerDefinition> getSubLayers() {
-		return subLayers;
-	}
+    public List<Map<String, ?>> getTiles() {
+        return tiles;
+    }
 
-	public String getTileMatrixSetId() {
-		return tileMatrixSetId;
-	}
+    public String getWmsname() {
+        return wmsname;
+    }
 
-	public List<Map<String, ?>> getTiles() {
-		return tiles;
-	}
+    public String getWmsurl() {
+        return wmsurl;
+    }
 
-	public String getWmsname() {
-		return wmsname;
-	}
+    public String getWmsVersion() {
+        return wmsversion;
+    }
 
-	public String getWmsurl() {
-		return wmsurl;
-	}
+    public void setWmsVersion(String wmsversion) {
+        this.wmsversion = wmsversion;
+    }
 
-	public boolean isCacheable() {
-		return isCacheable;
-	}
+    public boolean isCacheable() {
+        return isCacheable;
+    }
 
-	public boolean isVisibility() {
-		return visibility;
-	}
+    public boolean isVisibility() {
+        return visibility;
+    }
 
-	public void setCacheable(boolean isCacheable) {
-		this.isCacheable = isCacheable;
-	}
+    public void setCacheable(boolean isCacheable) {
+        this.isCacheable = isCacheable;
+    }
 
-	public void setCredentials(String credentials) {
-		this.credentials = credentials;
-	}
+    public void setCredentials(String credentials) {
+        this.credentials = credentials;
+    }
 
-	public void setData(FeatureCollection<SimpleFeatureType, SimpleFeature> data) {
-		this.data = data;
-	}
+    public void setData(FeatureCollection<SimpleFeatureType, SimpleFeature> data) {
+        this.data = data;
+    }
 
-	public void setGeom(Geometry geom) {
-		this.geom = geom;
-	}
+    public void setGeom(Geometry geom) {
+        this.geom = geom;
+    }
 
-	public void setLayerid(String layerid) {
-		this.layerid = layerid;
-	}
+    public void setLayerid(String layerid) {
+        this.layerid = layerid;
+    }
 
-	public void setLayerType(String layerType) {
-		this.layerType = layerType;
-	}
+    public void setLayerType(String layerType) {
+        this.layerType = layerType;
+    }
 
-	public void setMaxScale(Double maxScale) {
-		this.maxScale = maxScale;
-	}
+    public void setMaxScale(Double maxScale) {
+        this.maxScale = maxScale;
+    }
 
-	public void setFormat(String mimeType, String urlTemplate) {
-		this.format = mimeType;
-	}
+    public void setFormat(String mimeType, String urlTemplate) {
+        this.format = mimeType;
+    }
 
-	public void setMinScale(Double minScale) {
-		this.minScale = minScale;
-	}
+    public void setMinScale(Double minScale) {
+        this.minScale = minScale;
+    }
 
-	public void setOpacity(int opacity) {
-		this.opacity = opacity;
-	}
+    public void setOpacity(int opacity) {
+        this.opacity = opacity;
+    }
 
-	public void setScale(Double scale) {
-		this.scale = scale;
-	}
+    public void setScale(Double scale) {
+        this.scale = scale;
+    }
 
-	public void setStyle(String style) {
-		this.style = style;
-	}
+    public void setStyle(String style) {
+        this.style = style;
+    }
 
-	public void setTileMatrixSetId(String tileMatrixSetId) {
-		this.tileMatrixSetId = tileMatrixSetId;
-	}
+    public void setTileMatrixSetId(String tileMatrixSetId) {
+        this.tileMatrixSetId = tileMatrixSetId;
+    }
 
-	public void setTiles(List<Map<String, ?>> tiles) {
-		this.tiles = tiles;
-	}
+    public void setTiles(List<Map<String, ?>> tiles) {
+        this.tiles = tiles;
+    }
 
-	public void setVisibility(boolean visibility) {
-		this.visibility = visibility;
-	}
+    public void setVisibility(boolean visibility) {
+        this.visibility = visibility;
+    }
 
-	public void setWmsname(String wmsname) {
-		this.wmsname = wmsname;
-	}
+    public void setWmsname(String wmsname) {
+        this.wmsname = wmsname;
+    }
 
-	public void setWmsurl(String wmsurl) {
-		this.wmsurl = wmsurl;
-	}
+    public void setWmsurl(String wmsurl) {
+        this.wmsurl = wmsurl;
+    }
 
-	public String getFormat() {
-		return format;
-	}
+    public String getFormat() {
+        return format;
+    }
 
-	public void setFormat(String format) {
-		this.format = format;
-	}
+    public void setFormat(String format) {
+        this.format = format;
+    }
 
-	public String getUrlTemplate() {
-		return urlTemplatesForFormat.get(format);
-	}
+    public String getUrlTemplate() {
+        return urlTemplatesForFormat.get(format);
+    }
 
-	public void setUrlTemplate(String mimeType, String urlTemplate) {
-		urlTemplatesForFormat.put(mimeType, urlTemplate);
-	}
+    public void setUrlTemplate(String mimeType, String urlTemplate) {
+        urlTemplatesForFormat.put(mimeType, urlTemplate);
+    }
 
-	protected void setUrlTemplatesForFormat(
-			Map<String, String> urlTemplatesForFormat) {
-		this.urlTemplatesForFormat = urlTemplatesForFormat;
-	}
+    protected void setUrlTemplatesForFormat(
+            Map<String, String> urlTemplatesForFormat) {
+        this.urlTemplatesForFormat = urlTemplatesForFormat;
+    }
+
+    public boolean isSingleTile() {
+        return isSingleTile;
+    }
+
+    public void setSingleTile(boolean isSingleTile) {
+        this.isSingleTile = isSingleTile;
+    }
 
 	public void setShowLegend(boolean value) {
 		this.showLegend = value;

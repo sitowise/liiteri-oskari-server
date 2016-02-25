@@ -3,6 +3,8 @@ package fi.nls.oskari.service;
 import fi.nls.oskari.domain.GuestUser;
 import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.domain.User;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.PropertyUtil;
 
 import java.util.Collections;
@@ -16,6 +18,7 @@ import java.util.UUID;
  */
 public abstract class UserService {
 
+    private static final Logger log = LogFactory.getLogger(UserService.class);
     private static UserService instance = null;
     /**
      * Returns a concrete implementation of UserService. Class to be returned is defined with property "oskari.user.service".
@@ -72,6 +75,38 @@ public abstract class UserService {
      */
     public abstract User login(String user, String pass) throws ServiceException;
 
+    
+    /**
+     * Inserts role to a user
+     * @param roleId String
+     * @return something
+     * @throws ServiceException if anything goes wrong internally.
+     */
+    public Role insertRole(String roleId) throws ServiceException{
+    	throw new ServiceException("Not Implemented Yet");
+    }
+    
+    
+    /**
+     * Deletes role from a user
+     * @param roleId String
+     * @return something
+     * @throws ServiceException if anything goes wrong internally.
+     */
+    public String deleteRole(int roleId) throws ServiceException{
+    	throw new ServiceException("Not Implemented Yet");
+    }
+    
+    /**
+     * Modifies a users role
+     * @param roleId String
+     * @return something
+     * @throws ServiceException if anything goes wrong internally.
+     */
+    public String modifyRole(String roleId, String userID) throws ServiceException{
+    	throw new ServiceException("Not Implemented Yet");
+    }
+    
     /**
      * Returns all roles that exist in the system
      * @param platformSpecificParams optional platform specific parameters needed to get/filter roles. If implementation doesnt need any an empty map can be used.
@@ -110,6 +145,27 @@ public abstract class UserService {
     }
 
     /**
+     * Returns all roles that exist in the system. Convenience method for calling getRoles(Map) with empty map
+     * @return
+     * @throws ServiceException
+     */
+    public Role getRoleByName(final String name) {
+        try {
+            // TODO: maybe some caching for roles?
+            Role[] roles = getRoles();
+            for(Role role : roles) {
+                if(role.getName().equals(name)) {
+                    return role;
+                }
+            }
+        }
+        catch (Exception ex) {
+            log.error(ex, "Error getting roles from user service");
+        }
+        return null;
+    }
+
+    /**
      * Return the user by username. This method should be overridden in concrete implementation. The
      * default implementation always throws an exception.
      * @param username
@@ -142,6 +198,16 @@ public abstract class UserService {
     }
 
     /**
+     * Return all users. This method should be overridden in concrete implementation. The
+     * default implementation always throws an exception.
+     * @return List<User> users
+     * @throws ServiceException
+     */
+    public List<User> getUsersWithRoles() throws ServiceException {
+        throw new ServiceException("Not implemented");
+    }
+
+    /**
      * Create a new user. This method should be overridden in concrete implementation. The
      * default implementation always throws an exception.
      * @param user User to be created
@@ -152,6 +218,11 @@ public abstract class UserService {
         throw new ServiceException("Not implemented");
     }
 
+    
+    public User createUser(User user, String[] roleIds) throws ServiceException {
+        throw new ServiceException("Not implemented");
+    }
+    
     /**
      * Modify a user. This method should be overridden in concrete implementation. The
      * default implementation always throws an exception.
@@ -163,6 +234,10 @@ public abstract class UserService {
         throw new ServiceException("Not implemented");
     }
 
+    public User modifyUserwithRoles(User user, String[] roleIds) throws ServiceException {
+        throw new ServiceException("Not implemented");
+    }      
+    
     /**
      * Delete a user. This method should be overridden in concrete implementation. The
      * default implementation always throws an exception.

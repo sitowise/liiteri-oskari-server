@@ -1,8 +1,15 @@
 package fi.nls.oskari.map.stats;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.util.List;
+import fi.nls.oskari.domain.map.stats.StatsVisualization;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.service.db.BaseIbatisService;
+import fi.nls.oskari.util.IOHelper;
+import org.apache.axiom.om.OMAbstractFactory;
+import org.apache.axiom.om.OMAttribute;
+import org.apache.axiom.om.OMElement;
+import org.apache.axiom.om.OMFactory;
+import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -11,20 +18,9 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
-
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.service.db.BaseIbatisService;
-import fi.nls.oskari.service.db.BaseService;
-import fi.nls.oskari.util.IOHelper;
-import org.apache.axiom.om.OMAbstractFactory;
-import org.apache.axiom.om.OMAttribute;
-import org.apache.axiom.om.OMElement;
-import org.apache.axiom.om.OMFactory;
-import org.apache.axiom.om.impl.builder.StAXOMBuilder;
-import org.apache.axiom.om.impl.jaxp.OMSource;
-
-import fi.nls.oskari.domain.map.stats.StatsVisualization;
-import fi.nls.oskari.log.Logger;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.List;
 
 public abstract class VisualizationService extends BaseIbatisService<StatsVisualization> {
     
@@ -45,17 +41,12 @@ public abstract class VisualizationService extends BaseIbatisService<StatsVisual
     public abstract List<StatsVisualization> findForLayerId(final int layerId);
 
     public StatsVisualization getVisualization(
-            final int statsLayerId,
             final int visId,
             final String classes,
             final String layerName,
             final String filterProperty,
             final String vis
     ) {
-        if (statsLayerId == -1) {
-            return null;
-        }
-
         if (visId != -1) {
             // got id -> find from DB
             return find(visId);
@@ -147,10 +138,10 @@ public abstract class VisualizationService extends BaseIbatisService<StatsVisual
     public String transform(final OMElement xml, final OMElement xslt) throws Exception {
 
         TransformerFactory factory = TransformerFactory.newInstance();
-        final Source xsltsource = new OMSource(xslt);
+        final Source xsltsource = xslt.getSAXSource(false);
         final Transformer transformer = factory.newTransformer(xsltsource);
         
-        final Source xmlsource = new OMSource(xml);
+        final Source xmlsource = xml.getSAXSource(false);
         StreamResult result = new StreamResult(new ByteArrayOutputStream());
         transformer.transform(xmlsource, result);
         return result.getOutputStream().toString();

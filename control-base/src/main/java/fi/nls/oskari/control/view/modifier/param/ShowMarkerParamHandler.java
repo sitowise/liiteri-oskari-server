@@ -16,9 +16,6 @@ public class ShowMarkerParamHandler extends MarkersParamHandler {
 
     private static final Logger log = LogFactory.getLogger(ShowMarkerParamHandler.class);
 
-    private static final String KEY_NORTH = "north";
-    private static final String KEY_EAST = "east";
-
     public boolean handleParam(final ModifierParams params) throws ModifierException {
         if(params.getParamValue() == null) {
             return false;
@@ -38,11 +35,10 @@ public class ShowMarkerParamHandler extends MarkersParamHandler {
                 return false;
             }
 
-            final JSONObject mapfullConf = getBundleConfig(params.getConfig(), BUNDLE_MAPFULL);
-            final JSONObject markersPlugin = getMarkersPlugin(mapfullConf);
-            final JSONArray existing = getMarkersFromPluginState(markersPlugin);
+            final JSONObject markersPluginState = getMarkersPluginState(mapfullState);
+            final JSONArray existing = getMarkersFromPluginState(markersPluginState);
             if(existing == null) {
-                log.info("Couldn't create markers array");
+                log.warn("Couldn't create markers array");
                 return false;
             }
             existing.put(centerMarker);

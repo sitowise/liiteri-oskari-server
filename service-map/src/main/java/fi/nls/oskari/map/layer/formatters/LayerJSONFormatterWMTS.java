@@ -24,20 +24,36 @@ public class LayerJSONFormatterWMTS extends LayerJSONFormatter {
 
         final JSONObject layerJson = getBaseJSON(layer, lang, isSecure);
         JSONHelper.putValue(layerJson, "tileMatrixSetId", layer.getTileMatrixSetId());
-        JSONHelper.putValue(layerJson, "tileMatrixSetData", JSONHelper.createJSONObject(layer.getTileMatrixSetData()));
 
         // TODO: parse tileMatrixSetData for styles and set default style name from the one where isDefault = true
         String styleName = layer.getStyle();
+
         if(styleName == null || styleName.isEmpty()) {
             styleName = "default";
         }
         JSONHelper.putValue(layerJson, "style", styleName);
         JSONArray styles = new JSONArray();
-        JSONObject style = JSONHelper.createJSONObject("identifier", styleName);
-        JSONHelper.putValue(style,  "isDefault", true);
-        styles.put(style);
+        // currently supporting only one style (default style)
+        styles.put(createStylesJSON(styleName, styleName, null));
         JSONHelper.putValue(layerJson, "styles", styles);
 
+        // if options have urlTemplate -> use it (treat as a REST layer)
+        final String urlTemplate = JSONHelper.getStringFromJSON(layer.getOptions(), "urlTemplate", null);
+        final boolean needsProxy = useProxy(layer);
+        if(urlTemplate != null) {
+            if(needsProxy) {
+                // remove requestEncoding so we always get KVP params when proxying
+                JSONObject options = layerJson.optJSONObject("options");
+                options.remove("requestEncoding");
+            } else {
+                // setup tileURL for REST layers
+                final String originalUrl = layer.getUrl();
+                layer.setUrl(urlTemplate);
+                JSONHelper.putValue(layerJson, "tileUrl", layer.getUrl(isSecure));
+                // switch back the original url in case it's used down the line
+                layer.setUrl(originalUrl);
+            }
+        }
         return layerJson;
     }
 

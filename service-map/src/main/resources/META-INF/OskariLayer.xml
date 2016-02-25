@@ -13,7 +13,7 @@
     <typeAlias alias="OskariLayer" type="fi.nls.oskari.domain.map.OskariLayer" />
 
     <parameterMap id="LayerInsertParameter" class="OskariLayer">
-        <parameter property="parentId" />
+        <parameter property="parentId" jdbcType="INTEGER"  javaType="int" />
         <parameter property="type" />
         <parameter property="baseMap" />
         <parameter property="groupId" />
@@ -31,9 +31,10 @@
         <parameter property="metadataId" />
 
         <parameter property="tileMatrixSetId" />
-        <parameter property="tileMatrixSetData" />
         <parameter property="params" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="options" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="capabilities" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
 
         <parameter property="gfiXslt" />
         <parameter property="gfiType" />
@@ -41,6 +42,12 @@
 
         <parameter property="realtime" />
         <parameter property="refreshRate" />
+
+        <parameter property="username" />
+        <parameter property="password" />
+
+        <parameter property="version" />
+        <parameter property="srs_name" />
 
         <parameter property="created" jdbcType="DATETIME" javaType="java.util.Date" />
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
@@ -69,9 +76,10 @@
         <parameter property="metadataId" />
 
         <parameter property="tileMatrixSetId" />
-        <parameter property="tileMatrixSetData" />
         <parameter property="params" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="options" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="capabilities" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
 
         <parameter property="gfiXslt" />
         <parameter property="gfiType" />
@@ -79,6 +87,12 @@
 
         <parameter property="realtime" />
         <parameter property="refreshRate" />
+
+        <parameter property="username" />
+        <parameter property="password" />
+
+        <parameter property="version" />
+        <parameter property="srs_name" />
 
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
 
@@ -113,16 +127,21 @@
         l.metadataId,
 
         l.tile_matrix_set_id,
-        l.tile_matrix_set_data,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
-        m.geom,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
+        m.wkt as geom,
 
         l.created,
         l.updated,
@@ -131,8 +150,8 @@
 		l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
-        ON  m.maplayerid = l.id
+        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
+        ON  m.metadataid = l.metadataId
         WHERE
         l.id = #id# OR l.parentId = #id#
         ORDER BY l.parentId ASC
@@ -164,16 +183,21 @@
         l.metadataId,
 
         l.tile_matrix_set_id,
-        l.tile_matrix_set_data,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
-        m.geom,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
+        m.wkt as geom,
 
         l.created,
         l.updated,
@@ -182,8 +206,8 @@
 		l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
-        ON  m.maplayerid = l.id
+        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
+        ON  m.metadataid = l.metadataId
         WHERE
         l.parentId = #id#
 
@@ -215,16 +239,21 @@
         l.metadataId,
 
         l.tile_matrix_set_id,
-        l.tile_matrix_set_data,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
-        m.geom,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
+        m.wkt as geom,
 
         l.created,
         l.updated,
@@ -233,15 +262,123 @@
 		l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
-        ON  m.maplayerid = l.id
+        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
+        ON  m.metadataid = l.metadataId
         WHERE
         l.externalId = #id#
         AND l.parentId = -1
 
     </select>
     
-    
+    <select id="findByUuId"
+            parameterClass="String"
+            resultClass="java.util.HashMap">
+
+
+        SELECT
+        l.id,
+        l.parentId,
+        l.externalId,
+        l.type,
+        l.base_map,
+        l.groupId,
+
+        l.name,
+        l.url,
+        l.locale,
+
+        l.opacity,
+        l.style,
+        l.minscale,
+        l.maxscale,
+
+        l.legend_image,
+        l.metadataId,
+
+        l.tile_matrix_set_id,
+        l.params,
+        l.options,
+        l.attributes,
+        l.capabilities,
+
+        l.gfi_xslt,
+        l.gfi_type,
+        l.gfi_content,
+        l.realtime,
+        l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
+        m.wkt as geom,
+
+        l.created,
+        l.updated
+
+        FROM
+        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
+        ON  m.metadataid = l.metadataId
+        WHERE
+        m.metadataid = #id#
+        AND l.parentId = -1
+
+    </select>
+
+    <select id="findByUrlAndName"
+            parameterClass="java.util.HashMap"
+            resultClass="java.util.HashMap">
+
+
+        SELECT
+        l.id,
+        l.parentId,
+        l.externalId,
+        l.type,
+        l.base_map,
+        l.groupId,
+
+        l.name,
+        l.url,
+        l.locale,
+
+        l.opacity,
+        l.style,
+        l.minscale,
+        l.maxscale,
+
+        l.legend_image,
+        l.metadataId,
+
+        l.tile_matrix_set_id,
+        l.params,
+        l.options,
+        l.attributes,
+        l.capabilities,
+
+        l.gfi_xslt,
+        l.gfi_type,
+        l.gfi_content,
+        l.realtime,
+        l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
+        m.wkt as geom,
+
+        l.created,
+        l.updated
+
+        FROM
+        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
+        ON  m.metadataid = l.metadataId
+        WHERE
+        l.name = #name#
+        AND  l.url = #url#
+        AND l.parentId = -1
+
+    </select>
+        
 <select id="findAll"
         resultClass="java.util.HashMap">
 
@@ -266,16 +403,21 @@
     l.metadataId,
 
     l.tile_matrix_set_id,
-    l.tile_matrix_set_data,
     l.params,
     l.options,
+    l.attributes,
+    l.capabilities,
 
     l.gfi_xslt,
     l.gfi_type,
     l.gfi_content,
     l.realtime,
     l.refresh_rate,
-    m.geom,
+    l.username,
+    l.password,
+    l.version,
+    l.srs_name,
+    m.wkt as geom,
 
     l.created,
     l.updated,
@@ -284,8 +426,8 @@
 	l.copyright_info
 
     FROM
-    oskari_maplayer l LEFT OUTER JOIN portti_maplayer_metadata m
-    ON  m.maplayerid = l.id
+    oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
+    ON  m.metadataid = l.metadataId
     ORDER BY l.parentId ASC
     </select>
 
@@ -317,9 +459,10 @@
             metadataId,
 
             tile_matrix_set_id,
-            tile_matrix_set_data,
             params,
             options,
+            attributes,
+            capabilities,
 
             gfi_xslt,
             gfi_type,
@@ -328,12 +471,18 @@
             realtime,
             refresh_rate,
 
+            username,
+            password,
+
+            version,
+            srs_name,
+
             created,
             updated,
             
             download_service_url,
 			copyright_info)
-        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     </statement>
 
     <statement id="update" parameterMap="LayerUpdateParameter">
@@ -356,9 +505,10 @@
         metadataId = ?,
 
         tile_matrix_set_id = ?,
-        tile_matrix_set_data = ?,
         params = ?,
         options = ?,
+        attributes = ?,
+        capabilities = ?,
 
         gfi_xslt = ?,
         gfi_type=?,
@@ -366,6 +516,12 @@
 
         realtime = ?,
         refresh_rate = ?,
+
+        username = ?,
+        password = ?,
+
+        version = ?,
+        srs_name = ?,
 
         updated=?,
         

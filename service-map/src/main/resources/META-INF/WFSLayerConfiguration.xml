@@ -6,12 +6,9 @@
 
 <sqlMap namespace="WFSLayerConfiguration">
 
-    <typeAlias alias="WFSLayerConfiguration" type="fi.nls.oskari.wfs.WFSLayerConfiguration" />
+    <typeAlias alias="WFSLayerConfiguration" type="fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration" />
     <typeAlias alias="WFSSLDStyle" type="fi.nls.oskari.domain.map.wfs.WFSSLDStyle" />
-	
-	<select id="maxId" resultClass="int">
-        select max(id) from portti_wfs_layer
-    </select>
+    <typeAlias alias="WFSParserConfig" type="fi.nls.oskari.domain.map.wfs.WFSParserConfig" />
     
     <parameterMap class="WFSLayerConfiguration" id="WFSLayerConfigurationInsertParameter">
         <parameter property="layerIdInt"/>
@@ -92,18 +89,18 @@
 	
     <resultMap class="WFSLayerConfiguration" id="WFSLayerConfiguration">
         <result property="layerId" column="maplayer_id"/>
-        <result property="nameLocales" column="locale"/>
         <result property="URL" column="url"/>
         <result property="username" column="username"/>
         <result property="password" column="password"/>
 
+        <result property="nameLocales" column="locale"/>
         <result property="layerName" column="layer_name"/>
       
         <result property="GMLGeometryProperty" column="gml_geometry_property"/>
         <result property="SRSName" column="srs_name"/>
         <result property="GMLVersion" column="gml_version"/>
         <result property="GML2Separator" column="gml2_separator"/>
-        <result property="WFSVersion" column="wfs_version"/>
+        <result property="WFSVersion" column="version"/>
         <result property="maxFeatures" column="max_features"/>
         <result property="featureNamespace" column="feature_namespace"/>
         <result property="featureNamespaceURI" column="feature_namespace_uri"/>
@@ -126,50 +123,101 @@
         
 		<result property="minScale" column="minscale"/>
 		<result property="maxScale" column="maxscale"/>
-
-        <result property="customParser" column="custom_parser"/>
-        <result property="testLocation" column="test_location"/>
-        <result property="testZoom" column="test_zoom"/>
-		
+        <result property="jobType" column="job_type"/>
+        <result property="requestImpulse" column="request_impulse"/>
+        <result property="templateModelId" column="wfs_template_model_id" nullValue="-1"/>
 		<result property="templateName" column="t_name"/>
 		<result property="templateDescription" column="description"/>
 		<result property="templateType" column="type"/>
 		<result property="requestTemplate" column="request_template"/>
+        <result property="parseConfig" column="parse_config"/>
 		<result property="responseTemplate" column="response_template"/>
+        <result property="attributes" column="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject"/>
 		
 		<result property="selectionSLDStyle" column="selection_sld_style"/>
     </resultMap>
-    
+
+
+    <parameterMap id="LayerInsertParameter" class="WFSLayerConfiguration">
+       <parameter property="layerId"/>
+       <parameter property="layerName"/>
+       <parameter property="GMLGeometryProperty"/>
+       <parameter property="GMLVersion"/>
+       <parameter property="GML2Separator"/>
+       <parameter property="maxFeatures"/>
+       <parameter property="featureNamespace"/>
+       <parameter property="featureNamespaceURI"/>
+       <parameter property="geometryNamespaceURI"/>
+       <parameter property="featureElement"/>
+
+       <parameter property="outputFormat"/>
+       <parameter property="featureType" jdbcType="VARCHAR" javaType="org.json.JSONObject"/>
+       <parameter property="selectedFeatureParams" jdbcType="VARCHAR" javaType="org.json.JSONObject"/>
+       <parameter property="featureParamsLocales" jdbcType="VARCHAR" javaType="org.json.JSONObject"/>
+       <parameter property="geometryType"/>
+       <parameter property="getMapTiles"/>
+       <parameter property="getHighlightImage"/>
+       <parameter property="getFeatureInfo"/>
+       <parameter property="tileRequest"/>
+       <parameter property="tileBuffer" jdbcType="VARCHAR" javaType="org.json.JSONObject"/>
+
+       <parameter property="WMSLayerId"/>
+       <parameter property="wps_params"/>
+        <parameter property="templateModelId"/>
+       <parameter property="jobType"/>
+       <parameter property="requestImpulse"/>
+
+    </parameterMap>
+
+    <parameterMap id="LayerUpdateParameter" class="WFSLayerConfiguration">
+        <parameter property="GMLVersion"/>
+        <parameter property="maxFeatures"/>
+        <parameter property="id"/>
+
+    </parameterMap>
+
+
     <resultMap class="WFSSLDStyle" id="WFSSLDStyle">
 		<result property="id" column="sid"/>
 		<result property="name" column="s_name"/>
 		<result property="SLDStyle" column="sld_style"/>
     </resultMap>
 
+    <resultMap class="WFSParserConfig" id="WFSParserConfig">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="type" column="type"/>
+        <result property="request_template" column="request_template"/>
+        <result property="response_template" column="response_template"/>
+        <result property="parse_config" column="parse_config"/>
+        <result property="sld_style" column="sld_style"/>
+
+    </resultMap>
+
+
     <cacheModel type="LRU" id="wfs-layer-cache" readOnly="true" serialize="false">
         <flushInterval minutes="15"/>
         <property name="CacheSize" value="100"/>
     </cacheModel>
 
-	<!--
-	cacheModel="wfs-layer-cache">
-	-->
+    <select id="maxId" resultClass="int">
+        select max(id) from portti_wfs_layer
+    </select>
 
     <select id="findLayer" parameterClass="int" resultMap="WFSLayerConfiguration">
             
     	SELECT
 			l.maplayer_id,
 			map.locale,
-			l.url,
-			l.username,
-			l.password,
+			map.url,
+			map.username,
+			map.password,
             l.layer_name,
-			
 			l.gml_geometry_property,
-  			l.srs_name,
+  			map.srs_name,
 			l.gml_version,
             l.gml2_separator,
-			l.wfs_version,
+			map.version,
 			l.max_features,
 			l.feature_namespace,
 			l.feature_namespace_uri,
@@ -188,18 +236,20 @@
             l.tile_buffer,
 			l.wms_layer_id,
 			l.wps_params,
-            l.custom_parser,
-            l.test_location,
-            l.test_zoom,
 			
 			map.minscale,
 			map.maxscale,
-			
+			l.wfs_template_model_id,
+            l.job_type,
+            l.request_impulse,
+
   			m.name as t_name,
   			m.description,
   			m.type,
   			m.request_template,
+  			m.parse_config,
   			m.response_template,
+  			map.attributes,
   			
   			ss.sld_style as selection_sld_style
   			
@@ -308,21 +358,83 @@
 		WHERE l.maplayer_id = #id#
     </select>
 
-    <update id="updateSchemaInfo"
-            parameterClass="Map">
-        update portti_wfs_layer set
-        feature_type = #schema:VarChar#,
-        schema_changed = NOW(),
-        schema_last = NOW(),
-        schema_status  = #status:VarChar#
-        where maplayer_id = #id#
-    </update>
+    <select id="findParserConfigs" parameterClass="string" resultMap="WFSParserConfig">
+        SELECT
+        *
+        FROM oskari_wfs_parser_config
+    </select>
+    <statement id="delete" parameterClass="java.lang.Long">
+        delete from portti_wfs_layer where maplayer_id=#maplayer_id#;
+    </statement>
 
-    <update id="updateFailSchemaInfo"
-            parameterClass="Map">
-        update portti_wfs_layer set
-        schema_last = NOW(),
-        schema_status  = #status:VarChar#
-        where maplayer_id = #id#
-    </update>
+    <statement id="insert" parameterMap="LayerInsertParameter" >
+        <!--  resultClass="java.lang.Integer" -->
+        insert into portti_wfs_layer (
+        maplayer_id,
+        layer_name,
+        gml_geometry_property,
+        gml_version,
+        gml2_separator,
+        max_features,
+        feature_namespace,
+        feature_namespace_uri,
+        geometry_namespace_uri,
+        feature_element,
+        output_format,
+        feature_type,
+        selected_feature_params,
+        feature_params_locales,
+        geometry_type,
+        get_map_tiles,
+        get_highlight_image,
+        get_feature_info,
+        tile_request,
+        tile_buffer,
+        wms_layer_id,
+        wps_params,
+        wfs_template_model_id,
+        job_type,
+        request_impulse)
+        values (CAST(? as BigInt),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CAST(? as Int),?,?)
+    </statement>
+
+    <statement id="update" parameterMap="LayerUpdateParameter">
+        <!--  TODO: decide what is allowed to edit -->
+        UPDATE portti_wfs_layer
+        SET
+        gml_version = ?,
+        max_features = ?
+        WHERE id = ?
+    </statement>
+
+    <statement id="insertTemplateModel" parameterClass="java.util.Map" resultClass="java.lang.Integer" >
+        insert into portti_wfs_template_model (
+        name,
+        description,
+        type,
+        request_template,
+        response_template,
+        parse_config)
+        values (#name#, #description#, #type#, #request_template#, #response_template#, #parse_config#)
+        returning id
+    </statement>
+
+
+    <!-- TODO: verify these works as OskariLayer refactoring effort is ongoing
+    <statement id="insertSLDStyle" parameterClass="java.util.Map" resultClass="java.lang.Integer" >
+        insert into portti_wfs_layer_style (
+        name,
+        sld_style)
+        values (#name#,#sld_style#)
+        returning id
+    </statement>
+
+    <statement id="updateSLDStyle" parameterClass="java.util.Map" >
+        UPDATE portti_wfs_layer_style
+        SET
+        name = #name#,
+        sld_style = #sld_style#
+        WHERE id = #id#
+    </statement>
+    -->
 </sqlMap>

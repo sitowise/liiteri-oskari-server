@@ -1,44 +1,32 @@
 package fi.nls.oskari;
 
+import fi.mml.portti.service.search.*;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.search.channel.SearchableChannel;
+import fi.nls.oskari.util.ConversionHelper;
+import fi.nls.oskari.util.JSONHelper;
+import fi.nls.oskari.util.PropertyUtil;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.util.ConversionHelper;
-import fi.nls.oskari.util.JSONHelper;
-import fi.nls.oskari.util.PropertyUtil;
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
-import fi.nls.oskari.search.channel.SearchableChannel;
-import fi.mml.portti.service.search.Query;
-import fi.mml.portti.service.search.SearchCriteria;
-import fi.mml.portti.service.search.SearchResultItem;
-import fi.mml.portti.service.search.SearchService;
-import fi.mml.portti.service.search.SearchServiceImpl;
-
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
-import org.apache.commons.lang.StringEscapeUtils;
 
 public class SearchWorker {
 
     public static final String KEY_TOTAL_COUNT = "totalCount";
     public static final String KEY_ERROR_TEXT = "errorText";
     public static final String KEY_LOCATIONS = "locations";
+    public static final String KEY_METHODS = "methods";
     public static final String KEY_HAS_MORE = "hasMore";
-    public static final String KEY_ID = "id";
-    public static final String KEY_NAME = "name";
-    public static final String KEY_TYPE = "type";
-    public static final String KEY_RANK = "rank";
-    public static final String KEY_LON = "lon";
-    public static final String KEY_LAT = "lat";
-    public static final String KEY_VILLAGE = "village";
-    public static final String KEY_ZOOMLEVEL = "zoomLevel";
+
 
     public static final String ERR_EMPTY = "cannot_be_empty";
     public static final String ERR_TOO_SHORT = "too_short";
@@ -127,8 +115,10 @@ public class SearchWorker {
         Query query = searchService.doSearch(sc);
 
         List<SearchResultItem> items = new ArrayList<SearchResultItem>();
+        JSONArray methodArray = new JSONArray();
         for(String channelId : sc.getChannels()) {
             items.addAll(query.findResult(channelId).getSearchResultItems());
+            methodArray.put(JSONHelper.createJSONObject(channelId,query.findResult(channelId).getSearchMethod()));
         }
         Collections.sort(items);
 
@@ -148,35 +138,13 @@ public class SearchWorker {
                 }
                 break;
             }
-
-            JSONObject itemJson = new JSONObject();
-
-            JSONHelper.putValue(itemJson, KEY_ID, itemCount);
-
-            // Name & coordinates
-            String name = ConversionHelper.getString(sri.getTitle(), "N/A");
-            boolean gotNameAndLocation = JSONHelper.putValue(itemJson, KEY_NAME, Jsoup.clean(name, Whitelist.none())) &&
-                    JSONHelper.putValue(itemJson, KEY_LON, sri.getLon()) &&
-                    JSONHelper.putValue(itemJson, KEY_LAT, sri.getLat());
-            if(!gotNameAndLocation) {
+            if(!sri.hasNameAndLocation()) {
                 // didn't get name/location -> skip to next result
                 log.warn("Didn't get name or location from search result item:", sri);
                 continue;
             }
-            // Rank
-            JSONHelper.putValue(itemJson, KEY_RANK, sri.getRank());
 
-            // Type
-            JSONHelper.putValue(itemJson, KEY_TYPE, sri.getType());
-
-            // Village (?)
-            // TODO: Shouldn't this be 'municipality' or sth?
-            String village = ConversionHelper.getString(sri.getVillage(), "");
-            JSONHelper.putValue(itemJson, KEY_VILLAGE, Jsoup.clean(village, Whitelist.none()));
-
-            // Zoom level
-            JSONHelper.putValue(itemJson, KEY_ZOOMLEVEL, sri.getZoomLevel());
-            itemArray.put(itemJson);
+            itemArray.put(sri.toJSON(itemCount));
 
             // Success
             itemCount++;
@@ -186,6 +154,12 @@ public class SearchWorker {
             rootJson.put(KEY_LOCATIONS, itemArray);
         } catch (JSONException jsonex) {
             throw new RuntimeException("Could not set search items in JSON");
+        }
+
+        try {
+            rootJson.put(KEY_METHODS, methodArray);
+        } catch (JSONException jsonex) {
+            throw new RuntimeException("Could not set search method items in JSON");
         }
 
         try {

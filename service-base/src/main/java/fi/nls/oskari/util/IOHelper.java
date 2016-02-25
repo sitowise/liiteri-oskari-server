@@ -9,9 +9,11 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -23,8 +25,15 @@ This needs to be checked
  */
 public class IOHelper {
 
-    private static final String HEADER_AUTHORIZATION = "Authorization";
+    public static final String HEADER_AUTHORIZATION = "Authorization";
+    public static final String HEADER_CONTENTTYPE = "Content-Type";
+    public static final String HEADER_USERAGENT = "User-Agent";
+    public static final String HEADER_REFERER = "Referer";
+    public static final String HEADER_ACCEPT = "Accept";
+
     public static final String DEFAULT_CHARSET = "UTF-8";
+    public static final String CONTENTTYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
+    public static final String CONTENT_TYPE_JSON = "application/json";
     private static final Logger log = LogFactory.getLogger(IOHelper.class);
 
     private static SSLSocketFactory TRUSTED_FACTORY;
@@ -39,7 +48,6 @@ public class IOHelper {
 
     static {
         CONNECTION_TIMEOUT_MS = PropertyUtil.getOptional("oskari.connection.timeout", CONNECTION_TIMEOUT_MS);
-        READ_TIMEOUT_MS = PropertyUtil.getOptional("oskari.read.timeout", READ_TIMEOUT_MS);
         READ_TIMEOUT_MS = PropertyUtil.getOptional("oskari.read.timeout", READ_TIMEOUT_MS);
         trustAllCerts = "true".equals(PropertyUtil.getOptional("oskari.trustAllCerts"));
         trustAllHosts = "true".equals(PropertyUtil.getOptional("oskari.trustAllHosts"));
@@ -65,6 +73,15 @@ public class IOHelper {
         return readString(is, DEFAULT_CHARSET);
     }
 
+    /**
+     * Reads the given input stream and converts its contents to a string using #DEFAULT_CHARSET
+     * @param conn
+     * @return
+     * @throws IOException
+     */
+    public static String readString(HttpURLConnection conn) throws IOException {
+        return readString(conn, DEFAULT_CHARSET);
+    }
     /**
      * Reads the given input stream and converts its contents to a string using given charset
      * @param conn connection used to get inputstream and detect gzip encoding
@@ -94,14 +111,16 @@ public class IOHelper {
          * there's no more data to read. We use the StringWriter class to
          * produce the string.
          */
+
         if (is == null) {
             return "";
         }
+
         final Writer writer = new StringWriter();
         final char[] buffer = new char[1024];
         try {
             final Reader reader = new BufferedReader(new InputStreamReader(is,
-                    charset));
+                    charset == null ? DEFAULT_CHARSET : charset ));
             int n;
             while ((n = reader.read(buffer)) != -1) {
                 writer.write(buffer, 0, n);
@@ -145,6 +164,39 @@ public class IOHelper {
             is.close();
         }
         return ous.toByteArray();
+    }
+
+    /**
+     * Returns a connection based on properties:
+     * - [propertiesPrefix]url=[url to call for this service] (required)
+     * - [propertiesPrefix]user=[username for basic auth] (optional)
+     * - [propertiesPrefix]pass=[password for basic auth] (optional)
+     * - [propertiesPrefix]header.[header name]=[header value] (optional)
+     */
+    public static HttpURLConnection getConnectionFromProps(final String propertiesPrefix)
+            throws IOException {
+        final String url = PropertyUtil.getNecessary(propertiesPrefix + "url");
+        return getConnectionFromProps(url, propertiesPrefix);
+    }
+    /**
+     * Returns a connection based on properties:
+     * - [propertiesPrefix]user=[username for basic auth] (optional)
+     * - [propertiesPrefix]pass=[password for basic auth] (optional)
+     * - [propertiesPrefix]header.[header name]=[header value] (optional)
+     */
+    public static HttpURLConnection getConnectionFromProps(final String url, final String propertiesPrefix)
+            throws IOException {
+        final String username = PropertyUtil.getOptional(propertiesPrefix + "user");
+        final String password = PropertyUtil.getOptional(propertiesPrefix + "pass");
+        final HttpURLConnection conn = getConnection(url, username, password);
+        final String headerPropPrefix = propertiesPrefix + "header.";
+        final List<String> headerPropNames = PropertyUtil.getPropertyNamesStartingWith(headerPropPrefix);
+        for (String propName : headerPropNames) {
+            final String header = propName.substring(headerPropPrefix.length());
+            final String value = PropertyUtil.get(propName);
+            writeHeader(conn, header, value);
+        }
+        return conn;
     }
 
     /**
@@ -212,7 +264,6 @@ public class IOHelper {
         final HttpURLConnection con = getConnection(pUrl);
         if (userName != null && !userName.isEmpty()) {
             final String encoded = encode64(userName + ':' + password);
-            log.debug(encoded, " ---- > ", encoded.replaceAll("\r", "").replaceAll("\n", ""));
             con.setRequestProperty(HEADER_AUTHORIZATION, "Basic " + encoded.replaceAll("\r", "").replaceAll("\n", ""));
         }
         return con;
@@ -343,7 +394,12 @@ public class IOHelper {
      * @throws IOException
      */
     public static String getURL(final String pUrl, final String userName, final String password ) throws IOException {
-        return getURL(pUrl, userName, password, Collections.EMPTY_MAP);
+        if (userName != null && userName.length() > 0 && password != null && password.length() > 0) {
+            return getURL(pUrl, userName, password, Collections.EMPTY_MAP);
+        }
+        else {
+            return getURL(pUrl, Collections.EMPTY_MAP);
+        }
     }
     /**
      * Calls given URL with given http headers and returns the response as String.
@@ -371,6 +427,11 @@ public class IOHelper {
     public static String getURL(final String pUrl,final String userName, final String password,
                                 final Map<String, String> headers, final String charset) throws IOException {
         final HttpURLConnection con = getConnection(pUrl, userName, password);
+        final int responseCode = con.getResponseCode();
+        // Unauthorized
+        if (responseCode == 401) {
+            throw new IOException("Unauthorized");
+        }
         return getURL(con, headers, charset);
     }
 
@@ -399,6 +460,19 @@ public class IOHelper {
                                     final String header, final String value) throws IOException {
         if (header != null && value != null) {
             con.setRequestProperty(header, value);
+        }
+    }
+
+    /**
+     * Writes Content-type header to the connection.
+     * @param con       connection to write to
+     * @param value     content type
+     * @throws IOException
+     */
+    public static void setContentType(final HttpURLConnection con,
+                                   final String value) throws IOException {
+        if (value != null) {
+            con.setRequestProperty(HEADER_CONTENTTYPE, value);
         }
     }
 
@@ -569,6 +643,9 @@ public class IOHelper {
      * @param in
      */
     public static void close(final Closeable in) {
+        if(in == null) {
+            return;
+        }
         try {
             in.close();
         } catch (Exception ignored) { }
@@ -646,5 +723,63 @@ public class IOHelper {
                 }
             };
         return TRUSTED_VERIFIER;
+    }
+
+    /**
+     * Adds parameters to given base URL. URLEncodes parameter values.
+     * Note that
+     * @param url
+     * @param params
+     * @return constructed url including additional parameters
+     */
+    public static String constructUrl(final String url, Map<String, String> params) {
+        if(params == null) {
+            return url;
+        }
+        if(params.isEmpty()) {
+            return url;
+        }
+        final StringBuilder urlBuilder = new StringBuilder(url);
+
+        if(!url.contains("?")) {
+            urlBuilder.append("?");
+        }
+        else {
+            final char lastChar = urlBuilder.charAt(urlBuilder.length()-1);
+            if((lastChar != '&' && lastChar != '?')) {
+                urlBuilder.append("&");
+            }
+        }
+        final String queryString = getParams(params);
+        if(queryString.isEmpty()) {
+            // drop last character ('?' or '&')
+            return urlBuilder.substring(0, urlBuilder.length()-1);
+        }
+        return urlBuilder.append(queryString).toString();
+    }
+
+    public static String getParams(Map<String, String> params) {
+        if(params == null || params.isEmpty()) {
+            return "";
+        }
+
+        final StringBuilder urlBuilder = new StringBuilder();
+        for(Map.Entry<String,String> entry : params.entrySet()) {
+            final String value = entry.getValue();
+            if(entry.getValue() == null) {
+                continue;
+            }
+            urlBuilder.append(entry.getKey());
+            urlBuilder.append("=");
+            try {
+                urlBuilder.append(URLEncoder.encode(value, DEFAULT_CHARSET));
+            } catch (UnsupportedEncodingException e) {
+                log.error(e, "Couldn't encode value - using raw input", value);
+                urlBuilder.append(value);
+            }
+            urlBuilder.append("&");
+        }
+        // drop last character ('?' or '&')
+        return urlBuilder.substring(0, urlBuilder.length()-1);
     }
 }

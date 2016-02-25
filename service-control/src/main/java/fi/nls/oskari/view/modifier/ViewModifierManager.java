@@ -4,6 +4,8 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Manages any ViewModifiers registrated on the classpath.
@@ -11,7 +13,7 @@ import java.util.*;
 public class ViewModifierManager {
 
     private final static Logger log = LogFactory.getLogger(ViewModifierManager.class);
-    private static final HashMap<String, ViewModifier> actions = new HashMap<String, ViewModifier>();
+    private static final ConcurrentMap<String, ViewModifier> actions = new ConcurrentHashMap<String, ViewModifier>();
 
     /**
      * Registers a ViewModifier with the given key after instantiating a class with the given className.
@@ -33,9 +35,14 @@ public class ViewModifierManager {
      * @param handler
      */
     public static void addModifier(final String action, final ViewModifier handler) {
-        actions.put(action, handler);
-        handler.init();
-        log.debug("Modifier added", action,"=", handler.getClass().getCanonicalName());
+        try {
+            handler.init();
+            actions.put(action, handler);
+            log.debug("ViewModifier added", action,"=", handler.getClass().getCanonicalName());
+        }
+        catch (Exception ex) {
+            log.error(ex, "ViewModifier init failed! Skipping", action,"=", handler.getClass().getCanonicalName());
+        }
     }
 
     /**
@@ -88,7 +95,12 @@ public class ViewModifierManager {
      */
     public static void teardown() {
         for( ViewModifier h : actions.values()) {
-            h.teardown();
+            try {
+                h.teardown();
+            }
+            catch (Exception ex) {
+                log.error(ex, "ViewModifier teardown failed! Skipping", h.getName(),"=", h.getClass().getCanonicalName());
+            }
         }
     }
 }

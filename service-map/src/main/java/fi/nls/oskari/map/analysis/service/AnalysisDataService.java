@@ -8,6 +8,7 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.analysis.domain.AnalysisLayer;
 import fi.nls.oskari.map.analysis.domain.AnalysisMethodParams;
+import fi.nls.oskari.map.analysis.domain.IntersectJoinMethodParams;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.JSONHelper;
@@ -65,6 +66,7 @@ public class AnalysisDataService {
             analysis.setName(analysislayer.getName());
             analysis.setStyle_id(style.getId());
             analysis.setUuid(user.getUuid());
+            if(analysislayer.getOverride_sld() != null && !analysislayer.getOverride_sld().isEmpty()) analysis.setOverride_SLD(analysislayer.getOverride_sld());
             log.debug("Adding analysis row", analysis);
             analysisService.insertAnalysisRow(analysis);
 
@@ -73,8 +75,7 @@ public class AnalysisDataService {
 
             // Convert featureset (wps) to wfs-t
             // ----------------------------------
-            final AnalysisMethodParams params = analysislayer
-                    .getAnalysisMethodParams();
+            final AnalysisMethodParams params = analysislayer.getAnalysisMethodParams();
             final String geometryProperty = transformationService.stripNamespace(params.getGeom());
             // FIXME: wpsToWfst populates fields list AND returns the wfst
             // payload
@@ -83,7 +84,7 @@ public class AnalysisDataService {
             // and remove the fields parameter from call
             List<String> fields = new ArrayList<String>();
             final String wfst = transformationService.wpsFeatureCollectionToWfst(featureset, analysis.getUuid(),
-                    analysis.getId(), fields, analysislayer.getFieldtypeMap(), geometryProperty);
+                    analysis.getId(), fields, analysislayer.getFieldtypeMap(), geometryProperty, params.getResponsePrefix());
             log.debug("Produced WFS-T:\n" + wfst);
 
             final String response = IOHelper.httpRequestAction(wfsURL, wfst,
@@ -108,6 +109,9 @@ public class AnalysisDataService {
                             analysislayer.getInputAnalysisId());
                 }
             }
+            // if analysis in analysis and second layer is analysislayer - fix field names to original
+            fields = this.SwapSecondAnalysisFieldNames(fields, analysislayer);
+
             analysis.setCols(fields);
 
             log.debug("Update analysis row", analysis);
@@ -125,6 +129,10 @@ public class AnalysisDataService {
         return analysis;
     }
 
+    public Analysis getAnalysisById(long id) {
+        return analysisService.getAnalysisById(id);
+    }
+
     /**
      * Merge analyses to one new analyse
      *
@@ -133,7 +141,6 @@ public class AnalysisDataService {
      * @param user
      * @return Analysis (stored analysis)
      */
-
     public Analysis mergeAnalysisData(AnalysisLayer analysislayer, String json, User user) {
 
         final AnalysisStyle style = new AnalysisStyle();
@@ -157,7 +164,7 @@ public class AnalysisDataService {
 
         try {
             // Insert analysis row - use old for seed
-            analysis = analysisService.getAnalysisById(ids.get(0));
+            analysis = getAnalysisById(ids.get(0));
             // --------------------
             analysis.setAnalyse_json(json.toString());
             analysis.setLayer_id(analysislayer.getId());
@@ -214,39 +221,52 @@ public class AnalysisDataService {
     /**
      * Get analysis columns to Json string
      *
-     * @param analysis_id Key to one analysis
+     * @param analysis_id Key to one analysis (should be number value as string)
      * @return analysis columns
      */
     public String getAnalysisNativeColumns(final String analysis_id) {
-        if (analysis_id != null) {
-            final List<String> columnNames = new ArrayList<String>(); // key,
-            // name
-            Analysis analysis = analysisService
-                    .getAnalysisById(ConversionHelper.getLong(analysis_id, 0));
-            if (analysis != null) {
-                // fixed extra becauseof WFS
-                // columnNames.add("__fid");
-                for (int j = 1; j < 11; j++) {
-                    String colx = analysis.getColx(j);
-                    if (colx != null && !colx.isEmpty()) {
-                        if (colx.indexOf("=") != -1) {
-                            String columnName = colx.split("=")[0];
-                            // Let's make sure no geometry field gets involved.
-                            if (columnName != ANALYSIS_GEOMETRY_FIELD) {
-                                columnNames.add(colx.split("=")[0]);
-                            }
-                        }
-                    }
-
-                }
-                // Add geometry for filter and for highlight.
-                // On the other hand, let's not add it so it won't pollute our gfi.
-                // (it gets added to the query by WFS anyway)
-                //columnNames.add(ANALYSIS_GEOMETRY_FIELD);
-                return "{default:" + columnNames.toString() + "}";
-            }
+        if (analysis_id == null) {
+            return null;
         }
-        return null;
+        return getAnalysisNativeColumns(ConversionHelper.getLong(analysis_id, 0));
+    }
+    /**
+     * Get analysis columns to Json string
+     *
+     * @param analysis_id Key to one analysis
+     * @return analysis columns
+     */
+    public String getAnalysisNativeColumns(final long analysis_id) {
+        final Analysis analysis = analysisService.getAnalysisById(analysis_id);
+        return getAnalysisNativeColumns(analysis);
+    }
+
+    /**
+     * Get analysis columns to Json string
+     *
+     * @param analysis analysis to get columns from
+     * @return analysis columns in a JSON string or null if parameter is null
+     */
+    public String getAnalysisNativeColumns(final Analysis analysis) {
+        if(analysis == null) {
+            return null;
+        }
+        final List<String> columnNames = new ArrayList<String>();
+        for (int j = 1; j < 11; j++) {
+            // format of colx is "<internal name f.ex t1>=<actual name in original data>"
+            String colx = analysis.getColx(j);
+            if (colx == null || colx.isEmpty() || colx.indexOf("=") == -1) {
+                // skip if column data is not valid(?)
+                continue;
+            }
+            String columnName = colx.split("=")[0];
+            if (columnName.equals(ANALYSIS_GEOMETRY_FIELD)) {
+                // ignore geometry field (it gets added to the query by WFS anyway)
+                continue;
+            }
+            columnNames.add(colx.split("=")[0]);
+        }
+        return "{default:" + columnNames.toString() + "}";
     }
 
     /**
@@ -308,6 +328,46 @@ public class AnalysisDataService {
             }
 
         }
+        return fieldsin;
+    }
+    /**
+     * Replace analysislayer internal field names in 2 layers analysis
+     * when second layer is analysislayer
+     * @param fieldsin    raw field names mapping
+     * @return List of field names mapping
+     */
+    public List<String> SwapSecondAnalysisFieldNames(List<String> fieldsin, AnalysisLayer analysisLayer) {
+
+
+          if (analysisLayer.getAnalysisMethodParams() instanceof IntersectJoinMethodParams) {
+                IntersectJoinMethodParams params = (IntersectJoinMethodParams) analysisLayer.getAnalysisMethodParams();
+                if (params.getWps_reference_type2().equals(
+                        ANALYSIS_INPUT_TYPE_GS_VECTOR)) {
+                    if(params.getLayer_id2() != null){
+                        Map<String, String> colnames = this.getAnalysisColumns(params.getLayer_id2());
+                        // Replace internal analysis field names (t1,...)
+                        for (int i = 0; i < fieldsin.size(); i++) {
+                            String col = fieldsin.get(i);
+                            if (!col.isEmpty()) {
+                                if (col.indexOf("=") != -1) {
+                                    String[] cola = col.split("=");
+                                    // Remove join body field part
+                                    cola[1] = cola[1].replace(transformationService.stripNamespace(params.getTypeName2())+"_","");
+                                    if (colnames.containsKey(cola[1])) {
+                                        fieldsin.set(i, cola[0] + "=" + transformationService.stripNamespace(params.getTypeName2())+"_" + colnames.get(cola[1]));
+                                    }
+
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
         return fieldsin;
     }
 

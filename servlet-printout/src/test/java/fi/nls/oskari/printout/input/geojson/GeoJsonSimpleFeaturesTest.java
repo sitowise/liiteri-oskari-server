@@ -1,38 +1,6 @@
 package fi.nls.oskari.printout.input.geojson;
 
-import static org.junit.Assert.assertTrue;
-
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Stack;
-
-import org.apache.log4j.PropertyConfigurator;
-import org.geotools.feature.FeatureCollection;
-import org.geotools.feature.FeatureIterator;
-import org.geotools.geojson.feature.FeatureJSON;
-import org.geotools.map.FeatureLayer;
-import org.geotools.styling.Style;
-import org.geowebcache.config.XMLConfiguration;
-import org.geowebcache.grid.GridSubset;
-import org.geowebcache.layer.TileLayer;
-import org.json.simple.parser.ParseException;
-import org.junit.Before;
-import org.junit.Test;
-import org.opengis.feature.Feature;
-import org.opengis.feature.GeometryAttribute;
-import org.opengis.feature.simple.SimpleFeature;
-
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
-
 import fi.nls.oskari.printout.input.layers.LayerDefinition;
 import fi.nls.oskari.printout.input.layers.MapLayerJSONParser;
 import fi.nls.oskari.printout.input.maplink.MapLink;
@@ -40,6 +8,21 @@ import fi.nls.oskari.printout.output.map.MapProducer;
 import fi.nls.oskari.printout.output.map.MapProducerResource;
 import fi.nls.oskari.printout.ws.jaxrs.map.WebServiceMapProducerResource;
 import fi.nls.oskari.printout.ws.jaxrs.resource.MapResource;
+import org.apache.log4j.PropertyConfigurator;
+import org.geotools.geojson.feature.FeatureJSON;
+import org.geowebcache.config.XMLConfiguration;
+import org.geowebcache.grid.GridSubset;
+import org.geowebcache.layer.TileLayer;
+import org.json.simple.parser.ParseException;
+import org.junit.Before;
+import org.junit.Test;
+import org.opengis.feature.simple.SimpleFeature;
+
+import java.io.*;
+import java.net.URL;
+import java.util.*;
+
+import static org.junit.Assert.assertTrue;
 
 public class GeoJsonSimpleFeaturesTest {
 
@@ -106,133 +89,7 @@ public class GeoJsonSimpleFeaturesTest {
 
 	}
 
-	@Test
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void testParseGeoJSONFromJsonEmbedded() throws IOException,
-			ParseException {
-
-		MaplinkGeoJsonParser parser = new MaplinkGeoJsonParser();
-		parser.setDebug(true);
-
-		InputStream inp = MapProducer.class
-				.getResourceAsStream("action_route_parcel.json");
-
-		try {
-
-			assertTrue(MapLinkGeoJsonParseContext.Default.getPm().buildMap);
-
-			Map<String, ?> root = parser.parse(inp);
-
-			assertTrue(root.size() != 0);
-			assertTrue(root.get("layers") != null);
-			assertTrue(root.get("maplink") != null);
-			assertTrue(root.get("state") != null);
-
-			assertTrue(root.get("layers") != null);
-			assertTrue(((List<Map<String, Object>>) root.get("layers")).size() == 11);
-			assertTrue("geojson".equals(((List<Map<String, Object>>) root
-					.get("layers")).get(10).get("type")));
-			assertTrue(((List<Map<String, Object>>) root.get("layers")).get(10)
-					.get(".data") instanceof FeatureCollection);
-			FeatureCollection fc10 = (FeatureCollection) ((List<Map<String, Object>>) root
-					.get("layers")).get(10).get(".data");
-			assertTrue(fc10.features().hasNext());
-
-		} finally {
-			inp.close();
-		}
-
-	}
-
-	@Test
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void testParseMaplinkAndLayersWithGeoJSONFromJsonEmbedded()
-			throws IOException, ParseException,
-			com.vividsolutions.jts.io.ParseException {
-
-		XMLConfiguration config = shared.getConfig();
-
-		TileLayer tileLayer = config.getTileLayer(layerTemplate);
-		GridSubset gridSubset = tileLayer.getGridSubset(gridSubsetName);
-
-		MapLayerJSONParser layerJsonParser = new MapLayerJSONParser(props);
-
-		MaplinkGeoJsonParser parser = new MaplinkGeoJsonParser();
-		parser.setDebug(true);
-
-		InputStream inp = MapProducer.class
-				.getResourceAsStream("action_route_parcel.json");
-
-		try {
-
-			assertTrue(MapLinkGeoJsonParseContext.Default.getPm().buildMap);
-
-			Map<String, ?> root = parser.parse(inp);
-
-			assertTrue(root.size() != 0);
-			assertTrue(root.get("layers") != null);
-			assertTrue(root.get("maplink") != null);
-			assertTrue(root.get("state") != null);
-
-			assertTrue(root.get("layers") != null);
-			assertTrue(((List<Map<String, Object>>) root.get("layers")).size() == 11);
-			assertTrue("geojson".equals(((List<Map<String, Object>>) root
-					.get("layers")).get(10).get("type")));
-			assertTrue(((List<Map<String, Object>>) root.get("layers")).get(10)
-					.get(".data") instanceof FeatureCollection);
-			FeatureCollection fc10 = (FeatureCollection) ((List<Map<String, Object>>) root
-					.get("layers")).get(10).get(".data");
-			FeatureIterator fi = fc10.features();
-
-			assertTrue(fi.hasNext());
-
-			Feature f = fc10.features().next();
-			assertTrue(f != null);
-			assertTrue(f.getProperty("prop0") != null);
-			assertTrue(f.getProperty("prop0").getValue() != null);
-			Object pv = f.getProperty("prop0").getValue();
-			assertTrue(pv instanceof String);
-			assertTrue("value0forPoints".equals(pv));
-			assertTrue(f.getDefaultGeometryProperty() != null);
-			GeometryAttribute g = f.getDefaultGeometryProperty();
-			assertTrue(g.getValue() != null);
-			Object gv = g.getValue();
-			assertTrue(gv instanceof Point);
-			Point pt = (Point) gv;
-
-			System.out.println(pt.toText());
-
-			Style style = null;
-			new FeatureLayer(fc10, style);
-
-			MapLink mapLink = layerJsonParser.parseMapLinkJSON(root,
-					shared.getGf(), gridSubset.getResolutions());
-
-			/* assertions */
-			assertTrue(mapLink != null);
-			assertTrue(mapLink.getScale() != null);
-
-			assertTrue(mapLink.getCentre() != null);
-			assertTrue(Double.valueOf(530163)
-					.equals(mapLink.getCentre().getX()));
-			assertTrue(Double.valueOf(6754057).equals(
-					mapLink.getCentre().getY()));
-
-			assertTrue(Integer.valueOf(11).equals(mapLink.getZoom()));
-
-			assertTrue(mapLink.getMapLinkLayers() != null);
-			assertTrue(mapLink.getMapLinkLayers().size() == 4);
-
-			assertTrue("base_35".equals(mapLink.getMapLinkLayers().get(0)
-					.getLayerid()));
-
-			assertTrue(mapLink.getMapLinkLayers().get(0).getGeom() == null);
-
-		} finally {
-			inp.close();
-		}
-
-	}
+	
 
 	@Test
 	public void testParseMaplinkAndLayersWithGeoJSONFromJsonTest()

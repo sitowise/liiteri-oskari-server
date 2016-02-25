@@ -5,8 +5,6 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.IOHelper;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -93,36 +91,16 @@ public class ProxyServiceConfig {
 
     /**
      * Returns the url for the service, copies params to the base url if any are defined.
-     * TODO: clean up the excess &-characters.
      * @return
      */
     public String getUrl(final ActionParameters params) {
 
-        final StringBuilder urlBuilder = new StringBuilder(url);
-
-        if(!url.contains("?") && getParamNames().length > 0) {
-            urlBuilder.append("?");
-        }
-        final char lastChar = urlBuilder.charAt(urlBuilder.length()-1);
-        if((lastChar != '&' || lastChar != '?') && getParamNames().length > 0) {
-            urlBuilder.append("&");
-        }
-
+        Map<String, String> urlParams = new HashMap<String, String>();
         for(String paramName : getParamNames()) {
-            final String value = params.getHttpParam(paramName);
-            if(value != null) {
-                urlBuilder.append(paramName);
-                urlBuilder.append("=");
-                try {
-                    urlBuilder.append(URLEncoder.encode(value, getEncoding()));
-                } catch (UnsupportedEncodingException e) {
-                    log.error(e, "Couldn't encode value - using raw input", value);
-                    urlBuilder.append(value);
-                }
-                urlBuilder.append("&");
-            }
+            urlParams.put(paramName, params.getHttpParam(paramName));
         }
-        final String url = urlBuilder.toString();
+
+        final String url = IOHelper.constructUrl(getUrl(), urlParams);
 
         if(url.startsWith("/")) {
             // default to self if domain not specified

@@ -1,9 +1,11 @@
 {
     "views" : [{
         "id":123,
+        "uuid" : "aaaa-bbbbb-cccc",
         "pubDomain":"paikkis.fi",
         "description":"test view",
         "name":"test",
+        "metadata": {},
         "state":{
             "mapfull": {
                 "state": {
@@ -36,7 +38,9 @@
             }
         },
         "isPublic":true,
-        "lang":"fi"
+        "isDefault": false,
+        "lang":"fi",
+        "url" : "//foo.bar:1234/?lang=fi&uuid=aaaa-bbbbb-cccc"
     }]
 }
 

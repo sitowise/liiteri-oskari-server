@@ -61,22 +61,27 @@
                     "id": "Oskari.mapframework.bundle.mapmodule.plugin.FullScreenPlugin"
                 },
                 {
-                    "id": "Oskari.mapframework.bundle.mapmodule.plugin.LogoPlugin"
+                  "id": "Oskari.mapframework.bundle.mapmodule.plugin.LogoPlugin",
+                  "config": {"mapUrlPrefix": "/"}
                 }
             ],
             "layers": [],
             "imageLocation": "/Oskari/resources",
             "user": {
+                "apikey": "testkey",
                 "userID": 123,
                 "lastName": "Oskari",
                 "nickName": "Ozkari",
                 "roles": [{
+                  "id": 1,
+                  "name": "User"
+                },{
                   "id": 66,
                   "name": "Administrator"
                 }],
                 "userUUID": "my uuid is secrets",
                 "firstName": "Test",
-                "loginName": "test@oskari.org"
+                "email": "test@oskari.org"
             }
         }
     }

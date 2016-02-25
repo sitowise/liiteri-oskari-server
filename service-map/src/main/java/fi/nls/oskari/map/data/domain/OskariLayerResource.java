@@ -1,5 +1,6 @@
 package fi.nls.oskari.map.data.domain;
 
+import fi.mml.portti.domain.permissions.Permissions;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.permission.domain.Resource;
 
@@ -8,7 +9,20 @@ import fi.nls.oskari.permission.domain.Resource;
  */
 public class OskariLayerResource extends Resource {
 
+    private String namespace = "";
+    private String name = "";
+
     public OskariLayerResource(OskariLayer layer) {
-        setMapping(layer.getUrl(), layer.getName());
+        setType(Permissions.RESOURCE_TYPE_MAP_LAYER);
+        namespace = layer.getType() + "+" + layer.getUrl();
+        name = layer.getName();
+        setMapping(namespace, name);
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+    public String getName() {
+        return name;
     }
 }

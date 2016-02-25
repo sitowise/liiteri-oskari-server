@@ -4,8 +4,9 @@ import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.GuestUser;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.util.JSONHelper;
+import fi.nls.test.util.JSONTestHelper;
+import fi.nls.test.util.MapBuilder;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -14,17 +15,19 @@ import org.mockito.exceptions.base.MockitoAssertionError;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Vector;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.never;
 
 /**
  * @author SMAKINEN
@@ -33,8 +36,6 @@ import static org.mockito.Mockito.never;
 public class JSONActionRouteTest {
 
     private StringWriter response = new StringWriter();
-    private User guestUser = new GuestUser();
-    private User loggedInUser = null;
 
     @Before
     public void jsonActionRouteSetUp() throws Exception {
@@ -97,6 +98,11 @@ public class JSONActionRouteTest {
             when(req.getParameter(key)).thenReturn(parameters.get(key));
         }
 
+        // mock the session
+        HttpSession session = mock(HttpSession.class);
+        doReturn("testkey").when(session).getId();
+        doReturn(session).when(req).getSession();
+
         doReturn(new Vector(parameters.keySet()).elements()).when(req).getParameterNames();
         if(!response.toString().isEmpty()) {
             fail("Creating new ActionParams, but response already has content: " + response.toString());
@@ -104,12 +110,7 @@ public class JSONActionRouteTest {
         // mock possible payload inputstream
         if(payload != null) {
             try {
-                ServletInputStream wrapper = new ServletInputStream() {
-                    @Override
-                    public int read() throws IOException {
-                        return payload.read();
-                    }
-                };
+                ServletInputStream wrapper = new MockServletInputStream(payload);
                 doReturn(wrapper).when(req).getInputStream();
             }
             catch (IOException ignored ) {}
@@ -141,46 +142,12 @@ public class JSONActionRouteTest {
 
     public void verifyResponseContent(final JSONObject expectedResult) {
         final JSONObject actualResponse = getResponseJSON();
-        boolean success = false;
-        try {
-
-            assertTrue("Response should match expected", JSONHelper.isEqual(expectedResult, actualResponse));
-            success = true;
-        }
-        finally {
-            if(!success) {
-                try {
-                    System.out.println(">>>>>> Expected:\n" + expectedResult.toString(2));
-                    System.out.println("  =======  Actual:");
-                    System.out.println(actualResponse.toString(2));
-                    System.out.println("<<<<<<<<<<<");
-                } catch (JSONException ignored) {
-                    System.out.println("Couldn't print out the jsons");
-                }
-            }
-        }
+        JSONTestHelper.shouldEqual(actualResponse, expectedResult);
     }
 
     public void verifyResponseContent(final JSONArray expectedResult) {
         final JSONArray actualResponse = getResponseJSONArray();
-        boolean success = false;
-        try {
-
-            assertTrue("Response should match expected", JSONHelper.isEqual(expectedResult, actualResponse));
-            success = true;
-        }
-        finally {
-            if(!success) {
-                try {
-                    System.out.println(">>>>>> Expected:\n" + expectedResult.toString(2));
-                    System.out.println("  =======  Actual:");
-                    System.out.println(actualResponse.toString(2));
-                    System.out.println("<<<<<<<<<<<");
-                } catch (JSONException ignored) {
-                    System.out.println("Couldn't print out the jsons");
-                }
-            }
-        }
+        JSONTestHelper.shouldEqual(actualResponse, expectedResult);
     }
 
     public void verifyResponseContent(final String expectedResult) {
@@ -223,19 +190,28 @@ public class JSONActionRouteTest {
     }
 
     public User getGuestUser() {
-        return guestUser;
+        return new GuestUser();
     }
 
     public User getLoggedInUser() {
-        if(loggedInUser == null) {
-            loggedInUser = new User();
-            loggedInUser.setId(123);
-            loggedInUser.setEmail("test@oskari.org");
-            loggedInUser.setFirstname("Test");
-            loggedInUser.setLastname("Oskari");
-            loggedInUser.setScreenname("Ozkari");
-            loggedInUser.setUuid("my uuid is secrets");
-        }
+        User loggedInUser = new User();
+        loggedInUser.setId(123);
+        loggedInUser.setEmail("test@oskari.org");
+        loggedInUser.setFirstname("Test");
+        loggedInUser.setLastname("Oskari");
+        loggedInUser.setScreenname("Ozkari");
+        loggedInUser.setUuid("my uuid is secrets");
+        loggedInUser.addRole(1, "User");
         return loggedInUser;
+    }
+    public User getAdminUser() {
+        User adminUser = mock(User.class);
+        // mock as admin
+        doReturn(true).when(adminUser).isAdmin();
+        return adminUser;
+    }
+
+    public MapBuilder buildParams() {
+        return MapBuilder.build();
     }
 }

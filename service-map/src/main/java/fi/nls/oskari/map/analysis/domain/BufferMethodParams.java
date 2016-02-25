@@ -2,13 +2,12 @@ package fi.nls.oskari.map.analysis.domain;
 
 // WPS execute parameters / case: WFS REFERENCE input 
 
-import java.io.IOException;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
-
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
+import java.io.IOException;
 
 public class BufferMethodParams extends AnalysisMethodParams {
 
@@ -19,7 +18,7 @@ public class BufferMethodParams extends AnalysisMethodParams {
     // xml template paths {}
     private final String DISTANCE = "{distance}";
 
-    // distance from feature attribute field
+    // distance is read from feature attribute field
     private final String ATTRIBUTENAME = "{attributeName}";
     private final String INCLUDEORIGINAL = "{includeOriginal}";
     // private final String HREF = "{href}";

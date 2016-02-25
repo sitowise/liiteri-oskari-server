@@ -38,10 +38,9 @@ public class GetMetadataSearchHandler extends ActionHandler {
     private static final SearchService service = ServiceFactory.getSearchService();
 
     private static final String PARAM_USER_INPUT = "search";
+    private static final String PARAM_MAP_SRS = "srs";
 
     private static final String KEY_RESULTS = "results";
-    private static final String KEY_RESULT_ID = "id";
-    private static final String KEY_RESULT_NAME = "name";
 
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
@@ -49,6 +48,7 @@ public class GetMetadataSearchHandler extends ActionHandler {
         final SearchCriteria sc = new SearchCriteria();
         final String language = params.getLocale().getLanguage();
         sc.setLocale(language);
+        sc.setSRS(params.getHttpParam(PARAM_MAP_SRS));
         for(MetadataField field : MetadataCatalogueChannelSearchService.getFields()) {
             field.getHandler().handleParam(params.getHttpParam(field.getName()), sc);
         }
@@ -64,11 +64,11 @@ public class GetMetadataSearchHandler extends ActionHandler {
         final JSONArray results = new JSONArray();
         final Query query = service.doSearch(sc);
         final ChannelSearchResult searchResult = query.findResult(MetadataCatalogueChannelSearchService.ID);
+
+        log.debug("done search... now creating json objects");
+
         for(SearchResultItem item : searchResult.getSearchResultItems()) {
-            final JSONObject node = JSONHelper.createJSONObject(KEY_RESULT_NAME, item.getTitle());
-            JSONHelper.putValue(node, KEY_RESULT_ID, item.getResourceId());
-            JSONHelper.putValue(node, MetadataField.RESULT_KEY_ORGANIZATION, (String) item.getValue(MetadataField.RESULT_KEY_ORGANIZATION));
-            results.put(node);
+            results.put(item.toJSON());
         }
 
         // write response

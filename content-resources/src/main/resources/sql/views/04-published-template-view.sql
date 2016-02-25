@@ -18,23 +18,13 @@ SELECT b.name, s.config, s.state, s.startup
 
 
 --------------------------------------------
--- Supplement
--- TODO: This should be refactored so view is inserted first 
--- and supplement should contain some sane values
---------------------------------------------
-
-INSERT INTO portti_view_supplement (app_startup, baseaddress, is_public)
-    VALUES ('published-map', 'published', false);
-
---------------------------------------------
 -- View
 --------------------------------------------
 
-INSERT INTO portti_view (name, type, is_default, supplement_id, application, page, application_dev_prefix)
+INSERT INTO portti_view (name, type, is_default, application, page, application_dev_prefix)
     VALUES ('published', 
             'PUBLISH', 
-             true, 
-             (SELECT max(id) FROM portti_view_supplement),
+             true,
              'published-map',
              'published',
              '/applications/paikkatietoikkuna.fi');
@@ -148,6 +138,12 @@ UPDATE portti_view_bundle_seq set startup = '{
             "mapwmts" : {
                 "bundlePath" : "/Oskari/packages/framework/bundle/"
             },
+            "mapuserlayers" : {
+                "bundlePath" : "/Oskari/packages/framework/bundle/"
+            },
+            "maparcgis" : {
+                "bundlePath" : "/Oskari/packages/arcgis/bundle/"
+            },
             "oskariui" : {
                 "bundlePath" : "/Oskari/packages/framework/bundle/"
             },
@@ -203,7 +199,14 @@ UPDATE portti_view_bundle_seq set config = '{
         }
        },
        { "id" : "Oskari.mapframework.bundle.mapstats.plugin.StatsLayerPlugin" },
-       { "id" : "Oskari.mapframework.bundle.mapanalysis.plugin.AnalysisLayerPlugin" }
+       { "id" : "Oskari.mapframework.mapmodule.MarkersPlugin",
+          "config": {
+            "markerButton": false
+          }
+        },
+       { "id" : "Oskari.mapframework.bundle.mapanalysis.plugin.AnalysisLayerPlugin" },
+       { "id" : "Oskari.mapframework.bundle.myplacesimport.plugin.UserLayersLayerPlugin" },
+       { "id" : "Oskari.arcgis.bundle.maparcgis.plugin.ArcGisLayerPlugin" }
       ],
       "layers": [
       ],
@@ -353,28 +356,28 @@ UPDATE portti_view_bundle_seq set startup = '{
     AND  view_id=(SELECT id FROM portti_view WHERE type='PUBLISH');
 
 --------------------------------------------
--- 6. Publishedmyplaces2
+-- 6. RPC
 --------------------------------------------
 
 -- add bundle to view
-INSERT INTO portti_view_bundle_seq (view_id, bundle_id, seqno, config, state, startup) 
-    VALUES ((SELECT id FROM portti_view WHERE type='PUBLISH'), 
-    (SELECT id FROM portti_bundle WHERE name = 'publishedmyplaces2'), 
-    (SELECT (max(seqno) + 1) FROM portti_view_bundle_seq WHERE view_id = (SELECT id FROM portti_view WHERE type='PUBLISH')), 
-    '{}','{}', '{
-            "title" : "Publishedmyplaces2",
-            "fi" : "publishedmyplaces2",
-            "sv" : "publishedmyplaces2",
-            "en" : "publishedmyplaces2",
-            "bundlename" : "publishedmyplaces2",
-            "bundleinstancename" : "publishedmyplaces2",
-            "metadata" : {
-                "Import-Bundle" : {
-                    "publishedmyplaces2" : {
-                        "bundlePath" : "/Oskari/packages/framework/bundle/"
-                    }
-                },
-                "Require-Bundle-Instance" : []
-            },
-            "instanceProps" : {}
-        }');
+INSERT INTO portti_view_bundle_seq (view_id, bundle_id, seqno, config, state, startup)
+  VALUES ((SELECT id FROM portti_view WHERE type='PUBLISH'),
+          (SELECT id FROM portti_bundle WHERE name = 'rpc'),
+          (SELECT (max(seqno) + 1) FROM portti_view_bundle_seq WHERE view_id = (SELECT id FROM portti_view WHERE type='PUBLISH')),
+          '{}','{}', '{}');
+
+-- update proper startup for view
+UPDATE portti_view_bundle_seq set startup = '{
+    "title": "Remote procedure call",
+    "bundleinstancename": "rpc",
+    "bundlename": "rpc",
+    "metadata": {
+        "Import-Bundle": {
+            "rpc": {
+                "bundlePath": "/Oskari/packages/framework/bundle/"
+            }
+        }
+    }
+    }' WHERE bundle_id = (SELECT id FROM portti_bundle WHERE name = 'rpc')
+             AND  view_id=(SELECT id FROM portti_view WHERE type='PUBLISH');
+

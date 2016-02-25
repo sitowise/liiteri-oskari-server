@@ -1,6 +1,6 @@
 package fi.nls.oskari.control.data;
 /**
- * Store zipped shape file set or kmz(zipped kml) to oskari_user_store database
+ * Store zipped file set to oskari_user_store database
  *
  */
 
@@ -13,28 +13,33 @@ import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.map.userlayer.domain.GPXGeoJsonCollection;
 import fi.nls.oskari.map.userlayer.domain.KMLGeoJsonCollection;
+import fi.nls.oskari.map.userlayer.domain.MIFGeoJsonCollection;
 import fi.nls.oskari.map.userlayer.domain.SHPGeoJsonCollection;
 import fi.nls.oskari.map.userlayer.service.GeoJsonWorker;
 import fi.nls.oskari.map.userlayer.service.UserLayerDataService;
-import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbService;
-import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbServiceImpl;
-import fi.nls.oskari.map.userowndata.GisDataService;
+import fi.nls.oskari.util.FileHelper;
+import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.JSONHelper;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import java.io.*;
-import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
+import fi.nls.oskari.util.PropertyUtil;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.json.JSONObject;
 
+import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbService;
+import fi.nls.oskari.map.userowndata.GisDataRoleSettingsDbServiceImpl;
+import fi.nls.oskari.map.userowndata.GisDataService;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import org.json.JSONObject;
 
 @OskariActionRoute("CreateUserLayer")
 public class CreateUserLayerHandler extends ActionHandler {
@@ -44,20 +49,21 @@ public class CreateUserLayerHandler extends ActionHandler {
     private final UserLayerDataService userlayerService = new UserLayerDataService();
     private final GisDataService gisService = GisDataService.getInstance();
     
-    private static final List<String> ACCEPTED_FORMATS = Arrays.asList("SHP", "KML");
+    private static final List<String> ACCEPTED_FORMATS = Arrays.asList("SHP", "KML", "GPX", "MIF");
     private static final String IMPORT_SHP = ".SHP";
+    private static final String IMPORT_GPX = ".GPX";
+    private static final String IMPORT_MIF = ".MIF";
     private static final String IMPORT_KML = ".KML";
     private static final String PARAM_EPSG_KEY = "epsg";
-
-
-    @Override
-    public void init() {
-
-
-    }
+    private static final String USERLAYER_MAX_FILE_SIZE_MB = "userlayer.max.filesize.mb";
+    final long userlayerMaxFileSizeMb = PropertyUtil.getOptional(USERLAYER_MAX_FILE_SIZE_MB, 10);
+    private static final int MAX_FILES_IN_ZIP = 100;
 
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
+
+        // stop here if user isn't logged in
+        params.requireLoggedInUser();
 
         final String target_epsg = params.getHttpParam(PARAM_EPSG_KEY, "EPSG:3067");
         
@@ -67,6 +73,8 @@ public class CreateUserLayerHandler extends ActionHandler {
             // Only 1st file item is handled
             RawUpLoadItem loadItem = getZipFiles(params);
             
+
+            // Checks file size
 
             File file = unZip(loadItem.getFileitem());
 
@@ -79,14 +87,18 @@ public class CreateUserLayerHandler extends ActionHandler {
         		throw new ActionException("server_error_key_limit");
         	}
 
+            User user = params.getUser();
             // import format
-
             GeoJsonWorker geojsonWorker = null;
 
             if (file.getName().toUpperCase().indexOf(IMPORT_SHP) > -1) {
                 geojsonWorker = new SHPGeoJsonCollection();
             } else if (file.getName().toUpperCase().indexOf(IMPORT_KML) > -1) {
                 geojsonWorker = new KMLGeoJsonCollection();
+            } else if (file.getName().toUpperCase().indexOf(IMPORT_GPX) > -1) {
+                geojsonWorker = new GPXGeoJsonCollection();
+            } else if (file.getName().toUpperCase().indexOf(IMPORT_MIF) > -1) {
+                geojsonWorker = new MIFGeoJsonCollection();
             }
             // Parse import data to geojson
             if (!geojsonWorker.parseGeoJSON(file, target_epsg)) {
@@ -112,10 +124,17 @@ public class CreateUserLayerHandler extends ActionHandler {
             params.getResponse().setContentType("text/plain;charset=utf-8");
             params.getResponse().setCharacterEncoding("UTF-8");
 
+            // workaround because of IE iframe submit json download functionality
+            //params.getResponse().setContentType("application/json;charset=utf-8");
+            //ResponseHelper.writeResponse(params, userlayerService.parseUserLayer2JSON(ulayer));
+            final HttpServletResponse response = params.getResponse();
+            response.setContentType("text/plain;charset=utf-8");
+            response.setCharacterEncoding("UTF-8");
+
             JSONObject userLayer = userlayerService.parseUserLayer2JSON(ulayer);
             JSONObject permissions = OskariLayerWorker.getAllowedPermissions();
             JSONHelper.putValue(userLayer, "permissions", permissions);
-            params.getResponse().getWriter().print(userLayer);
+            response.getWriter().print(userLayer);
 
         } catch (Exception e) {
         	if (e instanceof ActionException) {
@@ -140,6 +159,13 @@ public class CreateUserLayerHandler extends ActionHandler {
         FileItem impFileItem = null;
         HttpServletRequest request = params.getRequest();
 
+        try {
+            // Incoming strings are in UTF-8 but they're not read as such unless we force it...
+            request.setCharacterEncoding("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.warn("Couldnt setup UTF-8 encoding");
+        }
+
         Map fparams = new HashMap<String, String>();
         RawUpLoadItem loadItem = new RawUpLoadItem();
 
@@ -150,15 +176,17 @@ public class CreateUserLayerHandler extends ActionHandler {
 
                 DiskFileItemFactory diskFileItemFactory = new DiskFileItemFactory();
 
-            /*
-             * Set the file size limit in bytes. This should be set as an
-             * initialization parameter
-             */
-                // diskFileItemFactory.setSizeThreshold(1024 * 1024 * 10); //10MB.
-
+                /*
+                * Set the file size limit in bytes. This should be set as an
+                * initialization parameter
+                */
+                // diskFileItemFactory.setSizeThreshold(1024 * 1024 * 10);
 
                 // Create a new file upload handler
                 ServletFileUpload upload = new ServletFileUpload(diskFileItemFactory);
+
+                // Set size limit
+                upload.setSizeMax(userlayerMaxFileSizeMb * 1024 * 1024);
 
                 List items = null;
 
@@ -201,87 +229,98 @@ public class CreateUserLayerHandler extends ActionHandler {
 
     private static File unZip(FileItem zipFile) throws Exception {
 
-        byte[] buffer = new byte[1024];
-        String imp_extension = null;
-        String filename = null;
+        FileHelper mainFile = null;
+        ZipInputStream zis = null;
 
-        ZipInputStream zis = new ZipInputStream(zipFile.getInputStream());
-        ZipEntry ze = zis.getNextEntry();
+        try {
+            zis = new ZipInputStream(zipFile.getInputStream());
+            ZipEntry ze = zis.getNextEntry();
+            String filesBaseName = null;
+            int fileCount = 0;
+            while (ze != null) {
+                fileCount++;
+                if(fileCount > MAX_FILES_IN_ZIP) {
+                    // safeguard against infinite loop, userlayers shouldn't have this many files in any case
+                    break;
+                }
 
-        while (ze != null) {
+                if (ze.isDirectory()) {
+                    zis.closeEntry();
+                    ze = zis.getNextEntry();
+                    continue;
+                }
+                FileHelper file = handleZipEntry(ze, zis, filesBaseName);
+                if(file == null) {
+                    zis.closeEntry();
+                    ze = zis.getNextEntry();
+                    continue;
+                }
 
+                // use the same base name for all files in zip
+                int i = file.getSavedTo().lastIndexOf(".");
+                filesBaseName = file.getSavedTo().substring(0, i);
 
-            if (ze.isDirectory()) {
+                if (mainFile == null && file.isOfType(ACCEPTED_FORMATS)) {
+                    mainFile = file;
+                }
+                zis.closeEntry();
                 ze = zis.getNextEntry();
-                continue;
             }
+        } finally {
+            IOHelper.close(zis);
+        }
 
-            String fileName = ze.getName();
+        if(mainFile == null) {
+            return null;
+        }
+        return mainFile.getFile();
+    }
 
-            int i = fileName.lastIndexOf(".");
-            String[] parts = {fileName.substring(0, i), fileName.substring(i + 1)};
-            // Clean and jump extra files
-            String parts0 = checkFileName(parts[0]);
-            if (parts0 == null) {
-                ze = zis.getNextEntry();
-                continue;
-            }
+    private static FileHelper handleZipEntry(ZipEntry ze, ZipInputStream zis, String tempFileBaseName) {
 
-            if (parts.length < 2) return null;
-            if (ACCEPTED_FORMATS.contains(parts[1].toUpperCase())) {
-                imp_extension = parts[1];
-            }
+        FileHelper file = new FileHelper(ze.getName());
+        if (!file.hasNameAndExtension()) {
+            return null;
+        }
 
-            File newFile = File.createTempFile(parts0, "." + parts[1]);
+        // TODO: File.createTempFile() says "The prefix string must be at least three characters long" maybe check this?
+        File newFile = null;
+        FileOutputStream fos = null;
+        try {
+            newFile = File.createTempFile(file.getSafeName(), "." + file.getExtension());
+            log.debug("file unzip : " + newFile.getAbsoluteFile());
+            fos = new FileOutputStream(newFile);
 
-            log.info("file unzip : " + newFile.getAbsoluteFile());
-
-            FileOutputStream fos = new FileOutputStream(newFile);
-
+            byte[] buffer = new byte[1024];
             int len;
             while ((len = zis.read(buffer)) > 0) {
                 fos.write(buffer, 0, len);
             }
-
-            fos.close();
-
-            if (filename == null) {
-                i = newFile.getPath().lastIndexOf(".");
-                String[] parts3 = {newFile.getPath().substring(0, i), newFile.getPath().substring(i)};
-
-                filename = parts3[0];
-            } else {
-                // Use same file name basics
-
-
-                i = newFile.getPath().lastIndexOf(".");
-                String[] parts3 = {newFile.getPath().substring(0, i), newFile.getPath().substring(i)};
-                newFile.renameTo(new File(filename + parts3[1]));
+        } catch (IOException ex) {
+            log.warn(ex, "Error unzipping file:", file);
+        } finally {
+            if(newFile != null) {
+                file.setSavedTo(newFile.getPath());
+                newFile.deleteOnExit();
             }
-            newFile.deleteOnExit();
-            ze = zis.getNextEntry();
+            IOHelper.close(fos);
         }
 
-        zis.closeEntry();
-        zis.close();
-
-        // is acceptable extension found
-        if (imp_extension == null) {
-            log.info("Acceptable format extension not found - valid extensions: ", ACCEPTED_FORMATS);
-            return null;
+        if(tempFileBaseName != null) {
+            // rename tempfile if we have an existing basename (shapefiles need to have same basename)
+            final String newName = tempFileBaseName + "." + file.getExtension();
+            File renameLocation = new File(newName);
+            boolean success = newFile.renameTo(renameLocation);
+            if(!success) {
+                log.warn("Rename failed in temp directory", newFile.getName(), " ->  ",newName );
+            } else {
+                // update path
+                file.setSavedTo(renameLocation.getPath());
+                log.debug("File renamed ",newFile.getName(), " ->  ",newName );
+            }
         }
-
-        // master file of import  file set
-        return new File(filename + "." + imp_extension);
+        return file;
     }
-
-    private static String checkFileName(String filenam) {
-        String[] parts = filenam.split("\\/");
-        // no dots any more allowed in filename
-        if (parts[parts.length - 1].indexOf(".") > -1) return null;
-        return parts[parts.length - 1];
-    }        
-    
 
     class RawUpLoadItem {
         FileItem fileitem;

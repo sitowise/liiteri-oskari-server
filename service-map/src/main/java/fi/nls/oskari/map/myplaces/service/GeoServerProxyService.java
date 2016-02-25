@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.util.zip.GZIPInputStream;
 
 public class GeoServerProxyService {
 
@@ -74,15 +73,16 @@ public class GeoServerProxyService {
                 log.debug("Posted XML:", request.getPostData());
                 IOHelper.writeToConnection(con, request.getPostData());
 
-                InputStream input = con.getInputStream();
+//                InputStream input = con.getInputStream();
 
-                if ("gzip".equals(con.getContentEncoding())) {
-                    input = new GZIPInputStream(input);
-                }
-                return IOHelper.readString(input);
-            } else {
-                return IOHelper.readString(con.getInputStream());
+//                if ("gzip".equals(con.getContentEncoding())) {
+//                    input = new GZIPInputStream(input);
+//                }
+//                return IOHelper.readString(input);
+//            } else {
+//                return IOHelper.readString(con.getInputStream());
             }
+            return IOHelper.readString(con);
         } finally {
             con.disconnect();
         }
@@ -109,7 +109,8 @@ public class GeoServerProxyService {
             factory.setNamespaceAware(true);
 
             DocumentBuilder builder = factory.newDocumentBuilder();
-            respInStream = connection.getInputStream();
+            log.debug("Got response for myplaces GFI:");
+            respInStream = IOHelper.debugResponse(connection.getInputStream());
 
             org.w3c.dom.Document document = builder.parse(respInStream);
             xsltInStream = this.getClass().getResourceAsStream(MY_PLACE_FEATURE_FILTER_XSL);

@@ -1,19 +1,30 @@
 package fi.nls.oskari.map.analysis.domain;
 
-import java.io.IOException;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
-
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
+import java.io.IOException;
 
 public class UnionMethodParams extends AnalysisMethodParams {
 
     private final String analysisMethodTemplate = "analysis-layer-wps-geomunion.xml";
     private final String analysisMethodTemplate2 = "analysis2analysis-layer-wps-geomunion.xml";
     private final String analysisMethodTemplate3 = "analysis2geojson-layer-wps-geomunion.xml";
-   
+
+    private static final String DEFAULT_MIMETYPE = "text/xml; subtype=wfs-collection/1.1";
+    private static final String MIMETYPE = "{mimetype}";
+
+    private String mimeTypeFormat = null;
+
+    public String getMimeTypeFormat() {
+        return mimeTypeFormat;
+    }
+
+    public void setMimeTypeFormat(String mimeTypeFormat) {
+        this.mimeTypeFormat = mimeTypeFormat;
+    }
 
     public Document getWPSXML() throws XPathExpressionException, IOException,
             SAXException, ParserConfigurationException {
@@ -27,7 +38,7 @@ public class UnionMethodParams extends AnalysisMethodParams {
         String doctemp = null;
         if (this.getWps_reference_type().equals(this.REFERENCE_TYPE_GS))
             doctemp = this.getTemplate(this.analysisMethodTemplate2);
-        if (this.getWps_reference_type().equals(this.INPUT_GEOJSON))
+        else if (this.getWps_reference_type().equals(this.INPUT_GEOJSON))
             doctemp = this.getTemplate(this.analysisMethodTemplate3);
         else
             doctemp = this.getTemplate(this.analysisMethodTemplate);
@@ -43,6 +54,13 @@ public class UnionMethodParams extends AnalysisMethodParams {
         doctemp = doctemp.replace(TYPENAME, this.getTypeName());
         doctemp = doctemp.replace(LOCALTYPENAME, this.getLocalTypeName());
         doctemp = doctemp.replace(GEOJSONFEATURES, this.getGeojson());
+
+        //Final response output format
+        if(this.getMimeTypeFormat() != null){
+            doctemp = doctemp.replace(MIMETYPE, this.getMimeTypeFormat());
+        } else {
+            doctemp = doctemp.replace(MIMETYPE, DEFAULT_MIMETYPE);
+        }
 
         //Properties
         if (this.getProperties() != null) {

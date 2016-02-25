@@ -10,13 +10,12 @@ import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.map.indicator.UserIndicator;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.ResponseHelper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.List;
-
-import fi.nls.oskari.util.JSONHelper;
 
 /**
  * Created with IntelliJ IDEA.
@@ -40,7 +39,7 @@ public class GetUserIndicatorsHandler extends ActionHandler {
         }
         int id  = -1;
         try {
-            id = Integer.parseInt(params.getHttpParam(PARAM_INDICATOR_ID, "-1"));
+            id = Integer.parseInt(getId(params.getHttpParam(PARAM_INDICATOR_ID, "-1")));
         } catch (NumberFormatException nfe) {
             throw  new ActionException(" Invalid number ");
         }
@@ -109,6 +108,11 @@ public class GetUserIndicatorsHandler extends ActionHandler {
 
     public void setUserIndicatorService(UserIndicatorService uis) {
         userIndicatorService = uis;
+    }
+    private String getId(String id) {
+        String [] parts = id.split("_");
+        if (parts.length < 2) return id;
+        return parts[parts.length-1];
     }
 }
 

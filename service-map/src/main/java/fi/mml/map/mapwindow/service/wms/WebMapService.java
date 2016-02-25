@@ -1,5 +1,6 @@
 package fi.mml.map.mapwindow.service.wms;
 
+import java.util.List;
 import java.util.Map;
 
 public interface WebMapService {
@@ -10,7 +11,7 @@ public interface WebMapService {
 	 * 
 	 * @return List of Strings
 	 */
-	public Map<String, String> getSupportedStyles();
+	Map<String, String> getSupportedStyles();
 	
 	
 	/**
@@ -19,39 +20,44 @@ public interface WebMapService {
 	 * 
 	 * @return List of Strings
 	 */
-	public Map<String, String> getSupportedLegends();
+	Map<String, String> getSupportedLegends();
 	
 	
 	/**
 	 * returns getCapabilitiesUrl
 	 */
-	public String getCapabilitiesUrl();
+	String getCapabilitiesUrl();
 	
 	
 	/**
 	 * returns queryable:
 	 * @return
 	 */
-	public boolean isQueryable();
+	boolean isQueryable();
 	
 	
 	/**
 	 * Return Array of strings representing supported formats for feature info
 	 * @return String array
 	 */
-	public String[] getFormats();
+	String[] getFormats();
 
 
     /**
      * Return Array of strings representing keywords listed in capabilities
      * @return String array
      */
-    public String[] getKeywords();
+    String[] getKeywords();
 
     /**
      * Return WMS version as string
      * @return String
      */
-    public String getVersion();
-	
+    String getVersion();
+
+	/**
+	 * Return WMS time extent / dimension value as string
+	 * @return String
+	 */
+	List<String> getTime();
 }

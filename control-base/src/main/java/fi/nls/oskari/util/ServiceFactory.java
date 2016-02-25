@@ -1,8 +1,6 @@
 package fi.nls.oskari.util;
 
 
-import fi.mml.map.mapwindow.service.db.CapabilitiesCacheService;
-import fi.mml.map.mapwindow.service.db.CapabilitiesCacheServiceIbatisImpl;
 import fi.mml.map.mapwindow.service.db.InspireThemeService;
 import fi.mml.map.mapwindow.service.db.InspireThemeServiceIbatisImpl;
 import fi.mml.portti.service.db.permissions.PermissionsService;
@@ -13,6 +11,10 @@ import fi.nls.oskari.map.layer.LayerGroupService;
 import fi.nls.oskari.map.layer.LayerGroupServiceIbatisImpl;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
+import fi.nls.oskari.service.capabilities.CapabilitiesCacheService;
+import fi.nls.oskari.service.capabilities.CapabilitiesCacheServiceMybatisImpl;
+import fi.nls.oskari.wfs.WFSLayerConfigurationService;
+import fi.nls.oskari.wfs.WFSLayerConfigurationServiceIbatisImpl;
 
 public class ServiceFactory {
 	
@@ -22,6 +24,7 @@ public class ServiceFactory {
     private static PermissionsService permissionsService;
     private static SearchService searchService;
     private static CapabilitiesCacheService capabilitiesCacheService;
+    private static WFSLayerConfigurationService wfsLayerService;
  
 	public static LayerGroupService getLayerGroupService() {
 		if (layerGroupService == null) {
@@ -59,8 +62,15 @@ public class ServiceFactory {
 
     public static CapabilitiesCacheService getCapabilitiesCacheService() {
         if (capabilitiesCacheService == null) {
-            capabilitiesCacheService = new CapabilitiesCacheServiceIbatisImpl();
+            capabilitiesCacheService = new CapabilitiesCacheServiceMybatisImpl();
         }
         return capabilitiesCacheService;
+    }
+
+    public static WFSLayerConfigurationService getWfsLayerService() {
+        if (wfsLayerService == null) {
+            wfsLayerService = new WFSLayerConfigurationServiceIbatisImpl();
+        }
+        return wfsLayerService;
     }
 }

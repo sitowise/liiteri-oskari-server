@@ -8,7 +8,6 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.search.channel.RegisterOfNomenclatureChannelSearchService;
 import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.PropertyUtil;
-
 import org.apache.xmlbeans.XmlObject;
 import org.json.XMLTokener;
 import org.w3c.dom.Document;
@@ -16,15 +15,21 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
 
 public class SearchUtil {
 	
@@ -45,7 +50,6 @@ public class SearchUtil {
 	public static final String LOCATION_TYPE_URL_PROPERTY = "search.locationtype.url";
 
 	private static final Map<String, String> localeMap = new HashMap<String, String>();
-	private static final Map<String, String> zoomLevel = new HashMap<String, String>();
 	
 	// KEY: locationTypeCode, VALUE: ranking
 	private static final Map<String, Integer> rankMap = new HashMap<String, Integer>();
@@ -69,65 +73,6 @@ public class SearchUtil {
             Locale loc = new Locale(lang);
             localeMap.put(lang, loc.getISO3Language());
         }
-		//Luontonimet, maasto	
-		zoomLevel.put("300","10");
-		zoomLevel.put("305","10");
-		zoomLevel.put("310","10");
-		zoomLevel.put("315","9");
-		zoomLevel.put("325","8");
-		zoomLevel.put("330","8");
-		zoomLevel.put("335","9");
-		zoomLevel.put("340","9");
-		zoomLevel.put("345","9");
-		zoomLevel.put("350","9");
-		zoomLevel.put("430","9");
-		zoomLevel.put("390","8");
-		//Luontonimet, vesistö	
-		zoomLevel.put("400","10");
-		zoomLevel.put("410","6");
-		zoomLevel.put("415","8");
-		zoomLevel.put("420","9");
-		zoomLevel.put("425","8");
-		zoomLevel.put("435","10");
-		zoomLevel.put("490","9");
-		//Kulttuurinimet, asutus
-		zoomLevel.put("540","6");
-		zoomLevel.put("550","6");
-		zoomLevel.put("560","8");
-		zoomLevel.put("570","10");
-		zoomLevel.put("590","10");
-		//Kulttuurinimet, muut	
-		zoomLevel.put("110","8");
-		zoomLevel.put("120","9");
-		zoomLevel.put("130","10");
-		zoomLevel.put("200","9");
-		zoomLevel.put("205","9");
-		zoomLevel.put("210","8");
-		zoomLevel.put("215","9");
-		zoomLevel.put("225","8");
-		zoomLevel.put("230","9");
-		zoomLevel.put("235","9");
-		zoomLevel.put("240","9");
-		zoomLevel.put("245","9");
-		zoomLevel.put("320","9");
-		zoomLevel.put("500","10");
-		zoomLevel.put("510","10");
-		zoomLevel.put("520","9");
-		zoomLevel.put("530","10");
-		zoomLevel.put("600","7");
-		zoomLevel.put("602","6");
-		zoomLevel.put("604","6");
-		zoomLevel.put("610","10");
-		zoomLevel.put("612","10");
-		zoomLevel.put("614","10");
-		zoomLevel.put("620","7");
-		zoomLevel.put("630","7");
-		zoomLevel.put("640","7");
-		zoomLevel.put("700","10");
-		zoomLevel.put("710","10");
-		zoomLevel.put("Tie","10");
-		zoomLevel.put("Rakennus","10");
-		zoomLevel.put("Kiinteistötunnus","10");
 	}
 	
 	public static final QName pnrPaikka = getQName("Paikka", "pnr");
@@ -154,22 +99,7 @@ public class SearchUtil {
     public static String getMapURL(String locale) {
         return PropertyUtil.get("map.url." + locale);
     }
-	
-	
-	/**
-	 * Returns the ZoomLevel by location type. 
-	 * @param type Location type
-	 * @return Zoom level
-	 */
-	
-	public static String getZoomLevel(String type) {
-		if (zoomLevel.containsKey(type)) {
-			return (zoomLevel.get(type));
-		} else {
-			return "5";
-		}
-	}
-	
+
 	/**
 	 * Returns the list rank by location type. 
 	 * @param locationTypeCode Location type code
@@ -206,16 +136,18 @@ public class SearchUtil {
 		return villageCache.containsValue(village);
 	}
 	
+	public static Map getVillages() {
+		final long currentTime = System.currentTimeMillis(); 
+		if (villageLastUpdate == 0 || currentTime <  villageLastUpdate + reloadInterval) {
+			updateVillageCache();
+			villageLastUpdate = currentTime;
+		}
+		return villageCache;
+	}
+
+	@Deprecated
 	public static String getNameRegisterUrl() throws Exception {
 		return PropertyUtil.get(NAME_REGISTER_URL_PROPERTY);
-	}
-	
-	public static String getNameRegisterUser() throws Exception {
-		return PropertyUtil.get(NAME_REGISTER_USER_PROPERTY);
-	}
-	
-	public static String getNameRegisterPassword() throws Exception {
-		return PropertyUtil.get(NAME_REGISTER_PASSWORD_PROPERTY);
 	}
 	
 	public static URL getVillagesUrl() throws Exception {
@@ -224,6 +156,7 @@ public class SearchUtil {
 	}
 	
 	public static URL getLocationTypeUrl() throws Exception {
+        if(PropertyUtil.getOptional(LOCATION_TYPE_URL_PROPERTY) == null) return null;
 		final URL villagesUrl = new URL(PropertyUtil.get(LOCATION_TYPE_URL_PROPERTY));
 		return villagesUrl;
 	}
@@ -250,38 +183,10 @@ public class SearchUtil {
 	
 	private static String getData(String villageName) throws Exception {
 		
-		final String login = PropertyUtil.get(SearchUtil.NAME_REGISTER_USER_PROPERTY);
-        final String password = PropertyUtil.get(SearchUtil.NAME_REGISTER_PASSWORD_PROPERTY);
-        
-        if (login != null && !"".equals(login) && password != null && !"".equals(password)) {
-	        Authenticator.setDefault(new Authenticator() {
-	            protected PasswordAuthentication getPasswordAuthentication() {
-	                return new PasswordAuthentication (login, password.toCharArray());
-	            }
-	        }); 
-        }
-		final URL url = new URL(getWFSUrl(villageName));
-		URLConnection conn = url.openConnection();
-		InputStream ins;
-		
-		StringBuilder data = new StringBuilder();
-		if (conn instanceof HttpsURLConnection) {
-			HttpsURLConnection https_conn = (HttpsURLConnection) conn;
-		    ins = https_conn.getInputStream();
-		} else {
-			ins = conn.getInputStream();
-		}
-		InputStreamReader isr = new InputStreamReader(ins);
-	    BufferedReader in = new BufferedReader(isr);
-	    String inputLine;
-	    	
-	    while ((inputLine = in.readLine()) != null) {
-	        data.append(inputLine);
-	    }
-	    in.close();
-		conn.connect();
-			  
-		return data.toString();
+		final String login = PropertyUtil.getOptional(NAME_REGISTER_USER_PROPERTY);
+        final String password = PropertyUtil.getOptional(NAME_REGISTER_PASSWORD_PROPERTY);
+        final String url = getWFSUrl(villageName);
+		return IOHelper.getURL(url, login, password);
 	}
 	
 	
@@ -297,8 +202,6 @@ public class SearchUtil {
 		searchResultList.setChannelId(RegisterOfNomenclatureChannelSearchService.ID);
 		
 		try {
-			//final URL wfsUrl = new URL(getWFSUrl(villageName));
-			
 			String data = getData(villageName);
 			final FeatureCollectionDocument fDoc =  FeatureCollectionDocument.Factory.parse(data);
 			
@@ -520,48 +423,51 @@ public class SearchUtil {
         }
         try {
 
-			final URL locationTypeUrl = getLocationTypeUrl();
+            final URL locationTypeUrl = getLocationTypeUrl();
+            if (locationTypeUrl != null) {
+                log.debug("locationtypeURL: ", locationTypeUrl);
+                InputStreamReader isr = new InputStreamReader(locationTypeUrl.openStream(), "UTF-8");
 
-			InputStreamReader isr = new InputStreamReader(locationTypeUrl.openStream(), "UTF-8");
-            
-            BufferedReader reader = new BufferedReader(isr);
-            StringBuilder readXML = new StringBuilder();
-            
-            String inputLine;
-            while ((inputLine = reader.readLine()) != null) {
-            	readXML.append(inputLine);
+
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder readXML = new StringBuilder();
+
+                String inputLine;
+                while ((inputLine = reader.readLine()) != null) {
+                    readXML.append(inputLine);
+                }
+                isr.close();
+
+                XMLTokener xmlTokener = new XMLTokener(readXML.toString().replace(':', '_'));
+                while (xmlTokener.more()) {
+
+                    String nextContent = xmlTokener.nextContent().toString();
+
+                    if (!"<".equals(nextContent) && nextContent.startsWith("xsd_enumeration value")) {
+
+                        String[] code = nextContent.split("\"");
+
+                        while (xmlTokener.more()) {
+
+                            String content = xmlTokener.nextContent().toString();
+
+                            if (!"<".equals(content) && content.startsWith("xsd_documentation xml_lang")) {
+                                String[] languageAndName = content.split("\"");
+
+                                locationTypeCache.put(code[1] + "_" + languageAndName[1], languageAndName[2].substring(1));
+
+                            } else if ("/xsd_annotation>".equals(content)) {
+                                break;
+                            }
+                        }
+                    }
+                }
             }
-            isr.close();
-            
-            XMLTokener xmlTokener = new XMLTokener(readXML.toString().replace(':', '_'));
-            while (xmlTokener.more()) {
-            	
-            	String nextContent = xmlTokener.nextContent().toString();
-            	
-            	if (!"<".equals(nextContent) && nextContent.startsWith("xsd_enumeration value")) {
-            		
-            		String[] code =  nextContent.split("\"");
-            		
-            		 while (xmlTokener.more()) {
-            			 
-            			 String content = xmlTokener.nextContent().toString();
-            			 
-            			 if (!"<".equals(content) && content.startsWith("xsd_documentation xml_lang")) {
-            				 String[] languageAndName = content.split("\"");
-            				 
-            				 locationTypeCache.put(code[1]+"_"+languageAndName[1], languageAndName[2].substring(1));
-            				 
-            			 }else if ("/xsd_annotation>".equals(content)) {
-            				 break;
-            			 }
-            		 }
-            	}
-            }      
-          
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to update location type", e);
-		}
-	}
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update location type", e);
+        }
+    }
 	
 	private static QName getQName(final String attribute, final String prefix) {
 		return new QName(nameSpaceUri.get(prefix), attribute, prefix);

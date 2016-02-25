@@ -5,7 +5,7 @@
 <head>
     <title>Standalone servlet - ${viewName} view</title>
 
-    <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js">
+    <script type="text/javascript" src="/Oskari/libraries/jquery/jquery-1.7.1.min.js">
     </script>
 
     <!-- ############# css ################# -->
@@ -43,9 +43,15 @@
     <!-- ############# /css ################# -->
 </head>
 <body>
-<div id="contentMap">
-    <div id="mapdiv">
-        <div class="mapplugins top right"></div>
+<div id="contentMap" class="oskariui container-fluid published">
+    <div class="row-fluid" style="height: 100%; background-color:white;">
+        <div class="oskariui-left"></div>
+        <div class="span12 oskariui-center" style="height: 100%; margin: 0;">
+            <div id="mapdiv"></div>
+        </div>
+        <div class="oskari-closed oskariui-right">
+            <div id="mapdivB"></div>
+        </div>
     </div>
 </div>
 

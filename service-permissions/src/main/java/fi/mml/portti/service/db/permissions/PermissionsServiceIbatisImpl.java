@@ -1,7 +1,5 @@
 package fi.mml.portti.service.db.permissions;
 
-import java.util.*;
-
 import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.domain.permissions.UniqueResourceName;
 import fi.mml.portti.domain.permissions.WFSLayerPermissionsStore;
@@ -12,6 +10,8 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.permission.domain.Permission;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.service.db.BaseIbatisService;
+
+import java.util.*;
 
 public class PermissionsServiceIbatisImpl extends BaseIbatisService<Permissions> implements PermissionsService {		
 	
@@ -116,7 +116,6 @@ public class PermissionsServiceIbatisImpl extends BaseIbatisService<Permissions>
 
         final List<String> permittedResources = queryForList(getNameSpace() + ".findResourcesWithGrantedPermissions", parameterMap);
         result.addAll(permittedResources);
-
         return result;
     }
 	
@@ -195,6 +194,26 @@ public class PermissionsServiceIbatisImpl extends BaseIbatisService<Permissions>
 
 		return permissions;
 	}
+
+    public Set<String> getDownloadPermissions() {
+        return getDownloadPermissions(Permissions.RESOURCE_TYPE_MAP_LAYER);
+    }
+
+    public Set<String> getDownloadPermissions(String resourceType) {
+
+        Map<String, String> parameterMap = new HashMap<String, String>();
+        parameterMap.put("resourceType",resourceType);
+        List<Map<String, Object>> downloadPermissions = queryForList(getNameSpace() + ".findDownloadPermissions", parameterMap);
+
+        Set<String> permissions = new HashSet<String>();
+
+        for (Map<String, Object> resultMap : downloadPermissions) {
+            permissions.add(resultMap.get("resourceMapping")+":"+resultMap.get("externalId") );
+        }
+
+        return permissions;
+    }
+
 
     public Set<String> getEditPermissions() {
 

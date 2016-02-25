@@ -2,20 +2,17 @@ DROP TABLE IF EXISTS portti_wfs_layers_styles;
 DROP TABLE IF EXISTS portti_wfs_layer_style;
 DROP TABLE IF EXISTS portti_wfs_layer;
 DROP TABLE IF EXISTS portti_wfs_template_model;
+DROP TABLE IF EXISTS oskari_wfs_parser_config;
 
 CREATE TABLE portti_wfs_layer
 (
   id serial NOT NULL,
   maplayer_id bigint NOT NULL,
   layer_name character varying(256),
-  url character varying(512),
-  username character varying(256),
-  "password" character varying(512),
   gml_geometry_property character varying(256),
   gml_version character varying(64),
   gml2_separator boolean NOT NULL DEFAULT false,
   get_highlight_image boolean NOT NULL DEFAULT true,
-  wfs_version character varying(64),
   max_features integer NOT NULL DEFAULT 100,
   feature_namespace character varying DEFAULT 512,
   wfs_template_model_id integer,
@@ -31,17 +28,12 @@ CREATE TABLE portti_wfs_layer
   tile_buffer character varying(512) default '{}',
   wms_layer_id integer,
   wps_params character varying(256) default '{}',
-  srs_name character varying,
   feature_element character varying(512),
   output_format character varying(256),
   feature_namespace_uri character varying(512),
   geometry_namespace_uri character varying(512),
-  schema_changed timestamp with time zone,
-  schema_last timestamp with time zone,
-  schema_status character varying(512),
-  custom_parser boolean NOT NULL DEFAULT false,
-  test_location character varying(512) default '[]',
-  test_zoom integer NOT NULL DEFAULT 9,
+  job_type character varying(256),
+  request_impulse character varying(256),
   CONSTRAINT portti_wfs_layer_pkey PRIMARY KEY (id)
 )
 WITH (
@@ -89,8 +81,25 @@ CREATE TABLE portti_wfs_template_model
   "type" character varying(64),
   request_template text,
   response_template text,
+  parse_config text,
   CONSTRAINT portti_wfs_template_model_pkey PRIMARY KEY (id)
 )
 WITH (
 OIDS=FALSE
+);
+
+
+CREATE TABLE oskari_wfs_parser_config
+(
+  id serial NOT NULL,
+  name character varying(128),
+  type character varying(64),
+  request_template text,
+  response_template text,
+  parse_config text,
+  sld_style text,
+  CONSTRAINT oskari_wfs_parser_config_pkey PRIMARY KEY (id)
+)
+WITH (
+  OIDS=FALSE
 );

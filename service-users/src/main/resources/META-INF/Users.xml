@@ -12,8 +12,10 @@
         <result property="id" column="id" />
         <result property="firstname" column="first_name" />
         <result property="lastname" column="last_name" />
-        <result property="screenname" column="user_name" />
+        <result property="email" column="email" />
         <result property="uuid" column="uuid" />
+        <result property="screenname" column="user_name" />
+        <result property="attributes" column="attributes" />
         <result property="tosAccepted" column="tos_accepted" />
     </resultMap>
 
@@ -23,14 +25,18 @@
             first_name,
             last_name,
             user_name,
+            email,
             uuid,
+            attributes,
             tos_accepted
         )
         VALUES (
             #firstname#,
             #lastname#,
             #screenname#,
+            #email#,
             #uuid#,
+            #attributes#,
             #tosAccepted#
         )
         RETURNING id
@@ -42,20 +48,22 @@
         first_name = #firstname#,
         last_name = #lastname#,
         user_name = #screenname#,
+        email = #email#,
+        attributes = #attributes#,
         tos_accepted = #tosAccepted#
         where id = #id#
     </statement>
 
     <select id="findAll" resultMap="UsersResult">
-        select id, first_name, last_name, user_name, uuid, tos_accepted from oskari_users order by user_name
+        select id, first_name, last_name, user_name, email, uuid, attributes, tos_accepted from oskari_users order by user_name
     </select>
 
     <select id="findByUserId" parameterClass="Long" resultMap="UsersResult">
-        select id, first_name, last_name, user_name, uuid, tos_accepted from oskari_users where id = #id#
+        select id, first_name, last_name, user_name, email, uuid, attributes, tos_accepted from oskari_users where id = #id#
     </select>
 
     <select id="findByUserName" parameterClass="String" resultMap="UsersResult">
-        select id, user_name, first_name, last_name, uuid, tos_accepted from oskari_users where user_name = #id#
+        select id, user_name, first_name, last_name, email, uuid, attributes, tos_accepted from oskari_users where user_name = #id#
     </select>
 
     <select id="login" parameterClass="java.util.HashMap" resultClass="String">

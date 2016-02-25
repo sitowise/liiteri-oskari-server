@@ -11,34 +11,21 @@
 SELECT b.name, s.config, s.state, s.startup
     FROM portti_view_bundle_seq s, portti_bundle b 
     WHERE s.bundle_id = b.id AND s.view_id = 
-        (SELECT max(v.id) FROM portti_view v, portti_view_supplement s 
-            WHERE v.supplement_id = s.id AND s.app_startup = 'full-map_guest')
+        (SELECT max(id) FROM portti_view WHERE application = 'full-map_guest')
     ORDER BY s.view_id, s.seqno;
-
-
---------------------------------------------
--- Supplement
--- TODO: This should be refactored so view is inserted first 
--- and supplement should contain some sane values
---   app_startup == js app folder
---   baseaddress == jsp-file
---------------------------------------------
-
-INSERT INTO portti_view_supplement (app_startup, baseaddress, is_public, old_id)
-    VALUES ('full-map_guest', 'view', true, -1);
 
 --------------------------------------------
 -- View
 --------------------------------------------
 
-INSERT INTO portti_view (name, type, is_default, supplement_id, application, page, application_dev_prefix)
+INSERT INTO portti_view (name, type, is_default, application, page, application_dev_prefix, is_public)
     VALUES ('Guest default view', 
             'USER', 
-             false, 
-             (SELECT max(id) FROM portti_view_supplement),
+             false,
              'full-map_guest',
              'view',
-             '/applications/paikkatietoikkuna.fi');
+             '/applications/paikkatietoikkuna.fi',
+             true);
 
 
 
@@ -46,7 +33,7 @@ INSERT INTO portti_view (name, type, is_default, supplement_id, application, pag
 -- QUERY FOR VIEW ID AND MODIFY THE FOLLOWING STATEMENTS TO USE IT INSTEAD OF [VIEW_ID]
 --------------------------------------------
 
-SELECT id FROM portti_view v WHERE application = 'full-map_guest'
+SELECT id FROM portti_view v WHERE application = 'full-map_guest';
 
 
 --------------------------------------------
@@ -154,11 +141,17 @@ UPDATE portti_view_bundle_seq set startup = '{
             "mapstats" : {
                 "bundlePath" : "/Oskari/packages/framework/bundle/"
             },
+            "mapanalysis" : {
+                "bundlePath" : "/Oskari/packages/framework/bundle/"
+            },
             "oskariui" : {
                 "bundlePath" : "/Oskari/packages/framework/bundle/"
             },
             "mapfull" : {
                 "bundlePath" : "/Oskari/packages/framework/bundle/"
+            },
+            "maparcgis" : {
+                "bundlePath" : "/Oskari/packages/arcgis/bundle/"
             },
             "ui-components": {
                 "bundlePath": "/Oskari/packages/framework/bundle/"
@@ -178,6 +171,7 @@ UPDATE portti_view_bundle_seq set startup = '{
 UPDATE portti_view_bundle_seq set config = '{
     "globalMapAjaxUrl": "[REPLACED BY HANDLER]",
     "imageLocation": "/Oskari/resources",
+    "mapOptions" : {"srsName":"EPSG:3067","maxExtent":{"bottom":6291456,"left":-548576,"right":1548576,"top":8388608},"resolutions":[2048,1024,512,256,128,64,32,16,8,4,2,1,0.5,0.25]},
     "plugins" : [
        { "id" : "Oskari.mapframework.bundle.mapmodule.plugin.LayersPlugin" },
        { "id" : "Oskari.mapframework.mapmodule.WmsLayerPlugin" },
@@ -209,6 +203,8 @@ UPDATE portti_view_bundle_seq set config = '{
        { "id" : "Oskari.mapframework.bundle.mapmodule.plugin.GeoLocationPlugin" },
        { "id" : "Oskari.mapframework.bundle.mapmodule.plugin.RealtimePlugin" },
        { "id" : "Oskari.mapframework.bundle.mapmodule.plugin.FullScreenPlugin" },
+       { "id" : "Oskari.mapframework.mapmodule.VectorLayerPlugin" }
+       { "id" : "Oskari.arcgis.bundle.maparcgis.plugin.ArcGisLayerPlugin" },
        {
             "id" : "Oskari.mapframework.bundle.mapmodule.plugin.BackgroundLayerSelectionPlugin",
             "config" : {
@@ -238,10 +234,10 @@ UPDATE portti_view_bundle_seq set config = '{
 
 -- update proper state for view
 UPDATE portti_view_bundle_seq set state = '{
-    "east": "517620",
-    "north": "6874042",
+    "east": "520000",
+    "north": "7250000",
     "selectedLayers": [{"id": "base_35"}],
-    "zoom": 1
+    "zoom": 0
 }' WHERE bundle_id = (SELECT id FROM portti_bundle WHERE name = 'mapfull') 
     AND view_id=[VIEW_ID];
 
@@ -571,7 +567,7 @@ UPDATE portti_view_bundle_seq set startup = '{
 
 -- update proper config for view
 UPDATE portti_view_bundle_seq set config = '{
-        "__name": "Personaldata",
+        "__name": "PersonalData",
         "title": {
             "en": "My data",
             "fi": "Omat tiedot",
@@ -627,6 +623,14 @@ UPDATE portti_view_bundle_seq set config = '{
                         "fi": "Lisää alue - Kirjaudu sisään käyttääksesi",
                         "sv": "Tillägg område - Logga in för att använda",
                         "en": "Add area - Log in to use"
+                    }
+                },
+                "import" : {
+                    "iconCls": "upload-material",
+                    "tooltip": {
+                        "fi": "Tuo oma aineisto - Kirjaudu sisään käyttääksesi",
+                        "sv": "Importera egen datamängd - Logga in för att använda",
+                        "en": "Import your own dataset - Log in to use"
                     }
                 }
             }
@@ -1061,12 +1065,12 @@ UPDATE portti_view_bundle_seq set startup = '{
 UPDATE portti_view_bundle_seq set config = '{
         "__name": "Analyse",
         "title": {
-            "en": "Analyse",
-            "fi": "Analyysi",
-            "sv": "Analys"
+            "en": "Analyse <font color=red>(BETA)</font>",
+            "fi": "Analyysi <font color=red>(BETA)</font>",
+            "sv": "Analys <font color=red>(BETA)</font>"
         },
         "desc": {
-            "en": "You need to log in before using the embedding function.",
+            "en": "You need to log in before using the analysis function.",
             "fi": "Voit käyttää Analyysitoimintoa kirjauduttuasi palveluun.",
             "sv": "Logga in i tjänsten för att använda analys funktioner."
         },
@@ -1125,3 +1129,78 @@ UPDATE portti_view_bundle_seq set startup = '{
     }' WHERE bundle_id = (SELECT id FROM portti_bundle WHERE name = 'metadatacatalogue') 
     AND view_id=[VIEW_ID];
 
+--------------------------------------------
+-- 24. Route Search
+--------------------------------------------
+
+-- add bundle to view
+INSERT INTO portti_view_bundle_seq (view_id, bundle_id, seqno, config, state, startup) 
+       VALUES ([VIEW_ID],
+        (SELECT id FROM portti_bundle WHERE name = 'routesearch'), 
+        (SELECT (max(seqno) + 1) FROM portti_view_bundle_seq WHERE view_id = [VIEW_ID]),
+        '{}','{}', '{}');
+
+-- update proper startup for view
+UPDATE portti_view_bundle_seq set startup = '{
+    "title": "Route Search",
+    "bundleinstancename": "routesearch",
+    "fi": "Reittihaku",
+    "sv": "Ruttsök",
+    "en": "Route Search",
+    "bundlename": "routesearch",
+    "metadata": {
+        "Import-Bundle": {
+            "routesearch": {
+                "bundlePath": "/Oskari/packages/paikkatietoikkuna/bundle/"
+            }
+        },
+        "Require-Bundle-Instance": [ ]
+    },
+    "instanceProps": {}
+}' WHERE bundle_id = (SELECT id FROM portti_bundle WHERE name = 'routesearch') 
+    AND  view_id=[VIEW_ID];
+
+-- update proper config for view
+UPDATE portti_view_bundle_seq set config = '{
+    "flyoutClazz": "Oskari.mapframework.bundle.routesearch.Flyout"
+}' WHERE bundle_id = (SELECT id FROM portti_bundle WHERE name = 'routesearch')
+         AND  view_id=[VIEW_ID];
+
+--------------------------------------------
+-- 24. FindByCoordinates
+--------------------------------------------
+
+-- add bundle to view
+INSERT INTO portti_view_bundle_seq (view_id, bundle_id, seqno, config, state, startup) 
+       VALUES ([VIEW_ID],
+        (SELECT id FROM portti_bundle WHERE name = 'findbycoordinates'), 
+        (SELECT (max(seqno) + 1) FROM portti_view_bundle_seq WHERE view_id = [VIEW_ID]),
+        '{}','{}', '{}');
+
+-- update proper startup for view
+UPDATE portti_view_bundle_seq set startup = '{
+    "title" : "FindByCoordinates",
+    "bundlename" : "findbycoordinates",
+    "bundleinstancename" : "findbycoordinates",
+    "metadata" : {
+    "Import-Bundle" : {
+    "findbycoordinates" : {
+    "bundlePath" : "/Oskari/packages/framework/bundle/"
+    }
+    },
+    "Require-Bundle-Instance" : []
+    },
+    "instanceProps" : {}
+}' WHERE bundle_id = (SELECT id FROM portti_bundle WHERE name = 'findbycoordinates') 
+    AND  view_id=[VIEW_ID];
+
+--------------------------------------------
+-- 25. Heatmap
+--------------------------------------------
+INSERT INTO portti_view_bundle_seq (view_id, seqno, bundle_id, startup, config, state)
+VALUES ([VIEW_ID],
+        (SELECT (max(seqno) + 1) FROM portti_view_bundle_seq WHERE view_id = [VIEW_ID]),
+        (SELECT id FROM portti_bundle WHERE name = 'heatmap'),
+        (SELECT startup FROM portti_bundle WHERE name = 'heatmap'),
+        (SELECT config FROM portti_bundle WHERE name = 'heatmap'),
+        (SELECT state FROM portti_bundle WHERE name = 'heatmap'));

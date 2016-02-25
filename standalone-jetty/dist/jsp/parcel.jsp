@@ -45,6 +45,8 @@
                 vertical-align: bottom;
                 margin-bottom: 8px;
                 margin-top: 20px;
+                font-size: 12px;
+                line-height: 12.6px;
             }
             #loginbar a {
                 color: #FFDE00;
@@ -119,7 +121,7 @@
 <!-- ############# /css ################# -->
 <nav id="maptools">
     <div id="logoarea">
-        <img src="/Oskari/resources/parcel/images/logo.png" alt="Maanmittauslaitos" width="150" height="68">
+        <img src="/Oskari/resources/parcel/images/logo.png" alt="Maanmittauslaitos" width="153" height="76">
     </div>
     <div id="loginbar">
     </div>
@@ -183,7 +185,7 @@
             src="/Oskari${path}/oskari_lang_all.js">
     </script>
     <script type="text/javascript"
-            src="/Oskari${path}/oskari_lang_${themeDisplay.locale.language}.js">
+            src="/Oskari${path}/oskari_lang_${language}.js">
     </script>
 </c:if>
 

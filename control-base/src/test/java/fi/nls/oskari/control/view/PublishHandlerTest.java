@@ -1,9 +1,8 @@
 package fi.nls.oskari.control.view;
 
-import fi.mml.map.mapwindow.service.db.MyPlacesService;
-import fi.mml.map.mapwindow.service.db.MyPlacesServiceIbatisImpl;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
+import fi.nls.oskari.control.ActionConstants;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.map.view.View;
 import fi.nls.oskari.domain.map.view.ViewTypes;
@@ -11,20 +10,27 @@ import fi.nls.oskari.map.view.BundleService;
 import fi.nls.oskari.map.view.BundleServiceIbatisImpl;
 import fi.nls.oskari.map.view.ViewService;
 import fi.nls.oskari.map.view.ViewServiceIbatisImpl;
+import fi.nls.oskari.myplaces.MyPlacesService;
+import fi.nls.oskari.myplaces.MyPlacesServiceMybatisImpl;
+import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.test.control.JSONActionRouteTest;
 import fi.nls.test.util.ResourceHelper;
 import fi.nls.test.view.ViewTestHelper;
-
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.AfterClass;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 public class PublishHandlerTest extends JSONActionRouteTest {
 	
@@ -37,6 +43,8 @@ public class PublishHandlerTest extends JSONActionRouteTest {
     @BeforeClass
     public static void addProperties() throws Exception {
         PropertyUtil.addProperty("view.template.publish", "3", true);
+        PropertyUtil.addProperty("oskari.domain", "//domain.com", true);
+        PropertyUtil.addProperty("oskari.map.url", "/map", true);
     }
 
     @Before
@@ -44,7 +52,7 @@ public class PublishHandlerTest extends JSONActionRouteTest {
         // view.template.publish=3
     	// mock services for testing
     	mockViewService();
-        myPlaceService = mock(MyPlacesServiceIbatisImpl.class);
+        myPlaceService = mock(MyPlacesServiceMybatisImpl.class);
         permissionsService = mock(PermissionsServiceIbatisImpl.class);
         bundleService = mock(BundleServiceIbatisImpl.class);
 
@@ -55,6 +63,11 @@ public class PublishHandlerTest extends JSONActionRouteTest {
         handler.setBundleService(bundleService);
 
      handler.init();
+    }
+
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
     }
 
     private void mockViewService() {
@@ -79,7 +92,20 @@ public class PublishHandlerTest extends JSONActionRouteTest {
         handler.handleAction(params);
         // test that response was written once
         verifyResponseWritten(params);
-        verifyResponseContent(ResourceHelper.readJSONResource("PublishHandlerTest-output-simple.json", this));
+        final JSONObject expectedResult = ResourceHelper.readJSONResource("PublishHandlerTest-output-simple.json", this);
+        final JSONObject actualResponse = getResponseJSON();
+        // UUID will change in each run, so just checking that there is one
+        assertNotNull("Must contain actual UUID", actualResponse.getString("uuid"));
+        actualResponse.remove("uuid");
+        expectedResult.remove("uuid");
+
+        // URL will change in each run as it contains the UUID, so just checking that there is one
+        assertNotNull("Must contain some URL", actualResponse.getString("url"));
+        assertNotNull("URL should start with expected format", actualResponse.getString("url").startsWith("//domain.com/map?lang=fi&" + ActionConstants.PARAM_UUID + "="));
+                actualResponse.remove("url");
+        expectedResult.remove("url");
+
+        assertTrue("Response should match expected", JSONHelper.isEqual(expectedResult, actualResponse));
     }
 	
 }

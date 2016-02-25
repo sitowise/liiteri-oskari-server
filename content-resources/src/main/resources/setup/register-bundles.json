@@ -15,7 +15,6 @@
             "012-coordinatedisplay.sql",
             "013-maplegend.sql",
             "014-userguide.sql",
-            "016-featuredata.sql",
             "017-myplaces2.sql",
             "018-guidedtour.sql",
             "019-backendstatus.sql",
@@ -28,7 +27,15 @@
             "026-promote.sql",
             "027-publishedgrid.sql",
             "028-featuredata2.sql",
-            "029-admin-layerrights.sql"
+            "029-admin-layerrights.sql",
+            "030-publishedstatehandler.sql",
+            "031-publishedmyplaces2.sql",
+            "032-myplacesimport.sql",
+            "033-admin-users.sql",
+            "034-routesearch.sql",
+            "035-rpc.sql",
+            "036-findbycoordinates.sql",
+            "037-heatmap.sql"
         ],
         "integration" : [
             "001-admin-layerselector.sql"
@@ -36,6 +43,13 @@
         "catalogue" : [
             "metadataflyout.sql",
             "metadatacatalogue.sql"
+        ],
+        "admin" : [
+            "admin.sql"
+        ],
+        "analysis" : [
+            "001-analyse.sql"
         ]
-    }
+    },
+    "isPartial" : true
 }

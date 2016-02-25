@@ -2,12 +2,16 @@ package fi.nls.oskari.util;
 
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.util.AXIOMUtil;
+import org.apache.axiom.om.xpath.AXIOMXPath;
+import org.jaxen.NamespaceContext;
 
-import javax.xml.stream.XMLStreamException;
 import java.io.StringWriter;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -85,4 +89,56 @@ public class XmlHelper {
         }
         return true;
     }
+    public static String getChildValue(final OMElement elem, final String localName) throws Exception {
+        OMElement e = getChild(elem, localName);
+        if(e == null) {
+            return null;
+        }
+        return e.getText();
+    }
+
+    public static OMElement getChild(final OMElement elem, final String localName) throws Exception {
+        if(elem == null || localName == null) {
+            return null;
+        }
+        final Iterator<OMElement> it = elem.getChildrenWithLocalName(localName);
+        if(!it.hasNext()) {
+            return null;
+        }
+        final OMElement result = it.next();
+        if(it.hasNext()) {
+            throw new Exception("More than one element");
+        }
+        return result;
+    }
+
+
+    public static Map<String, String> getAttributesAsMap(final OMElement elem) {
+        final Map<String, String> attributes = new HashMap<String, String>();
+        if(elem == null) {
+            return attributes;
+        }
+        final Iterator<OMAttribute> attrs = elem.getAllAttributes();
+        while(attrs.hasNext()) {
+            final OMAttribute a = attrs.next();
+            attributes.put(a.getLocalName(), a.getAttributeValue());
+        }
+        return attributes;
+    }
+
+    public static String getAttributeValue(final OMElement elem, final String attrLocalName) {
+        return getAttributesAsMap(elem).get(attrLocalName);
+    }
+
+    public static AXIOMXPath buildXPath(final String str, final NamespaceContext ctx) {
+        try {
+            AXIOMXPath xpath = new AXIOMXPath(str);
+            xpath.setNamespaceContext(ctx);
+            return xpath;
+        } catch (Exception ex) {
+            log.error(ex, "Error creating xpath:", str);
+        }
+        return null;
+    }
+
 }

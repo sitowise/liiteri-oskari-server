@@ -1,16 +1,15 @@
 package fi.nls.oskari.map.analysis.domain;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import fi.mml.portti.domain.permissions.Permissions;
+import fi.nls.oskari.domain.map.analysis.Analysis;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import fi.nls.oskari.domain.map.analysis.Analysis;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AnalysisLayer {
     public static final String TYPE = "analysislayer";
@@ -43,8 +42,10 @@ public class AnalysisLayer {
     private long wpsLayerId = 0;
     private AnalysisMethodParams analysisMethodParams;
     private String filter;
+    private boolean nodataCount = false;
     private List<Long> mergeAnalysisIds;
     private List<String> mergeAnalysisLayers;
+    private String override_sld;
 
     public String getType() {
         return TYPE;
@@ -136,6 +137,14 @@ public class AnalysisLayer {
 
     public void setMaxScale(Double double1) {
         this.maxScale = double1;
+    }
+
+    public boolean isNodataCount() {
+        return nodataCount;
+    }
+
+    public void setNodataCount(boolean nodataCount) {
+        this.nodataCount = nodataCount;
     }
 
     public List<String> getFields() {
@@ -251,6 +260,14 @@ public class AnalysisLayer {
         this.mergeAnalysisLayers = mergeAnalysisLayers;
     }
 
+    public String getOverride_sld() {
+        return override_sld;
+    }
+
+    public void setOverride_sld(String override_sld) {
+        this.override_sld = override_sld;
+    }
+
     public JSONObject getJSON() throws JSONException {
         JSONObject json = new JSONObject();
         json.put("id", this.getId());
@@ -278,6 +295,7 @@ public class AnalysisLayer {
         json.put("wpsName", this.getWpsName());
         json.put("wpsLayerId", this.getWpsLayerId());
         json.put("result", this.getResult());
+        json.put("override_sld", this.getOverride_sld());
         JSONArray mlayers = new JSONArray();
         if (this.getMergeAnalysisLayers() != null) {
             for (String lay : this.getMergeAnalysisLayers()) {

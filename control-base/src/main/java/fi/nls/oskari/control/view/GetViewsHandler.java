@@ -17,22 +17,22 @@ import org.json.JSONObject;
 
 import java.util.List;
 
+import static fi.nls.oskari.control.ActionConstants.*;
+
 @OskariActionRoute("GetViews")
 public class GetViewsHandler extends ActionHandler {
 
-    public static final String KEY_NAME = "name";
     public static final String KEY_DESCRIPTION = "description";
-    public static final String KEY_ID = "id";
-    public static final String KEY_LANG = "lang";
     public static final String KEY_ISPUBLIC = "isPublic";
+    public static final String KEY_ISDEFAULT = "isDefault";
     public static final String KEY_PUBDOMAIN = "pubDomain";
-    public static final String KEY_STATE = "state";
     public static final String KEY_VIEWS = "views";
-    public static final String KEY_CONFIG = "config";
+    public static final String KEY_METADATA = "metadata";
 
     private ViewService viewService = null;
 
     private final static Logger log = LogFactory.getLogger(GetViewsHandler.class);
+
 
     public void setViewService(final ViewService service) {
         viewService = service;
@@ -49,8 +49,11 @@ public class GetViewsHandler extends ActionHandler {
 
         final String viewType = params.getHttpParam(ViewTypes.VIEW_TYPE, ViewTypes.USER);
 
+        // require a logged in user when requesting views
+        params.requireLoggedInUser();
         final long userId = params.getUser().getId();
 
+        // TODO: send type as second param
         final List<View> views = viewService.getViewsForUser(userId);
         final JSONArray viewArray = new JSONArray();
         for (View view : views) {
@@ -59,7 +62,7 @@ public class GetViewsHandler extends ActionHandler {
                 view.setType(ViewTypes.USER);
             }
 
-            if (viewType.indexOf(view.getType()) == -1) {
+            if (!viewType.equalsIgnoreCase(view.getType())) {
                 continue;
             }
 
@@ -69,8 +72,14 @@ public class GetViewsHandler extends ActionHandler {
                 viewJson.put(KEY_DESCRIPTION, view.getDescription());
                 viewJson.put(KEY_LANG, view.getLang());
                 viewJson.put(KEY_ID, view.getId());
+                viewJson.put(KEY_UUID, view.getUuid());
                 viewJson.put(KEY_ISPUBLIC, view.isPublic());
+                viewJson.put(KEY_ISDEFAULT, view.isDefault());
                 viewJson.put(KEY_PUBDOMAIN, view.getPubDomain());
+                viewJson.put(KEY_URL, view.getUrl());
+                viewJson.put(KEY_METADATA, view.getMetadata());
+                // publisher 2 doesn't need the view info since it loads it using id
+                // The old publisher and normal view listing need them.
                 final JSONObject stateAccu = new JSONObject();
                 for (Bundle bundle : view.getBundles()) {
 
@@ -83,8 +92,6 @@ public class GetViewsHandler extends ActionHandler {
                         log.debug("Status " + bundle.getStartup());
                         log.debug("Config " + bundle.getConfig());
                     }
-
-
                 }
                 viewJson.put(KEY_STATE, stateAccu);
                 viewArray.put(viewJson);

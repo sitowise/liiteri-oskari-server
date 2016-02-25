@@ -42,14 +42,19 @@ public class AnalysisHelper {
     private static final String JSKEY_WPSURL = "wpsUrl";
     private static final String JSKEY_WPSNAME = "wpsName";
     private static final String JSKEY_RESULT = "result";
-
+    private static final String JSKEY_METHOD = "method";
+    private static final String JSKEY_OVERRIDE_SLD = "override_sld";
+    private static final String JSKEY_WPS_PARAMS = "wps_params";
+    private static final String JSKEY_NO_DATA = "no_data";
+    private static final String JSKEY_METHODPARAMS = "methodParams";
     private static final String LAYER_PREFIX = "analysis_";
 
     private static final String ANALYSIS_ORGNAME = ""; // managed in front
     private static final String ANALYSIS_INSPIRE = ""; // managed in front
 
     private static final String ANALYSIS_BASELAYER_ID = PropertyUtil.get("analysis.baselayer.id");
-    private static final String ANALYSIS_RENDERING_URL = PropertyUtil.get("analysis.rendering.url");
+    private static final String PROPERTY_RENDERING_URL = PropertyUtil.getOptional("analysis.rendering.url");
+    private static final String ANALYSIS_RENDERING_URL = getAnalysisRenderingUrl();
     private static final String ANALYSIS_RENDERING_ELEMENT = PropertyUtil.get("analysis.rendering.element");
 
     private static final Logger log = LogFactory.getLogger(AnalysisHelper.class);
@@ -131,9 +136,26 @@ public class AnalysisHelper {
             json.put(JSKEY_WPSURL, ANALYSIS_RENDERING_URL);
             json.put(JSKEY_WPSNAME, ANALYSIS_RENDERING_ELEMENT);
             json.put(JSKEY_WPSLAYERID, wpsid);
+            json.put(JSKEY_METHOD, JSONHelper.getStringFromJSON(analyse_js,
+                    JSKEY_METHOD, "n/a"));
             json.put(JSKEY_RESULT, "");
+            if (analyse_js.has(JSKEY_METHODPARAMS)) {
+                // Put nodata value to analysis layer, if it was in analysis source layer
+                JSONObject params = JSONHelper.getJSONObject(analyse_js, JSKEY_METHODPARAMS);
+                try {
+                    if (params.has(JSKEY_NO_DATA)) {
+                        json.put(JSKEY_WPS_PARAMS, JSONHelper.createJSONObject(JSKEY_NO_DATA, params.get(JSKEY_NO_DATA)));
+                    }
 
-            if (analyse_js.has(JSKEY_BBOX)) {
+                } catch (Exception ex) {
+                    log.debug("Unable to get analysis layer method params", ex);
+                }
+
+            }
+
+            if (analyse_js.has(JSKEY_OVERRIDE_SLD))json.put(JSKEY_OVERRIDE_SLD, analyse_js.optString(JSKEY_OVERRIDE_SLD));
+            //
+                if (analyse_js.has(JSKEY_BBOX)) {
                 JSONObject bbox = JSONHelper.getJSONObject(analyse_js, JSKEY_BBOX);
                 try {
                     String bottom = Double.toString(bbox.getDouble(JSKEY_BOTTOM));
@@ -212,5 +234,49 @@ public class AnalysisHelper {
             log.debug("Unable to get analysis field layer json", ex);
         }
         return fm;
+    }
+
+    public static String getAnalysisRenderingUrl() {
+        if (PROPERTY_RENDERING_URL == null) {
+            // action_route name points to fi.nls.oskari.control.layer.AnalysisTileHandler
+            return PropertyUtil.get("oskari.ajax.url.prefix") + "action_route=AnalysisTile&wpsLayerId=";
+        }
+        return PROPERTY_RENDERING_URL + "&wpsLayerId=";
+    }
+
+    /**
+     *  parse name mapped select items for analysis data select
+     *  sample Analysis.getSelect_to_data()
+     *  "Select  t1 As ika_0_14 t2 As kunta t3 As ika_15_64 t4 As ika_65_ t5 As miehet from analysis_data where analysis_id = 1324"
+     * @param al  Analysis metadata
+     * @return
+     */
+    public static String getAnalysisSelectItems(final Analysis al) {
+        if (al == null) return null;
+        if (al.getSelect_to_data() == null) return null;
+        if (al.getSelect_to_data().isEmpty()) return null;
+        String[] select_items = al.getSelect_to_data().split("from");
+        String columns = select_items[0].substring(8);
+        // Add column separators if not there
+        if (columns.indexOf(",") == -1) {
+            String[] parts = columns.split("[\\W]");
+            StringBuilder sbuilder = new StringBuilder();
+            // loop parts and add separator
+            int i3 = 0;
+            for (String s : parts) {
+                sbuilder.append(s);
+                i3++;
+                if (i3 == 3) {
+                    sbuilder.append(",");
+                    i3 = 0;
+                }
+                sbuilder.append(" ");
+
+            }
+            columns = sbuilder.toString().substring(0, sbuilder.toString().length() - 2);
+
+        }
+
+        return columns;
     }
 }

@@ -1,17 +1,15 @@
 package fi.mml.map.mapwindow.service.wms;
 
-import fi.mml.map.mapwindow.service.db.CapabilitiesCacheService;
-import fi.mml.map.mapwindow.service.db.CapabilitiesCacheServiceIbatisImpl;
 import fi.mml.map.mapwindow.util.RemoteServiceDownException;
-import fi.nls.oskari.domain.map.CapabilitiesCache;
+import fi.nls.oskari.cache.Cache;
+import fi.nls.oskari.cache.CacheManager;
 import fi.nls.oskari.domain.map.OskariLayer;
-import fi.nls.oskari.domain.map.UserWmsLayer;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.service.ServiceException;
-
-import java.util.HashMap;
-import java.util.Map;
+import fi.nls.oskari.map.layer.OskariLayerService;
+import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
+import fi.nls.oskari.service.OskariComponentManager;
+import fi.nls.oskari.service.capabilities.CapabilitiesCacheService;
+import fi.nls.oskari.service.capabilities.OskariLayerCapabilities;
+import fi.nls.oskari.wms.WMSCapabilities;
 
 /**
  * Factory for creating WMS objects
@@ -19,123 +17,85 @@ import java.util.Map;
  */
 public class WebMapServiceFactory {
 
-	/** Logger */
-	private static Logger log = LogFactory.getLogger(WebMapServiceFactory.class);
-    private static final CapabilitiesCacheService capabilitiesCacheService = new CapabilitiesCacheServiceIbatisImpl();
-    static long wmsCachedtime = 0;
-    static long wmsExpirationTime = 12*60*60*1000;
-    static Map<String, WebMapService> wmsCache = new HashMap<String, WebMapService>();
-
-
+    private static final CapabilitiesCacheService CAPABILITIES_SERVICE = OskariComponentManager.getComponentOfType(CapabilitiesCacheService.class);
+    private static final OskariLayerService LAYER_SERVICE = new OskariLayerServiceIbatisImpl();
+    private static Cache<WebMapService> wmsCache = CacheManager.getCache(WebMapServiceFactory.class.getName());
+    static {
+        wmsCache.setExpiration(12L*60L*60L*1000L);
+    }
 	
 	/**
 	 * Builds new WMS interface with correct version
 	 * 
 	 * @param layerId id of the map layer
-	 * @param layerName name of the map layer
 	 * 
 	 * @return WebMapService implementation that service url is implemented
 	 * @throws WebMapServiceParseException if something goes wrong when parsing
-	 * @throws ServiceException 
 	 * @throws RemoteServiceDownException if Web Map service is down
 	 */
-	public static WebMapService buildWebMapService(int layerId, String layerName, boolean isUserWmsLayer) throws WebMapServiceParseException, ServiceException {
+	public static WebMapService buildWebMapService(int layerId) throws WebMapServiceParseException {
+        return buildWebMapService(LAYER_SERVICE.find(layerId));
+    }
 
-		if (wmsCachedtime + wmsExpirationTime < System.currentTimeMillis()) {
-            flushCache();
-		}
-		
-		String layerPrefix = "";
-    	if (isUserWmsLayer) {
-    		layerPrefix = UserWmsLayer.PREFIX;
-    	}
-    	
-		WebMapService wms = null;
+    public static WebMapService buildWebMapService(OskariLayer layer) throws WebMapServiceParseException {
+        final String cacheKey = "wmsCache_" + layer.getId();
+		WebMapService wms = wmsCache.get(cacheKey);
         // caching since this is called whenever a layer JSON is created!!
-		if (wmsCache.containsKey("wmsCache_" + layerPrefix + layerId)) {
-			wms = wmsCache.get("wmsCache_" + layerPrefix + layerId);
-		} else {
-			CapabilitiesCache ccForSearch = new CapabilitiesCache();
-			ccForSearch.setLayerId(layerId);
-			ccForSearch.setUserWms(isUserWmsLayer);
-			
-            CapabilitiesCache cc = capabilitiesCacheService.findByLayer(ccForSearch);
-            if (cc != null && "1.3.0".equals(cc.getVersion().trim())) {
-                wms = new WebMapServiceV1_3_0_Impl("from DataBase", cc.getData().trim(), layerName);
-            } else if (cc != null && "1.1.1".equals(cc.getVersion().trim())) {
-                wms = new WebMapServiceV1_1_1_Impl("from DataBase", cc.getData().trim(), layerName);
+		if (wms == null) {
+            OskariLayerCapabilities cc = getCaps(layer);
+            if(cc == null) {
+                // setup empty capabilities so we don't try to parse again before cache flush
+                WMSCapabilities emptyCaps = new WMSCapabilities();
+                wmsCache.put(cacheKey, emptyCaps);
+                return emptyCaps;
             }
-			wmsCache.put("wmsCache_" + layerPrefix + layerId, wms);
+            try {
+                final String data = cc.getData().trim();
+                if (isVersion1_3_0(data)) {
+                    wms = new WebMapServiceV1_3_0_Impl("from DataBase", data, layer.getName());
+                } else if (isVersion1_1_1(data)) {
+                    wms = new WebMapServiceV1_1_1_Impl("from DataBase", data, layer.getName());
+                }
+                if(wms != null) {
+                    // cache the parsed value
+                    wmsCache.put(cacheKey, wms);
+                }
+            } catch (WebMapServiceParseException ex) {
+                // setup empty capabilities so we don't try to parse again before cache flush
+                wmsCache.put(cacheKey, new WMSCapabilities());
+                throw ex;
+            }
 		}
-
-		
 		return wms;
 	}
 
-    public static void flushCache(final int layerId, boolean isUserWmsLayer) {
-    	String layerPrefix = "";
-    	if (isUserWmsLayer) {
-    		layerPrefix = UserWmsLayer.PREFIX;
-    	}
-    	
-        wmsCache.remove("wmsCache_" + layerPrefix + layerId);
+    public static WebMapService createFromXML(final String layerName, final String xml) {
+        try {
+            if (isVersion1_3_0(xml)) {
+                return new WebMapServiceV1_3_0_Impl("from DataBase", xml, layerName);
+            } else if (isVersion1_1_1(xml)) {
+                return new WebMapServiceV1_1_1_Impl("from DataBase", xml, layerName);
+            }
+        } catch (WebMapServiceParseException ex) {
+        }
+        return null;
+    }
+
+    private static OskariLayerCapabilities getCaps(OskariLayer layer) throws WebMapServiceParseException {
+        try {
+            return CAPABILITIES_SERVICE.getCapabilities(layer);
+        } catch (Exception ex) {
+            throw new WebMapServiceParseException(ex);
+        }
+    }
+
+    public static void flushCache(final int layerId) {
+        wmsCache.remove("wmsCache_"+layerId);
     }
 
     public static void flushCache() {
-        wmsCache = new HashMap<String, WebMapService>();
-        wmsCachedtime = System.currentTimeMillis();
+        wmsCache.flush(true);
     }
-	
-	
-	/**
-	 * We are supporting a feature that user can give multiple WMS urls separated by comma.
-	 * In here we check if two or more urls are actually given and return only the first one
-	 * since they should be indentical 
-	 * 
-	 * @param url
-	 * @return
-	 */
-	private static String parseOnlyOneWMSUrl(String url) {
-		if (url.contains(",")) {
-			return url.split(",")[0];
-		} else {
-			return url;
-		}
-	}
-	
-	/**
-	 * Constructs a getCapabilities url 1.1.1 implementation from base url
-	 * 
-	 * @param url
-	 * @return
-	 */
-	private static String buildGetCapabilitiesUrl_1_1_1(String url) {
-		String finalUrl = url;
-		if (finalUrl.substring(url.length()-1).equals("?")) {
-			finalUrl += "VERSION=1.1.1&SERVICE=WMS&REQUEST=GetCapabilities";
-		} else {
-			finalUrl += "?VERSION=1.1.1&SERVICE=WMS&REQUEST=GetCapabilities";
-		}
-		
-		return finalUrl;
-	}
-	
-	/**
-	 * Constructs a getCapabilities url 1.3.0 implementation from base url
-	 * 
-	 * @param url
-	 * @return
-	 */
-	private static String buildGetCapabilitiesUrl_1_3_0(String url) {
-		String finalUrl = url;
-		if (finalUrl.substring(url.length()-1).equals("?")) {
-			finalUrl += "&SERVICE=WMS&REQUEST=GetCapabilities";
-		} else {
-			finalUrl += "?&SERVICE=WMS&REQUEST=GetCapabilities";
-		}
-		
-		return finalUrl;
-	}
 
 	/**
 	 * Returns true is data represents a WMS 1.1.1 version
@@ -144,10 +104,10 @@ public class WebMapServiceFactory {
 	 * @return
 	 */
 	public static boolean isVersion1_1_1(String data) {
-		if (data.indexOf("WMT_MS_Capabilities version=\"1.1.1\"") > 0) {
+        if (data.contains("version=\"1.1.1\"")) {
 			return true;
 		} else {
-            return data.indexOf("WMT_MS_Capabilities updateSequence=\"1\" version=\"1.1.1\"") > 0;
+            return data.contains("WMT_MS_Capabilities updateSequence=\"1\" version=\"1.1.1\"");
         }
 	}
 
@@ -158,7 +118,7 @@ public class WebMapServiceFactory {
 	 * @return
 	 */
 	public static boolean isVersion1_3_0(String data) {
-		return data.indexOf("WMS_Capabilities version=\"1.3.0\"") > 0;
+        return data.contains("version=\"1.3.0\"");
 	}
 
 

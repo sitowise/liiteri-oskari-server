@@ -1,24 +1,23 @@
 package fi.nls.oskari.control;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Cookie;
-
 import fi.nls.oskari.domain.GuestUser;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.RequestHelper;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * A wrapper class for request/response that is populated before giving to ActionHandlers.
  * ActionHandlers use this to process a request.
  */
 public class ActionParameters {
-    
+
     private HttpServletRequest request;
     private HttpServletResponse response;
     private User user;
@@ -58,7 +57,7 @@ public class ActionParameters {
      */
     public User getUser() {
         if(user == null) {
-            user = new GuestUser();
+            user = GuestUser.getInstance();
         }
         return user;
     }
@@ -95,6 +94,40 @@ public class ActionParameters {
     public Object getAdditionalParam(final String key) {
         return additionalParams.get(key);
     }
+
+    /**
+     * Returns a cleaned up (think XSS) value for the requested parameter
+     * @param key parameter name
+     * @return cleaned up value for the parameter as int
+     * @throws ActionParamsException if parameter is not found, is empty or can't be parsed as int
+     */
+    public int getRequiredParamInt(final String key) throws ActionParamsException {
+        final String errMsg = "Required parameter '" + key + "' missing!";
+        final String val = getRequiredParam(key, errMsg);
+
+        try {
+            return Integer.parseInt(val);
+        } catch (Exception e) {
+            throw new ActionParamsException(errMsg);
+        }
+    }
+    /**
+     * Returns a cleaned up (think XSS) value for the requested parameter
+     * @param key parameter name
+     * @return cleaned up value for the parameter as double
+     * @throws ActionParamsException if parameter is not found, is empty or can't be parsed as double
+     */
+    public double getRequiredParamDouble(final String key) throws ActionParamsException {
+        final String errMsg = "Required parameter '" + key + "' missing!";
+        final String val = getRequiredParam(key, errMsg);
+
+        try {
+            return Double.parseDouble(val);
+        } catch (Exception e) {
+            throw new ActionParamsException(errMsg);
+        }
+    }
+
 
     /**
      * Returns a cleaned up (think XSS) value for the requested parameter
@@ -150,6 +183,24 @@ public class ActionParameters {
         return ConversionHelper.getInt(getHttpParam(key), defaultValue);
     }
     /**
+     * Returns a parameter as long or default value if not present/can't be parsed
+     * @param key parameter name for an long parameter
+     * @param defaultValue value to be returned if parameter is not present in the request or can't be parsed
+     * @return cleaned up value for the parameter or given defaultValue if not found
+     */
+    public long getHttpParam(final String key, final long defaultValue) {
+        return ConversionHelper.getLong(getHttpParam(key), defaultValue);
+    }
+    /**
+     * Returns a parameter as boolean or default value if not present/can't be parsed
+     * @param key parameter name for a boolean parameter
+     * @param defaultValue value to be returned if parameter is not present in the request or can't be parsed
+     * @return cleaned up value for the parameter or given defaultValue if not found
+     */
+    public boolean getHttpParam(final String key, final boolean defaultValue) {
+        return ConversionHelper.getBoolean(getHttpParam(key), defaultValue);
+    }
+    /**
      * Returns value of a header field matching given key
      * @param key header name
      * @return
@@ -185,5 +236,35 @@ public class ActionParameters {
             }
         }
         return null;
+    }
+
+    /**
+     * Calling this will throw an exception if user isn't logged in
+     * @throws ActionDeniedException if user is guest
+     */
+    public void requireLoggedInUser() throws ActionDeniedException {
+        if(getUser().isGuest()) {
+            throw new ActionDeniedException("Session expired");
+        }
+    }
+
+    /**
+     * Calling this will throw an exception if user isn't an admin
+     * @throws ActionDeniedException if user is not admin
+     */
+    public void requireAdminUser() throws ActionDeniedException {
+        requireLoggedInUser();
+        if(!getUser().isAdmin()) {
+            throw new ActionDeniedException("Admin only");
+        }
+    }
+
+    /**
+     * Returns an api key for the request
+     * @return
+     */
+    public String getAPIkey() {
+        // TODO: use something better than session id
+        return getRequest().getSession().getId();
     }
 }

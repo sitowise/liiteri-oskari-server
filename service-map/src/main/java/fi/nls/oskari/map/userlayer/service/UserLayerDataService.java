@@ -11,15 +11,10 @@ import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
 import fi.nls.oskari.map.layer.formatters.LayerJSONFormatterUSERLAYER;
 import fi.nls.oskari.service.ServiceException;
-import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
-
 import org.geotools.data.DataUtilities;
-import org.geotools.feature.DefaultFeatureCollection;
-
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
@@ -44,8 +39,8 @@ public class UserLayerDataService {
     private static final String KEY_SOURCE = "layer-source";
     private static final String KEY_STYLE = "layer-style";
 
-    final String userlayerBaseLayerId = PropertyUtil.get(USERLAYER_BASELAYER_ID);
-    final int userlayerMaxFeaturesCount = PropertyUtil.getOptional(USERLAYER_MAXFEATURES_COUNT, 2000);
+    static final int USERLAYER_BASE_LAYER_ID = PropertyUtil.getOptional(USERLAYER_BASELAYER_ID, -1);
+    static final int USERLAYER_MAX_FEATURES_COUNT = PropertyUtil.getOptional(USERLAYER_MAXFEATURES_COUNT, -1);
 
     /**
      * @param gjsWorker geoJSON and featurecollection items
@@ -69,8 +64,7 @@ public class UserLayerDataService {
 
             // Insert style row
             style.setId(1);  // for default, even if style should be always valued
-            if (fparams.containsKey(KEY_STYLE))
-            {
+            if (fparams.containsKey(KEY_STYLE)) {
                 final JSONObject stylejs = JSONHelper
                         .createJSONObject(fparams.get(KEY_STYLE));
                 style.populateFromJSON(stylejs);
@@ -79,48 +73,40 @@ public class UserLayerDataService {
             }
 
 
-        // Insert user_layer row
-        // --------------------
-        userLayer.setLayer_name(gjsWorker.getTypeName());
-        userLayer.setLayer_desc("");
-        userLayer.setLayer_source("");
-        userLayer.setFields(parseFields(gjsWorker.getFeatureType()));
-        userLayer.setUuid(user.getUuid());
-        userLayer.setStyle_id(style.getId());
-        if (fparams.containsKey(KEY_NAME)) userLayer.setLayer_name(fparams.get(KEY_NAME));
-        if (fparams.containsKey(KEY_DESC)) userLayer.setLayer_desc(fparams.get(KEY_DESC));
-        if (fparams.containsKey(KEY_SOURCE)) userLayer.setLayer_source(fparams.get(KEY_SOURCE));
+            // Insert user_layer row
+            // --------------------
+            userLayer.setLayer_name(gjsWorker.getTypeName());
+            userLayer.setLayer_desc("");
+            userLayer.setLayer_source("");
+            userLayer.setFields(parseFields(gjsWorker.getFeatureType()));
+            userLayer.setUuid(user.getUuid());
+            userLayer.setStyle_id(style.getId());
+            if (fparams.containsKey(KEY_NAME)) userLayer.setLayer_name(fparams.get(KEY_NAME));
+            if (fparams.containsKey(KEY_DESC)) userLayer.setLayer_desc(fparams.get(KEY_DESC));
+            if (fparams.containsKey(KEY_SOURCE)) userLayer.setLayer_source(fparams.get(KEY_SOURCE));
 
-        log.debug("Adding user_layer row", userLayer);
-        userLayerService.insertUserLayerRow(userLayer);
+            log.debug("Adding user_layer row", userLayer);
+            userLayerService.insertUserLayerRow(userLayer);
 
-        // Insert user_layer data rows
-        // --------------------
+            // Insert user_layer data rows
+            // --------------------
 
-        int count = this.storeUserLayerData(gjsWorker.getGeoJson(), user, userLayer.getId());
-        log.info("stored ", count, " rows");
+            int count = this.storeUserLayerData(gjsWorker.getGeoJson(), user, userLayer.getId());
+            log.info("stored ", count, " rows");
 
-        if (count == 0) {
+            if (count == 0) {
+                return null;
+                //TODO:  delete user_layer row if no rows
+            }
+
+        } catch (Exception e) {
+            log.error(e, "Unable to store user layer data");
             return null;
-            //TODO:  delete user_layer row if no rows
         }
 
+        return userLayer;
     }
 
-    catch(
-    Exception e
-    )
-
-    {
-        log
-                .info(
-                        "Unable to store user layer data",
-                        e);
-        return null;
-    }
-
-    return userLayer;
-}
 
     /**
      * @param geoJson import data in geojson format
@@ -136,7 +122,6 @@ public class UserLayerDataService {
 
         try {
             final JSONArray geofeas = geoJson.getJSONArray("features");
-            DefaultFeatureCollection fc = new DefaultFeatureCollection();
 
             // Loop json features and fix to user_layer_data structure
             for (int i = 0; i < geofeas.length(); i++) {
@@ -156,45 +141,67 @@ public class UserLayerDataService {
                 userLayerDataService.insertUserLayerDataRow(userLayerData);
 
                 count++;
-                if (count > userlayerMaxFeaturesCount) break;
+                if (count > USERLAYER_MAX_FEATURES_COUNT && USERLAYER_MAX_FEATURES_COUNT != -1) break;
 
             }
         } catch (Exception e) {
-            log
-                    .debug(
-                            "Unable to store user layer data",
-                            e);
+            log.error(e, "Unable to store user layer data");
             return 0;
         }
 
         return count;
     }
 
+    /**
+     * Returns the base WFS-layer for userlayers
+     * @return
+     */
+    public OskariLayer getBaseLayer() {
+        if (USERLAYER_BASE_LAYER_ID == -1) {
+            log.error("Userlayer baseId not defined. Please define", USERLAYER_BASELAYER_ID,
+                    "property with value pointing to the baselayer in database.");
+            return null;
+        }
+        return mapLayerService.find(USERLAYER_BASE_LAYER_ID);
+    }
 
     /**
+     * Creates the layer JSON for userlayer. When creating a bunch of layer JSONs prefer the overloaded version
+     * with baselayer as parameter.
+     * @param ulayer
+     * @return
+     */
+    public JSONObject parseUserLayer2JSON(UserLayer ulayer) {
+        return parseUserLayer2JSON(ulayer, getBaseLayer());
+    }
+    /**
      * @param ulayer data in user_layer table
+     * @param baseLayer base WFS-layer for userlayers
      * @return
      * @throws ServiceException
      */
-    public JSONObject parseUserLayer2JSON(UserLayer ulayer) {
+    public JSONObject parseUserLayer2JSON(final UserLayer ulayer, final OskariLayer baseLayer) {
 
         try {
-            int id = ConversionHelper.getInt(userlayerBaseLayerId, 0);
-            if (id == 0) return null;
-
-            final OskariLayer wfsuserLayer = mapLayerService.find(id);
+            final String id = baseLayer.getExternalId();
+            final String name = baseLayer.getName();
+            final String type = baseLayer.getType();
 
             // Merge userlayer values
-            wfsuserLayer.setExternalId(USERLAYER_LAYER_PREFIX + ulayer.getId());
-            wfsuserLayer.setName(ulayer.getLayer_name());
-            wfsuserLayer.setType(OskariLayer.TYPE_USERLAYER);
+            baseLayer.setExternalId(USERLAYER_LAYER_PREFIX + ulayer.getId());
+            baseLayer.setName(ulayer.getLayer_name());
+            baseLayer.setType(OskariLayer.TYPE_USERLAYER);
+            // create the JSON
+            final JSONObject json = FORMATTER.getJSON(baseLayer, PropertyUtil.getDefaultLanguage(), false, ulayer);
 
-            JSONObject json = FORMATTER.getJSON(wfsuserLayer, PropertyUtil.getDefaultLanguage(), false, ulayer);
+            // restore the previous values for baseLayer
+            baseLayer.setExternalId(id);
+            baseLayer.setName(name);
+            baseLayer.setType(type);
 
             return json;
-
         } catch (Exception ex) {
-            log.error("Couldn't parse userlayer to json", ex);
+            log.error(ex, "Couldn't parse userlayer to json");
             return null;
         }
     }
@@ -210,7 +217,7 @@ public class UserLayerDataService {
             }
 
         } catch (Exception ex) {
-            log.error("Couldn't parse field schema", ex);
+            log.error(ex, "Couldn't parse field schema");
         }
         return JSONHelper.getStringFromJSON(jsfields, "{}");
     }

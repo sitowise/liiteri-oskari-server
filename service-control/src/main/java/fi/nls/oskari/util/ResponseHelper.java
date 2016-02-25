@@ -1,6 +1,7 @@
 package fi.nls.oskari.util;
 
 import fi.nls.oskari.control.ActionParameters;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.servlet.http.HttpServletResponse;
@@ -20,7 +21,7 @@ public class ResponseHelper {
     public static final void writeResponse(ActionParameters params, final Object response) {
         try {
             params.getResponse().setCharacterEncoding("UTF-8");
-            if(response instanceof JSONObject) {
+            if(response instanceof JSONObject || response instanceof JSONArray) {
                 params.getResponse().setContentType("application/json;charset=UTF-8");
             }
             params.getResponse().getWriter().print(response);

@@ -5,6 +5,7 @@ import fi.nls.oskari.control.*;
 import fi.nls.oskari.control.view.modifier.bundle.BundleHandler;
 import fi.nls.oskari.control.view.modifier.param.ParamControl;
 import fi.nls.oskari.domain.Role;
+import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.view.Bundle;
 import fi.nls.oskari.domain.map.view.View;
 import fi.nls.oskari.domain.map.view.ViewTypes;
@@ -19,44 +20,43 @@ import fi.nls.oskari.view.modifier.ModifierException;
 import fi.nls.oskari.view.modifier.ModifierParams;
 import fi.nls.oskari.view.modifier.ViewModifier;
 import fi.nls.oskari.view.modifier.ViewModifierManager;
-import org.json.Cookie;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URLDecoder;
 import java.util.*;
+
+import static fi.nls.oskari.control.ActionConstants.PARAM_SECURE;
 
 @OskariActionRoute("GetAppSetup")
 public class GetAppSetupHandler extends ActionHandler {
 
-    private static ViewService viewService = null;
-    private static BundleService bundleService = null;
-    private static PublishedMapRestrictionService restrictionService = null;
+    private ViewService viewService = null;
+    private BundleService bundleService = null;
+    private PublishedMapRestrictionService restrictionService = null;
 
     private static final Logger log = LogFactory.getLogger(GetAppSetupHandler.class);
 
-    public final static String PROPERTY_AJAXURL = "oskari.ajax.url.prefix";
+    public static final String PROPERTY_AJAXURL = "oskari.ajax.url.prefix";
 
-    public static final String PARAM_VIEW_ID = "viewId";
     public static final String PARAM_OLD_ID = "oldId";
     public static final String PARAM_NO_SAVED_STATE = "noSavedState";
-    public final static String VIEW_DATA = "viewData";
-    public final static String STATE = "state";
-    public static final String PARAM_SSL = "ssl";
+    public static final String VIEW_DATA = "viewData";
+    public static final String STATE = "state";
 
     private static final String KEY_STARTUP = "startupSequence";
     private static final String KEY_CONFIGURATION = "configuration";
 
     public static final String COOKIE_SAVED_STATE = "oskaristate";
 
-    private static final long DEFAULT_USERID = 10110;
-    private static String UNRESTRICTED_USAGE_ROLE = "";
-    private static String SECURE_AJAX_PREFIX = "";
+    // TODO: this is paikkatietoikkuna-specific. Remove/make configurable
+    private final static long DEFAULT_USERID = 10110;
+    private String SECURE_AJAX_PREFIX = "";
 
-    private static String[] UNRESTRICTED_USAGE_DOMAINS = new String[0];
 
     // for adding extra bundle(s) for users with specific roles
-    private  Map<String, List<Bundle>> bundlesForRole = new HashMap<String, List<Bundle>>();
+    private Map<String, List<Bundle>> bundlesForRole = new HashMap<String, List<Bundle>>();
 
     private final Set<String> paramHandlers = new HashSet<String>();
     private final Map<String, BundleHandler> bundleHandlers = new HashMap<String, BundleHandler>();
@@ -82,16 +82,13 @@ public class GetAppSetupHandler extends ActionHandler {
         if(restrictionService == null) {
             setPublishedMapRestrictionService(new PublishedMapRestrictionServiceImpl());
         }
-        // Loads @OskariViewModifier annotated classes of type ParamHandler from classpath
-        ParamControl.addDefaultControls();
+        // Returns names of @OskariViewModifier annotated classes of type ParamHandler from classpath
         paramHandlers.addAll(ParamControl.getHandlerKeys());
-        UNRESTRICTED_USAGE_ROLE = PropertyUtil.get("view.published.usage.unrestrictedRoles");
-        UNRESTRICTED_USAGE_DOMAINS = PropertyUtil.getCommaSeparatedList("view.published.usage.unrestrictedDomains");
 
         // Loads @OskariViewModifier annotated classes of type BundleHandler from classpath
         final Map<String, BundleHandler> handlers = ViewModifierManager.getModifiersOfType(BundleHandler.class);
-        for(String key : handlers.keySet()) {
-            bundleHandlers.put(key, handlers.get(key));
+        for(Map.Entry<String, BundleHandler> entry : handlers.entrySet()) {
+            bundleHandlers.put(entry.getKey(), entry.getValue());
         }
 
 
@@ -118,47 +115,40 @@ public class GetAppSetupHandler extends ActionHandler {
                         requestedBundles.put(bundleId, bundle);
                         list.add(bundle);
                     } else {
-                        log.info("Could not retrieve bundle by name " + bundleId);
+                        log.error("Could not retrieve configured bundle by name " + bundleId);
                     }
                 }
             }
         }
-        SECURE_AJAX_PREFIX = PropertyUtil.get("actionhandler.GetAppSetup.secureAjaxUrlPrefix");
+        SECURE_AJAX_PREFIX = PropertyUtil.get("actionhandler.GetAppSetup.secureAjaxUrlPrefix", "");
     }
 
-    public void handleAction(ActionParameters params) throws ActionException {
+    public void handleAction(final ActionParameters params) throws ActionException {
         // oldId => support for migrated published maps
-        final long oldId = ConversionHelper.getLong(params.getHttpParam(PARAM_OLD_ID), -1);
-        final boolean isOldPublishedMap = oldId != -1;
+        final long oldId = params.getHttpParam(PARAM_OLD_ID, -1);
+        final User user = params.getUser();
+        final long defaultViewId = viewService.getDefaultViewId(user);
+        final View view = getView(params, defaultViewId, oldId);
 
-        final long defaultViewId = viewService.getDefaultViewId(params.getUser());
-        long viewId = ConversionHelper.getLong(params.getHttpParam(PARAM_VIEW_ID), defaultViewId);
-
-        // ignore saved state for old published maps, non-default views or if
-        // explicit param is given
-        boolean ignoreSavedState = isOldPublishedMap
-                || viewId != defaultViewId
-                || ConversionHelper.getBoolean(params.getHttpParam(PARAM_NO_SAVED_STATE), false);
-
-        final String referer = RequestHelper.getDomainFromReferer(params
-                .getHttpHeader("Referer"));
-
-        final View view = getView(viewId, oldId);
-
-        // couldn't get view
         if (view == null) {
-            throw new ActionParamsException("Could not get View with id: " + viewId
-                    + " and oldId: " + oldId);
+            throw new ActionParamsException("Could not load View");
         }
+        // Strictly necessary only if oldId used
+        final long viewId = view.getId();
+        final String referer = RequestHelper.getDomainFromReferer(params
+                .getHttpHeader(IOHelper.HEADER_REFERER));
+
+        // ignore saved state when loading:
+        //   - views that are not system default views
+        //   - when explicitly told with parameter
+        boolean ignoreSavedState = !viewService.isSystemDefaultView(viewId)
+                || params.getHttpParam(PARAM_NO_SAVED_STATE, false);
         // restore state from cookie if not
         if (!ignoreSavedState) {
             log.debug("Modifying map view if saved state is available");
             modifyView(view, getStateFromCookie(params
                     .getCookie(COOKIE_SAVED_STATE)));
         }
-
-        // Strictly necessary only if oldId used
-        viewId = view.getId();
 
         // Check user/permission
         final long creator = view.getCreator();
@@ -178,7 +168,7 @@ public class GetAppSetupHandler extends ActionHandler {
         if (view.getType().equals(ViewTypes.PUBLISHED)) {
             // Check referrer
             final String pubDomain = view.getPubDomain();
-            if(isRefererDomain(referer, pubDomain)) {
+            if(ViewHelper.isRefererDomain(referer, pubDomain)) {
                 log.info("Granted access to published view in domain:",
                         pubDomain, "for referer", referer);
             } else {
@@ -199,6 +189,8 @@ public class GetAppSetupHandler extends ActionHandler {
             // // FIXME: we cannot use the current user -> the publisher is the
             // one we are interested in!!!!
             /*
+private String UNRESTRICTED_USAGE_ROLE = "";
+UNRESTRICTED_USAGE_ROLE = PropertyUtil.get("view.published.usage.unrestrictedRoles");
             if (!params.getUser().hasRole(UNRESTRICTED_USAGE_ROLE)) {
                 final List<Integer> viewIdList = new ArrayList<Integer>();
                 // get all view for view creator
@@ -217,6 +209,9 @@ public class GetAppSetupHandler extends ActionHandler {
             */
         }
 
+        // Update view for latest usage timestamp and opened count number
+        updateUsageData(view);
+
         // JSON presentation of view
         final JSONObject configuration = getConfiguration(view);
         final JSONArray startupSequence = getStartupSequence(view);
@@ -229,8 +224,7 @@ public class GetAppSetupHandler extends ActionHandler {
         modifierParams.setActionParams(params);
 
         modifierParams.setReferer(referer);
-        modifierParams.setViewType(view.getType());
-        modifierParams.setViewId(view.getId());
+        modifierParams.setView(view);
         modifierParams.setStartupSequence(startupSequence);
         modifierParams.setOldPublishedMap(oldId != -1);
         modifierParams.setModifyURLs(isSecure(params));
@@ -303,22 +297,14 @@ public class GetAppSetupHandler extends ActionHandler {
         }
     }
 
-    /**
-     * Checks if it's ok to continue loading requested map based on referer/views pubdomain.
-     * @param referer from headers
-     * @param pubdomain domain the map is published to
-     * @return true if referer ends with domains in UNRESTRICTED_USAGE_DOMAINS or the domain defined for the view.
-     */
-    private boolean isRefererDomain(final String referer, final String pubdomain) {
-        if(referer == null) {
+
+    private boolean updateUsageData(final View view)  {
+        try {
+            viewService.updateViewUsage(view);
+            return true;
+        } catch (Exception e) {
             return false;
         }
-        for (String domain : UNRESTRICTED_USAGE_DOMAINS) {
-            if(referer.endsWith(domain)) {
-                return true;
-            }
-        }
-         return referer.endsWith(pubdomain);
     }
 
     private JSONObject getConfiguration(final View view) throws ActionException {
@@ -338,15 +324,28 @@ public class GetAppSetupHandler extends ActionHandler {
         }
     }
 
-    private View getView(final long viewId, final long oldId) {
-        if (oldId > 0) {
-            log.debug("Using old View ID :" + oldId);
+
+    private View getView(final ActionParameters params, final long defaultViewId, final long oldId) throws ActionException {
+
+        long viewId = ConversionHelper.getLong(params.getHttpParam(ActionConstants.PARAM_VIEW_ID), defaultViewId);
+        final String uuId = params.getHttpParam(ActionConstants.PARAM_UUID);
+        //final long viewId, final long oldId, final String uuId
+        if (uuId != null) {
+            log.debug("Requested UUID :" + uuId);
+            return viewService.getViewWithConfByUuId(uuId);
+        } else if (oldId > 0){
+            log.debug("Requested old View ID :" + oldId);
             return viewService.getViewWithConfByOldId(oldId);
-        } else {
-            log.debug("Using View ID:" + viewId);
-            return viewService.getViewWithConf(viewId);
         }
+        log.debug("Requested View ID:" + viewId);
+        View view = viewService.getViewWithConf(viewId);
+        if(viewId != defaultViewId && view.isOnlyForUuId()) {
+            log.warn("View can only be loaded by uuid. ViewId:", viewId);
+            return null;
+        }
+        return view;
     }
+
 
     private JSONObject getStateFromCookie(javax.servlet.http.Cookie cookie) {
         if (cookie == null) {
@@ -355,7 +354,7 @@ public class GetAppSetupHandler extends ActionHandler {
         }
         // cookie view data
         try {
-            String value = Cookie.unescape(cookie.getValue());
+            String value = URLDecoder.decode(cookie.getValue());
             if (!value.isEmpty()) {
                 log.debug("Using cookie state:", value);
                 return new JSONObject(value);
@@ -381,7 +380,7 @@ public class GetAppSetupHandler extends ActionHandler {
      * @return
      */
     public static boolean isSecure(final ActionParameters params) {
-        return ConversionHelper.getBoolean(params.getHttpParam(PARAM_SSL), false);
+        return params.getHttpParam(PARAM_SECURE, params.getRequest().isSecure());
     }
 
     private void modifyView(final View view, JSONObject myview) {
@@ -425,7 +424,7 @@ public class GetAppSetupHandler extends ActionHandler {
 
         if(bundle == null) {
             // admin bundle init failed. See init().
-            log.debug("Tried to insert bundle but it isn't initialized. Id:", id);
+            log.warn("Tried to insert bundle but it isn't initialized. Id:", id);
             return;
         }
         try {

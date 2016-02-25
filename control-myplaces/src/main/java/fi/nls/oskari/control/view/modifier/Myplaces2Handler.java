@@ -3,14 +3,15 @@ package fi.nls.oskari.control.view.modifier;
 import fi.nls.oskari.annotation.OskariViewModifier;
 import fi.nls.oskari.control.view.modifier.bundle.BundleHandler;
 import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.myplaces.MyPlacesService;
+import fi.nls.oskari.service.OskariComponentManager;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.view.modifier.ModifierException;
 import fi.nls.oskari.view.modifier.ModifierParams;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 @OskariViewModifier("myplaces2")
 public class Myplaces2Handler extends BundleHandler {
@@ -22,9 +23,12 @@ public class Myplaces2Handler extends BundleHandler {
     private static final String DEFAULT_XMLNS_NAMESPACE = "oskari";
     private static final String DEFAULT_XMLNS = "http://www.oskari.org";
 
+    private MyPlacesService service = null;
+
     @Override
     public void init() {
         super.init();
+        service = OskariComponentManager.getComponentOfType(MyPlacesService.class);
         // crafting as JSONObject so data gets validated on init (that we can actually use these in JSONObject)
         final JSONObject layerDefaults = new JSONObject();
         final String xmlnsPrefix = PropertyUtil.get("myplaces.xmlns.prefix", DEFAULT_XMLNS_NAMESPACE);
@@ -32,7 +36,7 @@ public class Myplaces2Handler extends BundleHandler {
         JSONHelper.putValue(CONFIG, "layerDefaults", layerDefaults);
 
         JSONHelper.putValue(CONFIG, "featureNS", PropertyUtil.get("myplaces.xmlns", DEFAULT_XMLNS));
-        JSONHelper.putValue(CONFIG, "wmsUrl", PropertyUtil.getOptional("myplaces.client.wmsurl"));
+        JSONHelper.putValue(CONFIG, "wmsUrl", service.getClientWMSUrl());
         DEFAULT_NAMES = JSONObject.getNames(CONFIG);
     }
 

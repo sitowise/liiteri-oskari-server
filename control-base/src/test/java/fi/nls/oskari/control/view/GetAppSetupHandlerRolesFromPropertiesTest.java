@@ -28,7 +28,7 @@ import fi.nls.test.view.BundleTestHelper;
 import fi.nls.test.view.ViewTestHelper;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.invocation.InvocationOnMock;
@@ -62,18 +62,13 @@ public class GetAppSetupHandlerRolesFromPropertiesTest extends JSONActionRouteTe
     private BundleService bundleService = null;
     private PublishedMapRestrictionService restrictionService = null;
 
-    //propertyutilsilla propertyt, checkataan että jsoniin tulee lisää bundlea.
-    //
-
     @BeforeClass
     public static void addLocales() throws Exception {
         Properties properties = new Properties();
         try {
             properties.load(GetAppSetupHandlerRolesFromPropertiesTest.class.getResourceAsStream("test.properties"));
             PropertyUtil.addProperties(properties);
-            String locales = PropertyUtil.getNecessary("oskari.locales");
-            if (locales == null)
-                fail("No darned locales");
+            PropertyUtil.getNecessary("oskari.locales");
         } catch (DuplicateException e) {
             fail("Should not throw exception" + e.getStackTrace());
         }
@@ -99,15 +94,20 @@ public class GetAppSetupHandlerRolesFromPropertiesTest extends JSONActionRouteTe
            PropertyUtil.addProperty("actionhandler.GetAppSetup.dynamic.bundle.admin-layerselector.roles", "Administrator, Karttajulkaisija_Tre");
         } catch (DuplicateException e) {
                  //this method is called once for every test, duplicates don't matter.
-
         }
 
         handler.init();
     }
 
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
+    }
+
     @Test
     public void testAddedLayerSelectorBundle () throws Exception {
-        final ActionParameters params = createActionParams(getLoggedInUser());
+
+    	final ActionParameters params = createActionParams(getLoggedInUser());
         Role r = new Role();
         r.setName("Karttajulkaisija_Tre");
         r.setId(42);
@@ -148,6 +148,7 @@ public class GetAppSetupHandlerRolesFromPropertiesTest extends JSONActionRouteTe
         dummyView.setType(ViewTypes.DEFAULT);
         doReturn(dummyView).when(viewService).getViewWithConfByOldId(anyLong());
         doReturn(dummyView).when(viewService).getViewWithConf(anyLong());
+        doReturn(dummyView).when(viewService).getViewWithConfByUuId(anyString());
 
         // TODO: mock view loading
         /**

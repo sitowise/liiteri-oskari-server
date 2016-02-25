@@ -7,14 +7,13 @@ import fi.nls.oskari.control.ActionParamsException;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.DuplicateException;
-import fi.nls.oskari.util.GetWMSCapabilities;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.test.control.JSONActionRouteTest;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.net.MalformedURLException;
@@ -30,13 +29,13 @@ import static org.junit.Assert.fail;
  * @author SMAKINEN
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(value = {GetWMSCapabilities.class})
 public class GetWSCapabilitiesHandlerTest extends JSONActionRouteTest {
 
     final private  GetWSCapabilitiesHandler handler = new  GetWSCapabilitiesHandler();
 
     @BeforeClass
     public static void addLocales() throws Exception {
+        PropertyUtil.clearProperties();
         Properties properties = new Properties();
         try {
             properties.load(GetWSCapabilitiesHandlerTest.class.getResourceAsStream("test.properties"));
@@ -48,17 +47,14 @@ public class GetWSCapabilitiesHandlerTest extends JSONActionRouteTest {
             fail("Should not throw exception" + e.getStackTrace());
         }
     }
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
+    }
 
     @Before
     public void setUp() throws Exception {
         handler.init();
-    }
-    @Test(expected = ActionParamsException.class)
-    public void testHandleActionInvalidParams() throws Exception {
-        final ActionParameters params = createActionParams();
-        handler.handleAction(params);
-
-        fail("Should not get his far without wmsurl parameter");
     }
 
     @Test(expected = ActionDeniedException.class)
@@ -66,7 +62,7 @@ public class GetWSCapabilitiesHandlerTest extends JSONActionRouteTest {
 
         // setup params
         Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put("wmsurl", "dummyurl");
+        parameters.put("url", "dummyurl");
 
         final ActionParameters params = createActionParams(parameters);
         handler.handleAction(params);
@@ -79,7 +75,7 @@ public class GetWSCapabilitiesHandlerTest extends JSONActionRouteTest {
 
         // setup params
         Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put("wmsurl", "dummyurl");
+        parameters.put("url", "dummyurl");
         final User user = new User();
         user.addRole(1, "test role");
         final ActionParameters params = createActionParams(parameters);
@@ -92,13 +88,13 @@ public class GetWSCapabilitiesHandlerTest extends JSONActionRouteTest {
     public void testHandleActionWithConfiguredRole() throws Exception {
 
         // users with 'test role' or 'my role' should have access
-        PropertyUtil.addProperty("actionhandler.GetWSCapabilitiesHandler.roles", "test role, my role");
+        PropertyUtil.addProperty("actionhandler.GetWSCapabilitiesHandler.roles", "test role, my role", true);
         // re-init to get updated property
         handler.init();
 
         // setup params
         Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put("wmsurl", "dummyurl");
+        parameters.put("url", "dummyurl");
         final User user = new User();
         user.addRole(1, "test role");
         final ActionParameters params = createActionParams(parameters, user);
@@ -113,5 +109,19 @@ public class GetWSCapabilitiesHandlerTest extends JSONActionRouteTest {
             assertTrue(ex.getCause() instanceof ServiceException);
             assertTrue(ex.getCause().getCause() instanceof MalformedURLException);
         }
+    }
+    @Test(expected = ActionParamsException.class)
+    public void testHandleActionInvalidParams() throws Exception {
+        // users with 'test role' or 'my role' should have access
+        PropertyUtil.addProperty("actionhandler.GetWSCapabilitiesHandler.roles", "test role, my role", true);
+        // re-init to get updated property
+        handler.init();
+
+        final User user = new User();
+        user.addRole(1, "test role");
+        final ActionParameters params = createActionParams(user);
+        handler.handleAction(params);
+
+        fail("Should not get his far without url parameter");
     }
 }

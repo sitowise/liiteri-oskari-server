@@ -1,18 +1,11 @@
 package fi.nls.oskari.printout.printing;
 
-import java.awt.geom.AffineTransform;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Map;
-
-import javax.xml.transform.TransformerException;
-
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Point;
+import fi.nls.oskari.printout.input.content.PrintoutContent;
+import fi.nls.oskari.printout.printing.page.PDFContentPage;
+import fi.nls.oskari.printout.printing.page.PDFLayeredImagesPage;
+import fi.nls.oskari.printout.printing.page.PDFLegendPage;
 import org.apache.jempbox.xmp.XMPMetadata;
 import org.apache.jempbox.xmp.XMPSchemaBasic;
 import org.apache.jempbox.xmp.XMPSchemaDublinCore;
@@ -23,15 +16,22 @@ import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDMetadata;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-//import org.apache.pdfbox.pdmodel.edit.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDTrueTypeFont;
 import org.apache.pdfbox.pdmodel.graphics.color.PDOutputIntent;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Point;
+import javax.xml.transform.TransformerException;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.util.GregorianCalendar;
+import java.util.List;
 
 import fi.nls.oskari.printout.input.content.PrintoutContent;
 import fi.nls.oskari.printout.output.map.MapProducerAdditionalData;
@@ -51,6 +51,7 @@ public class PDFProducer {
 		boolean pageDate = false;
 		boolean pageScale = false;
 		boolean pageLogo = false;
+		String pageLogoResource = "logo.png";
 		boolean pageLegend = false;
 		boolean pageCopyleft = false;
 		Float[] pageMapRect = null;
@@ -151,6 +152,16 @@ public class PDFProducer {
 			this.content = content;
 		}
 
+        public String getPageLogoResource() {
+            return pageLogoResource;
+        }
+
+        public void setPageLogoResource(String pageLogoResource) {
+            this.pageLogoResource = pageLogoResource;
+        }
+		
+		
+
 		public String getCopyrightText()
 		{
 			return this.copyrightText;
@@ -218,20 +229,23 @@ public class PDFProducer {
 			PDPage page = null;
 			if (useTemplate) {
 				/* let's assume we have a template page for each page */
-				return (PDPage) doc.getDocumentCatalog().getAllPages()
+				page =  (PDPage) doc.getDocumentCatalog().getAllPages()
 						.get(pageCounter.nextPage());
+
+
 			} else {
 				page = new PDPage();
 				page.setMediaBox(rect);
 				page.setTrimBox(rect);
 				page.setBleedBox(rect);
-				if (degrees != -1) {
-					page.setRotation(degrees);
-				}
+
 				doc.addPage(page);
 				pageCounter.nextPage();
 
 			}
+            if (degrees != -1) {
+                page.setRotation(degrees);
+            }
 			return page;
 
 		}

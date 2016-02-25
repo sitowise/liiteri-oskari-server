@@ -3,10 +3,7 @@ package fi.nls.oskari.util;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * @author SMAKINEN
@@ -33,9 +30,19 @@ public class JSONHelperTest {
         JSONObject obj = JSONHelper.createJSONObject("");
         assertTrue("JSONObject was not created", obj == null);
 
+        obj = JSONHelper.createJSONObject(null);
+        assertTrue("JSONObject was not created", obj == null);
         // TODO: more error cases
     }
 
+    @Test
+    public void testCreateJSONObjectFromNullTokener() {
+
+        JSONObject obj = JSONHelper.createJSONObject4Tokener(null);
+        assertTrue("JSONObject was not created", obj == null);
+
+
+    }
     @Test
     public void testCreateJSONObjectFromKeyValue() throws Exception {
         JSONObject obj = JSONHelper.createJSONObject("key", "value");

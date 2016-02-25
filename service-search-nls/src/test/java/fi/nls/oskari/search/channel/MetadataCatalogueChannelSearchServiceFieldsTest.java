@@ -2,17 +2,27 @@ package fi.nls.oskari.search.channel;
 
 import fi.nls.oskari.control.metadata.MetadataField;
 import fi.nls.oskari.util.PropertyUtil;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class MetadataCatalogueChannelSearchServiceFieldsTest {
 
+    @Before
+    public void setup() {
+        PropertyUtil.clearProperties();
+    }
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
+    }
     @Test
     public void testEmptyFields() throws Exception {
-        PropertyUtil.clearProperties();
         PropertyUtil.loadProperties("/fi/nls/oskari/search/channel/MetadataCatalogueFieldsDifferentService.properties");
         MetadataCatalogueChannelSearchService.resetProperties();
         List<MetadataField> fields = MetadataCatalogueChannelSearchService.getFields();
@@ -22,7 +32,6 @@ public class MetadataCatalogueChannelSearchServiceFieldsTest {
 
     @Test
     public void testPaikkatietoikkunaFields() throws Exception {
-        PropertyUtil.clearProperties();
         PropertyUtil.loadProperties("/fi/nls/oskari/search/channel/MetadataCataloguePaikkatietoikkunaFields.properties");
         MetadataCatalogueChannelSearchService.resetProperties();
         List<MetadataField> fields = MetadataCatalogueChannelSearchService.getFields();

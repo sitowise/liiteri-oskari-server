@@ -1,19 +1,43 @@
 package fi.mml.portti.service.search;
 
+import fi.nls.oskari.util.ConversionHelper;
+import fi.nls.oskari.util.JSONHelper;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
+
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Search result item.
  */
 public class SearchResultItem implements Comparable<SearchResultItem>, Serializable {
-	
+    // JSON keys (see toJSON())
+    public static final String KEY_ID = "id";
+    public static final String KEY_NAME = "name";
+    public static final String KEY_UUID = "uuid";
+    public static final String KEY_TYPE = "type";
+    public static final String KEY_RANK = "rank";
+    public static final String KEY_LON = "lon";
+    public static final String KEY_LAT = "lat";
+    public static final String KEY_ZOOMLEVEL = "zoomLevel";
+    public static final String KEY_ZOOMSCALE = "zoomScale";
+    public static final String KEY_VILLAGE = "village";
+
+    public static final String KEY_BBOX = "bbox";
+    public static final String KEY_LEFT = "left";
+    public static final String KEY_TOP = "top";
+    public static final String KEY_RIGHT = "right";
+    public static final String KEY_BOTTOM = "bottom";
+
 	private static final long serialVersionUID = -1272738593795856016L;
 	private static final int TRUNCATE_DESCRIPTION_LENGTH = 350;
 	private String title;
 	private String resourceNameSpace;
 	private String resourceId;
+    private String natureOfTarget;
 	private String description;
 	private String contentURL;
 	private String actionURL;
@@ -30,7 +54,9 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	private String northBoundLatitude;	
 	private String mapURL;
 	private String zoomLevel;
+    private double zoomScale = -1;
 	private String trunkateDescription;
+	private List<String> uuid;
 	private boolean downloadable = false;
 	private boolean downloadAllowed = false;
     private Map<String, Object> properties = new HashMap<String, Object>();
@@ -57,12 +83,47 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
         return properties.get(key);
     }
 
+    /**
+     * Returns custom result field entries
+     * @return
+     */
+    public Set<String> getCustomFieldLabels() {
+        return properties.keySet();
+    }
+
 	public String toString() {
 		return "resourceId=" + resourceId + ", resourceNameSpace=" + resourceNameSpace 
 		+ ", title=" + title + ", actionURL=" + actionURL + ", gmdURL=" + gmdURL;
 	}
+
+/*
+    public String toStringAll(){
+        return "title" + title +
+                "resourceNameSpace" + resourceNameSpace +
+                "resourceId" + resourceId +
+                "natureOfTarget" + natureOfTarget +
+                "" + description +
+                ""contentURL +
+        "actionURL" + actionURL +
+        "" + gmdURL +
+        "" + village +
+        "" + locationTypeCode +
+        "" + type +
+        "" + locationName +
+        "" + lon +
+        "" + lat +
+        "" + westBoundLongitude +
+        "" + southBoundLatitude +
+        "" + eastBoundLongitude +
+        "" + northBoundLatitude +
+        "" + mapURL +
+        "" + zoomLevel +
+        "" + trunkateDescription;
+    } */
 	
 	public int compareTo(SearchResultItem sri) {
+        // TODO: rank should be normalized and village -> type(?)
+        // streetname ranking should be done internally in the search channel impl which knows about the title content
 		if (this.rank == sri.getRank()) {
 			if (this.title.equals(sri.getTitle())) {
 				/* Same title, order is determined by village */
@@ -72,7 +133,7 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 				String[] streetName1 = this.getTitle().split("\\s");
 				String[] streetName2 = sri.getTitle().split("\\s");
 				
-				/* whitout street number */
+				/* without street number */
 				if (streetName1.length != streetName2.length) {
 					return streetName1.length - streetName2.length;
 				}
@@ -104,13 +165,42 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
         this.type = type;
     }
 
+    /**
+     * @deprecated Use getZoomScale() instead
+     * @return zoomLevel
+     */
+    @Deprecated
     public String getZoomLevel() {
 		return zoomLevel;
 	}
 
+    /**
+     *
+     * @deprecated Use setZoomScale() instead
+     * @param zoomLevel
+     */
+    @Deprecated
 	public void setZoomLevel(String zoomLevel) {
 		this.zoomLevel = zoomLevel;
 	}
+
+    /**
+     * The scale in which the item should be shown.
+     * Map should show it in the closest zoom level available zooming out
+     * @param scale
+     */
+    public void setZoomScale(double scale) {
+        this.zoomScale = scale;
+    }
+
+    /**
+     * The scale in which the item should be shown.
+     * Map should show it in the closest zoom level available zooming out
+     * @return scale
+     */
+    public double getZoomScale() {
+        return this.zoomScale;
+    }
 
 	public String getMapURL() {
 		return mapURL;
@@ -183,7 +273,10 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	}
 	public void setLon(String lon) {
 		this.lon = lon;
-	}	
+	}
+	public void setLon(double lon) {
+		this.lon = "" + lon;
+	}
 	public String getWestBoundLongitude() {
 		return westBoundLongitude;
 	}
@@ -214,6 +307,9 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	public void setLat(String lat) {
 		this.lat = lat;
 	}
+	public void setLat(double lat) {
+		this.lat = "" + lat;
+	}
 	public String getLocationName() {
 		return locationName;
 	}
@@ -237,6 +333,26 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	}
 	public void setResourceId(String resourceId) {
 		this.resourceId = resourceId;
+	}
+    public String getNatureOfTarget() {
+        return natureOfTarget;
+    }
+    public void setNatureOfTarget(String natureOfTarget) {
+        this.natureOfTarget = natureOfTarget;
+    }
+	public List<String> getUuId() {
+		return uuid;
+	}
+
+    // TODO: what is uuid used for?
+	public void setUuId(List uuid) {
+		this.uuid = uuid;
+	}
+	public void addUuId(String uuid) {
+		if(this.uuid == null){
+			this.uuid = new ArrayList();
+		}
+		this.uuid.add(uuid);
 	}
 	
 	/**
@@ -271,4 +387,73 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	public void setDownloadAllowed(boolean downloadAllowed) {
 		this.downloadAllowed = downloadAllowed;
 	}
+
+    public boolean hasNameAndLocation() {
+        return hasValue(getTitle()) && hasValue(getLat()) && hasValue(getLon());
+    }
+
+    private boolean hasValue(final String param) {
+        return param != null && !param.isEmpty();
+    }
+
+    /**
+     * Calls toJSON with resourceId
+     * @return
+     */
+    public JSONObject toJSON() {
+        return toJSON(getResourceId());
+    }
+
+    /**
+     * Constructs a response JSON from the search result
+     * @param itemId
+     * @return
+     */
+    public JSONObject toJSON(Object itemId) {
+        //final JSONObject node = JSONHelper.createJSONObject(KEY_NAME, Jsoup.clean(getTitle(), Whitelist.none()));
+        final JSONObject node = JSONHelper.createJSONObject(KEY_NAME, getTitle());
+        JSONHelper.putValue(node, KEY_ID, itemId);
+        JSONHelper.putValue(node, KEY_LON, getLon());
+        JSONHelper.putValue(node, KEY_LAT, getLat());
+
+        JSONHelper.putValue(node, KEY_RANK, getRank());
+        JSONHelper.putValue(node, KEY_TYPE, getType());
+
+        // Village (?)
+        // TODO: Shouldn't this be 'municipality' or sth?
+        String village = ConversionHelper.getString(getVillage(), "");
+        JSONHelper.putValue(node, KEY_VILLAGE, Jsoup.clean(village, Whitelist.none()));
+
+        // do the bbox if we have any of the bbox values (Should have all if has any one of these)
+        if(getWestBoundLongitude() != null) {
+            JSONObject bbox = new JSONObject();
+            JSONHelper.putValue(bbox, KEY_RIGHT, getEastBoundLongitude());
+            JSONHelper.putValue(bbox, KEY_TOP, getNorthBoundLatitude());
+            JSONHelper.putValue(bbox, KEY_LEFT, getWestBoundLongitude());
+            JSONHelper.putValue(bbox, KEY_BOTTOM, getSouthBoundLatitude());
+            JSONHelper.putValue(node, KEY_BBOX, bbox);
+        }
+
+        // Zoom level - prefer scale, zoom level is deprecated
+        JSONHelper.putValue(node, KEY_ZOOMLEVEL, getZoomLevel());
+        if(getZoomScale() != -1) {
+            JSONHelper.putValue(node, KEY_ZOOMSCALE, getZoomScale());
+        }
+        // setup uuid (TODO: what is uuid used for?)
+        if(getUuId() != null && !getUuId().isEmpty()){
+            final JSONArray jArray = new JSONArray();
+            for(String uuid : getUuId()){
+                jArray.put(uuid);
+            }
+            JSONHelper.put(node, KEY_UUID, jArray);
+        }
+
+        // append additional fields
+        // since they are at the end, they can be used to override default values
+        // should they be attached at the beginning so this won't happen?
+        for(String label : getCustomFieldLabels()) {
+            JSONHelper.putValue(node, label, getValue(label));
+        }
+        return node;
+    }
 }

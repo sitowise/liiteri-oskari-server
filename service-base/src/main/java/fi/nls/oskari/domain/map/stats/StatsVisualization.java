@@ -1,20 +1,18 @@
 package fi.nls.oskari.domain.map.stats;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
+import fi.nls.oskari.util.JSONHelper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import fi.nls.oskari.util.JSONHelper;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class StatsVisualization {
 
     private Map<String, String> name = new HashMap<String, String>();
 
     private long id;
-    private int statsLayerId;
     private String nameJSON;
     private String visualization;
     private String classes;
@@ -63,14 +61,6 @@ public class StatsVisualization {
             return "undefined";
         }
         return value;
-    }
-
-    public int getStatsLayerId() {
-        return statsLayerId;
-    }
-
-    public void setStatsLayerId(int statsLayerId) {
-        this.statsLayerId = statsLayerId;
     }
 
     public void setNameJSON(String json) {

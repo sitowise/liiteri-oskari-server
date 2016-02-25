@@ -1,6 +1,5 @@
 package fi.nls.oskari.map.analysis.service;
 
-import fi.nls.oskari.map.analysis.domain.AnalysisLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.ServiceException;
@@ -44,38 +43,54 @@ public class TransformationService {
 
 
     public String wpsFeatureCollectionToWfst(final  String wps , String uuid, long analysis_id,
-            List<String> fields, Map<String,String> fieldTypes, String geometryProperty)
+            List<String> fields, Map<String,String> fieldTypes, String geometryProperty, String ns_prefix)
             throws ServiceException {
 
         final Document wpsDoc = createDoc(wps);
         StringBuilder sb = new StringBuilder(WFSTTEMPLATESTART);
         List<String> cols = new ArrayList<String>();
         List<String> geomcols = new ArrayList<String>();
-        geomcols.add("feature:" + geometryProperty);
-        geomcols.add("feature:geometry");
+        geomcols.add(ns_prefix+":" + geometryProperty);
+        geomcols.add(ns_prefix+":geometry");  //  default geometry
 
         String geomcol = "";
+        Boolean members_case = false;
 
-        // iterate through wpsDoc's gml:featureMember elements
+        // iterate through wpsDoc's gml:featureMember elements or gml:featureMembers
         // NodeList featureMembers =
         // wpsDoc.getDocumentElement().getChildNodes();
         NodeList featureMembers = wpsDoc
                 .getElementsByTagName("gml:featureMember");
+        if (featureMembers.getLength() == 0) {
+            featureMembers = wpsDoc
+                    .getElementsByTagName("gml:featureMembers");
+            if (featureMembers.getLength() > 0) members_case = true;
+        }
+        if(members_case){
+            // select features as featureMembers
+            featureMembers = wpsDoc.getElementsByTagName( featureMembers.item(0).getFirstChild().getNodeName());
+        }
         for (int i = 0; i < featureMembers.getLength(); i++) {
-            // we're only interested in featureMembers...
+            // we're only interested in featureMembers... or features
             if (!"gml:featureMember".equals(featureMembers.item(i)
-                    .getNodeName())) {
+                    .getNodeName()) &&  !members_case ) {
                 continue;
             }
-            // get features, i.e. all child elements in feature namespace
-            // we trust that featureMember only has one feature...
-            // find the child feature...
+
             NodeList meh = featureMembers.item(i).getChildNodes();
             NodeList features = null;
-            for (int j = 0; j < meh.getLength(); j++) {
-                if (meh.item(j).getNodeName().indexOf("feature:") == 0) {
-                    features = meh.item(j).getChildNodes();
-                    break;
+            if (members_case) {
+                // gml:featureMembers case - all features under one element
+                features = meh;
+            } else {
+                // get features, i.e. all child elements in feature namespace
+                // we trust that featureMember only has one feature...
+                // find the child feature...
+                for (int j = 0; j < meh.getLength(); j++) {
+                    if (meh.item(j).getNodeName().indexOf(ns_prefix + ":") == 0) {
+                        features = meh.item(j).getChildNodes();
+                        break;
+                    }
                 }
             }
             Node geometry = null;
@@ -91,7 +106,7 @@ public class TransformationService {
                     // geometry, store aside for now
                     geomcol = feature.getNodeName();
                     geometry = feature;
-                } else if (feature.getNodeName().indexOf("feature:") == 0) {
+                } else if (feature.getNodeName().indexOf(ns_prefix+":") == 0) {
                     // only parse 8 first text ( numeric results invalid behavior later use only text)
                     //TODO: fix management of Date dateTime types later
                     // (excluding geometry)
@@ -123,32 +138,9 @@ public class TransformationService {
                         }
                     }
                 }
-            }
-            // build wfs:Insert element
-            sb.append(WFSTINSERTSTART);
-            // add geometry node
-            sb.append(nodeToString(geometry).replace(geomcol,
-                    "feature:geometry"));
-            // add text feature nodes (1-based)
-            for (int j = 0; j < textFeatures.size(); j++) {
-                sb
-                        .append("         <feature:t" + (j + 1) + ">"
-                                + textFeatures.get(j) + "</feature:t" + (j + 1)
-                                + ">\n");
-            }
-            // add numeric feature nodes (1-based)
-            for (int j = 0; j < numericFeatures.size(); j++) {
-                sb.append("         <feature:n" + (j + 1) + ">"
-                        + numericFeatures.get(j) + "</feature:n" + (j + 1)
-                        + ">\n");
-            }
 
-            sb.append("         <feature:analysis_id>"
-                    + Long.toString(analysis_id) + "</feature:analysis_id>\n");
-
-            sb.append("         <feature:uuid>" + uuid + "</feature:uuid>\n");
-
-            sb.append(WFSTINSERTEND);
+            }
+            buildWfsInsertElement(sb, geometry, geomcol, textFeatures, numericFeatures, uuid, analysis_id );
         }
         sb.append(WFSTTEMPLATEEND);
         return sb.toString();
@@ -202,25 +194,42 @@ public class TransformationService {
      * @param fieldTypes  field types like in WFS DescribeFeatureType
      * @return true, if numeric value (int,double,long,..)
      */
-    private Double getFieldAsNumeric(String fieldName, String strVal, Map<String,String> fieldTypes)
-    {
+    private Double getFieldAsNumeric(String fieldName, String strVal, Map<String, String> fieldTypes) {
         Double numericValue = null;
-       if(fieldTypes.containsKey(fieldName))
-       {
-           //Check type
-           if(fieldTypes.get(fieldName).equals(NUMERIC_FIELD_TYPE))
-           {
-               try {
-                   numericValue = Double.parseDouble(strVal);
-               } catch (NumberFormatException nfe) {
-                   // ignore
-               }
-           }
-       }
+        if (fieldTypes.containsKey(fieldName)) {
+            //Check type
+            if (fieldTypes.get(fieldName).equals(NUMERIC_FIELD_TYPE)) {
+                try {
+                    numericValue = Double.parseDouble(strVal);
+                } catch (NumberFormatException nfe) {
+                    // ignore
+                }
+            }
+        } else {
+            // Field name could be composed with layer name
+            for (Map.Entry<String, String> entry : fieldTypes.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if (fieldName.lastIndexOf(key) > 0 && value.equals(NUMERIC_FIELD_TYPE)) {
+                    try {
+                        numericValue = Double.parseDouble(strVal);
+                    } catch (NumberFormatException nfe) {
+                        // ignore
+                    }
+                }
+            }
+        }
         return numericValue;
     }
 
-    public String addPropertiesTo1stFeature(String featureSet, String analysisLayer) throws ServiceException
+    /**
+     *
+     * @param featureSet      WPS union response
+     * @param aggregateResults   Aggregate results ([attribue1:{Count:xx,Sum=yy,..},..])
+     * @return
+     * @throws ServiceException
+     */
+    public String addPropertiesTo1stFeature(String featureSet, String aggregateResults) throws ServiceException
 
     {
 
@@ -238,7 +247,7 @@ public class TransformationService {
                 // we trust that featureMember only has one feature...
                 // find the child feature...
 
-                JSONObject js = new JSONObject(analysisLayer);
+                JSONObject js = new JSONObject(aggregateResults);
                 NodeList meh = featureMembers.item(i).getChildNodes();
                 Node feature = null;
                 for (int j = 0; j < meh.getLength(); j++) {
@@ -254,17 +263,10 @@ public class TransformationService {
                     String key = (String) keys.next();
                     if (js.get(key) instanceof JSONObject) {
                         JSONObject subjs = js.getJSONObject(key);
-                        Iterator<?> skeys = subjs.keys();
-                        while (skeys.hasNext()) {
-                            String skey = (String) skeys.next();
-                            Node elem = feature.getOwnerDocument().createElement("feature:" + skey);
-                            elem.setTextContent(subjs.get(skey).toString());
+
+                            Node elem = feature.getOwnerDocument().createElement("feature:" + key);
+                            elem.setTextContent(subjs.toString());
                             feature.appendChild(elem);
-                        }
-                    } else {
-                        Node elem = feature.getOwnerDocument().createElement("feature:" + key);
-                        elem.setTextContent(js.getString(key));
-                        feature.appendChild(elem);
 
                     }
                 }
@@ -277,6 +279,107 @@ public class TransformationService {
         return this.getStringFromDocument(wpsDoc);
     }
 
+    /**
+     * Copy union feature geometry to each aggregate result and add aggregate results as feature properties
+     *
+     * @param featureSet       WPS union response
+     * @param aggregateResults Aggregate results ([attribue1:{Count:xx,Sum=yy,..},..])
+     * @return
+     * @throws ServiceException
+     */
+    public String mergePropertiesToFeatures(String featureSet, String aggregateResults, List<String> rowOrder, List<String> colOrder) throws ServiceException
+
+    {
+
+        // Col order values
+        Map<String, Node> colvalues = new HashMap<String, Node>();
+        for (String col : colOrder) {
+            colvalues.put(col, null);
+        }
+
+
+        final Document wpsDoc = createDoc(featureSet);
+        try {
+            JSONObject js = new JSONObject(aggregateResults);
+            NodeList featureMembers = wpsDoc.getElementsByTagName("gml:featureMember");
+            // We trust that union is in one featureMember
+            // Clone 1st fea member so that there is one fea each aggregate result
+            if (featureMembers.getLength() > 0) {
+                Iterator<?> keys = js.keys();
+                int cnt = 0;
+
+                while (keys.hasNext()) {
+                    keys.next();
+                    if (cnt < js.length() -1) {
+                        Node copiedMember = wpsDoc.importNode(featureMembers.item(0), true);
+                        featureMembers.item(0).getParentNode().appendChild(copiedMember);
+                    }
+                    cnt++;
+                }
+
+
+            }
+
+            featureMembers = wpsDoc.getElementsByTagName("gml:featureMember");
+
+            for (int i = 0; i < featureMembers.getLength(); i++) {
+                // we're only interested in featureMembers...
+                if (!"gml:featureMember".equals(featureMembers.item(i)
+                        .getNodeName())) {
+                    continue;
+                }
+                // get features, i.e. all child elements in feature namespace
+                // we trust that featureMember only has one feature...
+                // find the child feature...
+
+                NodeList meh = featureMembers.item(i).getChildNodes();
+                Node feature = null;
+                for (int j = 0; j < meh.getLength(); j++) {
+                    if (meh.item(j).getNodeName().indexOf("feature:") == 0) {
+                        feature = meh.item(j);
+                        break;
+                    }
+                }
+                // Put properties to result featureset in predefined order
+                String currow = i < rowOrder.size() ? rowOrder.get(i) : null;
+
+                Iterator<?> keys = js.keys();
+
+                while (keys.hasNext()) {
+                    String key = (String) keys.next();
+                    if (js.get(key) instanceof JSONObject) {
+                        if (currow != null && key.equals(currow)) {
+                            Node elem = feature.getOwnerDocument().createElement("feature:___");
+                            elem.setTextContent(key);
+                            feature.appendChild(elem);
+
+
+                            JSONObject subjs = js.getJSONObject(key);
+                            Iterator<?> subkeys = subjs.keys();
+                            while (subkeys.hasNext()) {
+                                String subkey = (String) subkeys.next();
+                                Node subelem = feature.getOwnerDocument().createElement("feature:" + subkey.replace(" ", "_"));
+                                subelem.setTextContent(subjs.get(subkey).toString());
+                                colvalues.put(subkey, subelem);
+
+                            }
+                            for (int j = 0; j < colvalues.size(); j++) {
+                                if(colvalues.get(colOrder.get(j)) != null) {
+                                    feature.appendChild(colvalues.get(colOrder.get(j)));
+                                }
+                            }
+
+                        }
+
+                    }
+                }
+
+            }
+        } catch (JSONException e) {
+            log.debug("Aggregate feature property insertion failed", e);
+        }
+        return this.getStringFromDocument(wpsDoc);
+    }
 
     //method to convert Document to String
     public String getStringFromDocument(Document doc)
@@ -294,5 +397,33 @@ public class TransformationService {
            // ex.printStackTrace();
             return null;
         }
+    }
+    public void buildWfsInsertElement(StringBuilder sb, Node geometry, String geomcol, List<String> textFeatures, List<Double> numericFeatures, String uuid, long analysis_id ) throws ServiceException
+    {
+    // build wfs:Insert element
+    sb.append(WFSTINSERTSTART);
+    // add geometry node
+    sb.append(nodeToString(geometry).replace(geomcol,
+                                             "feature:geometry"));
+    // add text feature nodes (1-based)
+    for (int j = 0; j < textFeatures.size(); j++) {
+        sb
+                .append("         <feature:t" + (j + 1) + ">"
+                        + textFeatures.get(j) + "</feature:t" + (j + 1)
+                        + ">\n");
+    }
+    // add numeric feature nodes (1-based)
+    for (int j = 0; j < numericFeatures.size(); j++) {
+        sb.append("         <feature:n" + (j + 1) + ">"
+                + numericFeatures.get(j) + "</feature:n" + (j + 1)
+                + ">\n");
+    }
+
+    sb.append("         <feature:analysis_id>"
+            + Long.toString(analysis_id) + "</feature:analysis_id>\n");
+
+    sb.append("         <feature:uuid>" + uuid + "</feature:uuid>\n");
+
+    sb.append(WFSTINSERTEND);
     }
 }

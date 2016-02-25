@@ -1,14 +1,18 @@
 package fi.nls.oskari.wfs;
 
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.ibatis.sqlmap.client.SqlMapClient;
+import com.ibatis.sqlmap.client.SqlMapSession;
+import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
+import fi.nls.oskari.domain.map.wfs.WFSParserConfig;
+import fi.nls.oskari.domain.map.wfs.WFSSLDStyle;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseIbatisService;
-import fi.nls.oskari.domain.map.wfs.WFSSLDStyle;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 public class WFSLayerConfigurationServiceIbatisImpl extends BaseIbatisService<WFSLayerConfiguration> implements WFSLayerConfigurationService {
 
@@ -34,30 +38,56 @@ public class WFSLayerConfigurationServiceIbatisImpl extends BaseIbatisService<WF
         return styles;
     }
 
-    /**
-     * Updates schema information
-     *
-     * @param id
-     * @param schema
-     * @param status
-     */
-    public int updateSchemaInfo(final long id, final String schema, final String status) {
-        final Map<String, Object> data = new HashMap<String,Object>();
-        data.put("id", id);
-        data.put("schema", schema);
-        data.put("status", status);
+    public List<WFSParserConfig> findWFSParserConfigs(String name) {
+        List<WFSParserConfig> configs = queryForList(getNameSpace() + ".findParserConfigs", name);
+        return configs;
+    }
 
+    public synchronized int insertTemplateModel(final Map<String,String> map) throws ServiceException {
+        return  queryForObject(getNameSpace() + ".insertTemplateModel", map);
+    }
+
+    public void update(final WFSLayerConfiguration layer) {
         try {
-            if(status.equals("ok")) {
-                return getSqlMapClient().update(
-                        getNameSpace() + ".updateSchemaInfo", data);
-            } else {
-                return getSqlMapClient().update(
-                        getNameSpace() + ".updateFailSchemaInfo", data);
-            }
-        } catch (SQLException e) {
-            log.error(e, "Failed to update", data);
+            getSqlMapClient().update(getNameSpace() + ".update", layer);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update", e);
         }
-        return 0;
+    }
+
+    public synchronized int insert(final WFSLayerConfiguration layer) {
+        SqlMapClient client = null;
+        try {
+            client = getSqlMapClient();
+            client.startTransaction();
+            client.insert(getNameSpace() + ".insert", layer);
+            Integer id = (Integer) client.queryForObject(getNameSpace()
+                    + ".maxId");
+            client.commitTransaction();
+            return id;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to insert", e);
+        } finally {
+            if (client != null) {
+                try {
+                    client.endTransaction();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    public void delete(final int id)  {
+        long maplayer_id = Long.valueOf(id);
+        final SqlMapSession session = openSession();
+        try {
+            session.startTransaction();
+            // remove wfs layer
+            session.delete(getNameSpace() + ".delete", maplayer_id);
+            session.commitTransaction();
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting wfs layer with maplayer_id:" + Long.toString(maplayer_id), e);
+        } finally {
+            endSession(session);
+        }
     }
 }

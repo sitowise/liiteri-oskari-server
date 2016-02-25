@@ -18,6 +18,7 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     public static final String TYPE_STATS = "statslayer";
     public static final String TYPE_ANALYSIS = "analysislayer";
     public static final String TYPE_USERLAYER = "userlayer";
+    public static final String TYPE_ARCGIS93 = "arcgis93layer";
     public static final String TYPE_ARCGISLAYER = "arcgislayer";
 
     private int id = -1;
@@ -45,10 +46,11 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     private String metadataId;
 
     private String tileMatrixSetId;
-    private String tileMatrixSetData;
 
     private JSONObject params = new JSONObject();
     private JSONObject options = new JSONObject();
+    private JSONObject attributes = new JSONObject();
+    private JSONObject capabilities = new JSONObject();
 
     private boolean realtime = false;
     private int refreshRate;
@@ -57,6 +59,12 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     private String gfiType;
     private String gfiContent;
     private String geometry;
+
+    private String username;
+    private String password;
+
+    private String version;
+    private String srs_name;
 
     private Date created = null;
     private Date updated = null;
@@ -127,6 +135,15 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
      * @return simplified version of wms url or an empty string if there is any problems creating it.
      */
     public String getSimplifiedUrl() {
+        return getSimplifiedUrl(false);
+    }
+
+    /**
+     * Returns a simplified version of the wms url. Splits it with comma-character, takes the first one.
+     * @param keepProtocol true to include protocol of the url
+     * @return simplified version of wms url or an empty string if there is any problems creating it.
+     */
+    public String getSimplifiedUrl(final boolean keepProtocol) {
         if(simplifiedUrl != null) {
             return simplifiedUrl;
         }
@@ -140,11 +157,9 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
 
         final String protocolSeparator = "://";
         final int protocolIndex = splitted[0].indexOf(protocolSeparator);
-        if(protocolIndex == -1) {
-            // there was no protocol - weird but possible case
-            simplifiedUrl = splitted[0].trim();
-        }
-        else {
+        simplifiedUrl = splitted[0].trim();
+        if(protocolIndex != -1 && !keepProtocol) {
+            // strip protocol if one was found and keepProtocol is false
             simplifiedUrl = splitted[0].substring(protocolIndex + protocolSeparator.length()).trim();
         }
         return simplifiedUrl;
@@ -239,14 +254,6 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
 		tileMatrixSetId = value;
 	}
 
-	public String getTileMatrixSetData() {
-		return tileMatrixSetData;
-	}
-
-	public void setTileMatrixSetData(String value) {
-		tileMatrixSetData = value;
-	}
-
     public int getParentId() {
         return parentId;
     }
@@ -328,6 +335,22 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
         this.options = options;
     }
 
+    public JSONObject getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(JSONObject attributes) {
+        this.attributes = attributes;
+    }
+
+    public JSONObject getCapabilities() {
+        return capabilities;
+    }
+
+    public void setCapabilities(JSONObject capabilities) {
+        this.capabilities = capabilities;
+    }
+
     public String getGfiType() {
         return gfiType;
     }
@@ -372,6 +395,38 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
         } else {
             this.refreshRate = refreshRate;
         }
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public String getSrs_name() {
+        return srs_name;
+    }
+
+    public void setSrs_name(String srs_name) {
+        this.srs_name = srs_name;
     }
 
 	public String getDownloadServiceUrl() {

@@ -5,6 +5,7 @@ import fi.nls.oskari.log.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.util.*;
 
@@ -14,6 +15,16 @@ public class JSONHelper {
     private static Logger log = LogFactory.getLogger(JSONHelper.class);
 
     public static final JSONObject createJSONObject(final String key, final String value) {
+        final JSONObject object = new JSONObject();
+        putValue(object, key, value);
+        return object;
+    }
+    public static final JSONObject createJSONObject(final String key, final Object value) {
+        final JSONObject object = new JSONObject();
+        putValue(object, key, value);
+        return object;
+    }
+    public static final JSONObject createJSONObject(final String key, final JSONObject value) {
         final JSONObject object = new JSONObject();
         putValue(object, key, value);
         return object;
@@ -38,15 +49,36 @@ public class JSONHelper {
         try {
             return new JSONObject(content);
         } catch (Exception e) {
-            log.warn("Error generating JSONObject from", content);
+            log.info("Error generating JSONObject from ", content);
         }
         return null;
     }
-
+    public static final JSONObject createJSONObject4Tokener(final JSONTokener content) {
+        try {
+            return new JSONObject(content);
+        } catch (Exception e) {
+            log.info("Error generating JSONObject from JSONTokener ", content);
+        }
+        return null;
+    }
     public static final JSONObject getJSONObject(final JSONObject content, String key) {
+        if(content == null) {
+            return null;
+        }
         try {
             return content.getJSONObject(key);
-        } catch (JSONException e) {
+        } catch (Exception e) {
+            log.info("Couldn't get JSONObject from ", content, " with key =", key);
+            return null;
+        }
+    }
+    public static final JSONObject getJSONObject(final JSONArray content, int key) {
+        if(content == null) {
+            return null;
+        }
+        try {
+            return content.getJSONObject(key);
+        } catch (Exception e) {
             log.warn("Couldn't get JSONObject from ", content, " with key =", key);
             return null;
         }
@@ -55,8 +87,58 @@ public class JSONHelper {
         try {
             return content.getJSONArray(key);
         } catch (JSONException e) {
-            throw new IllegalArgumentException("Couldn't get JSONArray from " + content + " with key = " + key);
+            log.info("Couldn't get JSONArray from " + content + " with key = " + key);
+            return null;
         }
+    }
+    public static final <T> Map<String, T> getObjectAsMap(final JSONObject obj) {
+        if(obj == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, T> map = new HashMap<String, T>();
+        Iterator it = obj.keys();
+        while(it.hasNext()) {
+            String key = (String)it.next();
+            try {
+                if (obj.opt(key) instanceof JSONObject){
+                    map.put(key, (T) getObjectAsMap((JSONObject) obj.opt(key)));
+                }
+                else if (obj.opt(key) instanceof JSONArray){
+                    map.put(key, (T) getArrayAsList( (JSONArray) obj.opt(key)));
+                }
+                else {
+                    map.put(key, (T) obj.opt(key));
+                }
+            }
+            catch (Exception e) {
+                log.error("Couldn't convert JSONObject to Map:", e.getMessage());
+            }
+        }
+        return map;
+    }
+
+    public static final <T> List<T> getArrayAsList(final JSONArray array) {
+        if(array == null) {
+            return Collections.emptyList();
+        }
+        try {
+            List<T> list = new ArrayList<T>(array.length());
+            for(int i = 0; i < array.length(); ++i) {
+                if (array.opt(i) instanceof JSONObject){
+                    list.add((T) getObjectAsMap((JSONObject) array.opt(i)));
+                }
+                else if (array.opt(i) instanceof JSONArray){
+                    list.add((T) getArrayAsList((JSONArray) array.opt(i)));
+                }
+                else {
+                    list.add((T) array.opt(i));
+                }
+            }
+            return list;
+        } catch (Exception e) {
+            log.error("Couldn't convert JSONArray to List:", e.getMessage());
+        }
+        return Collections.emptyList();
     }
 
     public static JSONArray getEmptyIfNull(final JSONArray array) {
@@ -64,6 +146,15 @@ public class JSONHelper {
             return new JSONArray();
         }
         return array;
+    }
+
+    public static boolean getBooleanFromJSON(final JSONObject data, final String key, final boolean defaultValue) {
+        try {
+            final boolean value = data.getBoolean(key);
+            return value;
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
     
     public static final String getStringFromJSON(final JSONObject data, final String key, final String defaultValue) {
@@ -88,13 +179,13 @@ public class JSONHelper {
             return defaultValue;
         }
     }
-    
-    public static final boolean putValue(final JSONObject json, final String key, final String value) {
+
+    public static final boolean accumulateValue(final JSONObject json, final String key, final Object value) {
         try {
-            json.put(key, value);
+            json.accumulate(key, value);
             return true;
         } catch (Exception ignore) {
-            log.warn("Cant put", key, "value", value, "to json");
+            log.warn("Can't put", key, "value", value, "to json");
         }
         return false;
     }
@@ -115,18 +206,25 @@ public class JSONHelper {
         return false;
     }
 
-    /*
-    // TODO: why not just have value be of type Object and remove all the duplicate methods?
-    // Numbers and booleans are handled in a different way compared to, say, strings, so we can't really do obj.toString()
     public static final boolean putValue(final JSONObject json, final String key, final Object value) {
         try {
             json.put(key, value);
             return true;
         } catch (Exception ignore) {
-            log.warn("Cant put", key, "value", value, "to json");
+            log.warn("Can't put", key, "value", value, "to json");
         }
         return false;
-    } */
+    }
+    
+    public static final boolean put(final JSONObject json, final String key, final JSONArray value){
+        try {
+            json.put(key, value);
+            return true;
+        } catch (Exception ignore) {
+            log.warn("Can't put", key, "value", value, "to json");
+        }
+        return false;
+    }
 
     public static final Boolean putValue(final JSONObject json, final String key, final boolean value) {
         try {
@@ -149,7 +247,7 @@ public class JSONHelper {
     }
     public static final boolean putValue(final JSONObject json, final String key, final Date value) {
         try {
-            json.put(key, value);
+            json.put(key, String.format("%tFT%<tRZ", value));
             return true;
         } catch (Exception ignore) {
             log.warn("Can't put", key, "value", value, "to json");
@@ -167,28 +265,6 @@ public class JSONHelper {
         }
         return false;
     }
-    
-
-    public static final boolean putValue(final JSONObject json, final String key, final JSONArray value) {
-        try {
-            json.put(key, value);
-            return true;
-        } catch (Exception ignore) {
-            log.warn("Can't put", key, "value", value, "to json");
-        }
-        return false;
-    }
-
-	public static final boolean putValue(final JSONObject json, final String key,
-			JSONObject value) {        
-			try {
-	            json.put(key, value);
-	            return true;
-	        } catch (Exception ignore) {
-	            log.warn("Can't put", key, "value", value, "to json");
-	        }
-	        return false;
-	}
 
 	public static JSONArray createJSONArray(final String content) {
         try {
@@ -197,6 +273,15 @@ public class JSONHelper {
             throw new IllegalArgumentException("Couldn't create JSONArray for " + content );
         }
 	}
+    public static JSONArray createJSONArray(final Object content) {
+        try {
+            final JSONArray array = new JSONArray();
+            array.put(content);
+            return array;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Couldn't create JSONArray for " + content );
+        }
+    }
 
     /**
      *

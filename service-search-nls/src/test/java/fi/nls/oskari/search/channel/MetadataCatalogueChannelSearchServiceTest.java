@@ -5,13 +5,15 @@ import fi.mml.portti.service.search.SearchCriteria;
 import fi.mml.portti.service.search.SearchResultItem;
 import fi.nls.oskari.util.PropertyUtil;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import java.io.InputStream;
-import java.util.*;
+import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 public class MetadataCatalogueChannelSearchServiceTest {
     private MetadataCatalogueChannelSearchService channel = null;
@@ -19,7 +21,7 @@ public class MetadataCatalogueChannelSearchServiceTest {
     private static String SERVER_URL = null;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setup() {
         PropertyUtil.clearProperties();
         Properties properties = new Properties();
         try {
@@ -31,19 +33,18 @@ public class MetadataCatalogueChannelSearchServiceTest {
         SERVER_URL = PropertyUtil.get("search.channel.METADATA_CATALOGUE_CHANNEL.metadata.catalogue.server");
     }
 
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
+    }
+
     private MetadataCatalogueChannelSearchService getSearchChannel() {
         if(channel != null) {
             return channel;
         }
         channel = new MetadataCatalogueChannelSearchService();
         MetadataCatalogueChannelSearchService.resetProperties();
-        channel.setProperty("fetchpage.url.fi", "fetchPageURL.fi");
-        channel.setProperty("fetchpage.url.en", "fetchPageURL.en");
-        channel.setProperty("fetchpage.url.sv", "fetchPageURL.sv");
-
-        channel.setProperty("image.url.fi", "imageURL.fi");
-        channel.setProperty("image.url.en", "imageURL.en");
-        channel.setProperty("image.url.sv", "imageURL.sv");
+        channel.init();
         return channel;
     }
 
@@ -54,7 +55,7 @@ public class MetadataCatalogueChannelSearchServiceTest {
         StAXOMBuilder builder = getTestResponse("SV_ServiceIdentification.xml");
         assertTrue("We should have a results object", builder != null);
 
-        ChannelSearchResult channelResult = getSearchChannel().parseResults(builder, getSearchCriteria().getLocale());
+        ChannelSearchResult channelResult = getSearchChannel().parseResults(builder, getSearchCriteria("fi"));
         List<SearchResultItem> results = channelResult.getSearchResultItems();
 
         // enable later...
@@ -84,7 +85,7 @@ public class MetadataCatalogueChannelSearchServiceTest {
         assertTrue("We should have a results object", builder != null);
 
         final long start = System.currentTimeMillis();
-        ChannelSearchResult channelResult =  getSearchChannel().parseResults(builder, getSearchCriteria().getLocale());
+        ChannelSearchResult channelResult =  getSearchChannel().parseResults(builder, getSearchCriteria("fi"));
         final long end = System.currentTimeMillis();
         System.out.println("Parse time:" + (end-start) + "ms");
         List<SearchResultItem> results = channelResult.getSearchResultItems();
@@ -118,8 +119,8 @@ public class MetadataCatalogueChannelSearchServiceTest {
         StAXOMBuilder builderSV = getTestResponse("MD_DataIdentification.xml");
         StAXOMBuilder builderFI = getTestResponse("MD_DataIdentification.xml");
 
-        ChannelSearchResult channelResultSV =  getSearchChannel().parseResults(builderSV, "sv");
-        ChannelSearchResult channelResultFI =  getSearchChannel().parseResults(builderFI, "fi");
+        ChannelSearchResult channelResultSV =  getSearchChannel().parseResults(builderSV, getSearchCriteria("sv"));
+        ChannelSearchResult channelResultFI =  getSearchChannel().parseResults(builderFI, getSearchCriteria("fi"));
         List<SearchResultItem> resultsSV = channelResultSV.getSearchResultItems();
         List<SearchResultItem> resultsFI = channelResultFI.getSearchResultItems();
 
@@ -143,7 +144,7 @@ public class MetadataCatalogueChannelSearchServiceTest {
         StAXOMBuilder builder = getTestResponse("SRV_extent.xml");
         assertTrue("We should have a results object", builder != null);
 
-        ChannelSearchResult channelResult =  getSearchChannel().parseResults(builder, getSearchCriteria().getLocale());
+        ChannelSearchResult channelResult =  getSearchChannel().parseResults(builder, getSearchCriteria("fi"));
         List<SearchResultItem> results = channelResult.getSearchResultItems();
 
         // enable later...
@@ -167,9 +168,9 @@ public class MetadataCatalogueChannelSearchServiceTest {
         }
     }
 
-    private SearchCriteria getSearchCriteria() {
+    private SearchCriteria getSearchCriteria(String locale) {
         SearchCriteria searchCriteria = new SearchCriteria();
-        searchCriteria.setLocale("fi");
+        searchCriteria.setLocale(locale);
         return searchCriteria;
     }
 

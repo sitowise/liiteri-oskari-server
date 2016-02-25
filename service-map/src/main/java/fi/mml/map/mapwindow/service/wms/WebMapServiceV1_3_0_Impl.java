@@ -1,19 +1,16 @@
 package fi.mml.map.mapwindow.service.wms;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.xml.namespace.QName;
-
+import fi.mml.capabilities.DimensionDocument.Dimension;
 import fi.mml.capabilities.KeywordDocument;
-import fi.mml.capabilities.WMSCapabilitiesDocument;
 import fi.mml.capabilities.LayerDocument.Layer;
 import fi.mml.capabilities.LegendURLDocument.LegendURL;
 import fi.mml.capabilities.StyleDocument.Style;
+import fi.mml.capabilities.WMSCapabilitiesDocument;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+
+import javax.xml.namespace.QName;
+import java.util.*;
 
 /**
  * 
@@ -40,8 +37,9 @@ public class WebMapServiceV1_3_0_Impl extends AbstractWebMapService {
 	private String[] formats = new String[0];
 
     private String[] keywords = new String[0];
-	
-	
+
+	private List<String> time = new ArrayList<>();
+
 	/** url for request */
 	private String getCapabilitiesUrl;
 	
@@ -124,6 +122,26 @@ public class WebMapServiceV1_3_0_Impl extends AbstractWebMapService {
 			isQueryable = layer.getQueryable();
 		}
 	}
+
+	private void setTimeValue(Layer layer) {
+		//if (layerName.equals(layer.getName())) {
+			for (Dimension dimension : layer.getDimensionArray()) {
+				if (dimension.getName().equals("time")) {
+					List<String> value;
+					String originalValue = dimension.getStringValue();
+					if(originalValue == null) {
+						value = Collections.emptyList();
+					} else if(dimension.getMultipleValues()) {
+						String[] split = originalValue.split(",");
+						value = new ArrayList(Arrays.asList(split));
+					} else {
+						value = new ArrayList(Collections.singletonList(originalValue));
+					}
+					time = value;
+				}
+			}
+		//}
+	}
 	
 	/**
 	 * Gathers styles from given layer to given map
@@ -145,8 +163,6 @@ public class WebMapServiceV1_3_0_Impl extends AbstractWebMapService {
 					String href = lurl[0].getOnlineResource().newCursor().getAttributeText(new QName("http://www.w3.org/1999/xlink", "href"));
 					legends.put(styleName, href);
 				}
-				
-				
 			}
 		}
 	}
@@ -198,6 +214,7 @@ public class WebMapServiceV1_3_0_Impl extends AbstractWebMapService {
 				/* We found the layer we were after, next we must once again 
 				 * gather styles and check for queryable value */
 				gatherStylesAndLegends(layer, foundStyles);
+				setTimeValue(layer);
 				setQueryable(layer, checkedLayerName);
                 setKeywords(layer, checkedLayerName);
 				
@@ -261,4 +278,8 @@ public class WebMapServiceV1_3_0_Impl extends AbstractWebMapService {
     public String[] getKeywords() {
         return keywords;
     }
+
+	public List<String> getTime() {
+		return time;
+	}
 }

@@ -1,6 +1,7 @@
 package fi.nls.oskari.map.layer.formatters;
 
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
 import fi.nls.oskari.domain.map.wfs.WFSSLDStyle;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -10,7 +11,7 @@ import fi.nls.oskari.wfs.WFSLayerConfigurationServiceIbatisImpl;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -30,26 +31,53 @@ public class LayerJSONFormatterWFS extends LayerJSONFormatter {
                                      final boolean isSecure) {
 
         final JSONObject layerJson = getBaseJSON(layer, lang, isSecure);
-        JSONHelper.putValue(layerJson, "styles", getStyles(layer));
+        final WFSLayerConfiguration wfsConf = wfsService.findConfiguration(layer.getId());
+        JSONHelper.putValue(layerJson, "styles", getStyles(wfsConf));
         JSONHelper.putValue(layerJson, "style", "default");
         JSONHelper.putValue(layerJson, "isQueryable", true);
+        JSONHelper.putValue(layerJson, "wps_params", getWpsParams(wfsConf) );
+
         return layerJson;
     }
 
     /**
      * Constructs a style json
      *
-     * @param layer layer of which styles will be retrieved
+     * @param  wfsConf wfs layer configuration
      */
-    private JSONArray getStyles(final OskariLayer layer) {
-        List<WFSSLDStyle> styleList = wfsService.findWFSLayerStyles(layer.getId());
+    private JSONArray getStyles(WFSLayerConfiguration wfsConf) {
+
         JSONArray arr = new JSONArray();
-        for (WFSSLDStyle style : styleList) {
-            JSONObject obj = createStylesJSON(style.getName(), style.getName(), style.getName());
-            if(obj.length() > 0) {
-                arr.put(obj);
+        if (wfsConf == null) return arr;
+
+        final List<WFSSLDStyle> styleList = wfsConf.getSLDStyles();
+        if (styleList == null) return arr;
+
+        try {
+            for (WFSSLDStyle style : styleList) {
+                JSONObject obj = createStylesJSON(style.getName(), style.getName(), style.getName());
+                if (obj.length() > 0) {
+                    arr.put(obj);
+                }
             }
+        } catch (Exception e) {
+          log.warn("Failed to query wfs styles via SQL client");
         }
         return arr;
     }
+
+    /**
+     * Constructs wps params json
+     *
+     * @param  wfsConf wfs layer configuration
+     */
+    private JSONObject getWpsParams(WFSLayerConfiguration wfsConf) {
+
+        JSONObject json = new JSONObject();
+        if (wfsConf == null) return json;
+
+        return JSONHelper.createJSONObject(wfsConf.getWps_params());
+
+    }
+
 }

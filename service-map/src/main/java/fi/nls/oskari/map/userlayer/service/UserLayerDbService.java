@@ -1,7 +1,6 @@
 package fi.nls.oskari.map.userlayer.service;
 
 import fi.nls.oskari.domain.map.UserGisData;
-import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseService;

@@ -1,8 +1,5 @@
 package fi.nls.oskari.cache;
 
-import java.util.Collections;
-import java.util.Set;
-
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import redis.clients.jedis.Jedis;
@@ -10,17 +7,22 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * Manages Jedis connections using JedisPool (connection pool)
  */
 public class JedisManager {
+
     private static final JedisManager instance = new JedisManager();
-    private static JedisPool pool;
+
+    private static volatile JedisPool pool;
 
     private final static Logger log = LogFactory.getLogger(JedisManager.class);
 
     public static final int EXPIRY_TIME_DAY = 86400;
-    
+
     /**
      * Blocking construction of instances from other classes by making constructor private
      */
@@ -28,36 +30,43 @@ public class JedisManager {
 
     /**
      * Connects configured connection pool to a Redis server
-     * 
-     * @param poolSize
-     * @param host
-     * @param port
      */
-    public static void connect(int poolSize, String host, int port) {
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxActive(poolSize); // pool size
+    public static void connect(final int poolSize, final String host, final int port) {
+        if(pool != null) {
+            log.warn("Pool already created! Connect called multiple times. Tried connecting to:", host);
+            return;
+        }
+        final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setTestOnBorrow(true);
         poolConfig.setTestOnReturn(true);
         poolConfig.setTestWhileIdle(true);
-        poolConfig.setMaxIdle(poolSize/2);
+        poolConfig.setMaxIdle(poolSize / 2);
         poolConfig.setMinIdle(1);
-        poolConfig.setNumTestsPerEvictionRun(10);
-        poolConfig.setTimeBetweenEvictionRunsMillis(30000);
-        
+        poolConfig.setTimeBetweenEvictionRunsMillis(-1);
+        poolConfig.setTestOnBorrow(true);
+        final JedisPool oldPool = pool;
         pool = new JedisPool(poolConfig, host, port);
         log.debug("Created Redis connection pool with host", host, "port", port);
+        if (null != oldPool) {
+            log.debug("Closing old Jedis pool");
+            oldPool.close();
+        }
     }
-    
+
+    public static void shutdown() {
+        pool.close();
+    }
+
     /**
      * Destroys the pool
      */
     public void release() {
         pool.destroy();
     }
-    
+
     /**
      * Gets Jedis connection from the pool
-     * 
+     *
      * @return Jedis instance
      */
     public Jedis getJedis() {
@@ -71,19 +80,19 @@ public class JedisManager {
             return null;
         }
     }
-    
+
     /**
      * Returns (releases) Jedis connection back to the pool
-     * 
+     *
      * @param jedis
      */
     public void returnJedis(Jedis jedis) {
         pool.returnResource(jedis);
     }
-    
+
     /**
      * Thread-safe String GET for Redis
-     * 
+     *
      * @param key
      * @return string
      */
@@ -105,10 +114,10 @@ public class JedisManager {
 			instance.returnJedis(jedis);
 		}
 	}
-    
+
     /**
      * Thread-safe byte[] GET for Redis
-     * 
+     *
      * @param key
      * @return bytes
      */
@@ -212,7 +221,7 @@ public class JedisManager {
 
     /**
      * Thread-safe String HKEYS for Redis
-     * 
+     *
      * @param key
      * @return set of string
      */
@@ -234,10 +243,10 @@ public class JedisManager {
             instance.returnJedis(jedis);
         }
 	}
-	
+
     /**
      * Thread-safe String HGET for Redis
-     * 
+     *
      * @param key
      * @param field
      * @return string

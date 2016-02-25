@@ -5,23 +5,22 @@ import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
 import fi.nls.oskari.analysis.AnalysisHelper;
 import fi.nls.oskari.annotation.OskariActionRoute;
-
 import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
+import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.analysis.domain.AnalysisLayer;
 import fi.nls.oskari.map.analysis.service.AnalysisDbService;
 import fi.nls.oskari.map.analysis.service.AnalysisDbServiceIbatisImpl;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.ResponseHelper;
-import fi.nls.oskari.domain.User;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +49,7 @@ public class GetAnalysisLayersHandler extends ActionHandler {
         if (!user.isGuest()) {
             // FIXME: make a new method to permission service for a more specific search, this will blow up eventually
             final Set<String> permissionsList = permissionsService.getPublishPermissions(AnalysisLayer.TYPE);
+            final Set<String> downloadPermissionsList = permissionsService.getDownloadPermissions(AnalysisLayer.TYPE);
             final Set<String> editAccessList = null;
             
             List<UserGisData> unexpiredUserGisData = analysisService.getUnexpiredAnalysis(user.getId());

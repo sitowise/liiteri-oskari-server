@@ -26,18 +26,26 @@ import java.util.*;
  */
 public class OskariLayerServiceIbatisImpl implements OskariLayerService {
 
-    private Logger log = LogFactory.getLogger(OskariLayerServiceIbatisImpl.class);
+    private static final Logger LOG = LogFactory.getLogger(OskariLayerServiceIbatisImpl.class);
     private SqlMapClient client = null;
+
+    // make it static so we can change this with one call to all services when needed
+    private static String SQL_MAP_LOCATION = "META-INF/SqlMapConfig.xml";
 
     private static LayerGroupService layerGroupService = new LayerGroupServiceIbatisImpl();
     private static InspireThemeService inspireThemeService = new InspireThemeServiceIbatisImpl();
 
     // map different layer types
-    private static Map<String, Class<OskariLayer>> typeMapping = new HashMap<String, Class<OskariLayer>>();
-    static {
-        typeMapping.put(OskariLayer.TYPE_WMS, OskariLayer.class);
-    }
+    private static Map<String, Class<OskariLayer>> typeMapping =
+            Collections.singletonMap(OskariLayer.TYPE_WMS, OskariLayer.class);
 
+    /**
+     * Static setter to override default location
+     * @param newLocation
+     */
+    public static void setSqlMapLocation(final String newLocation) {
+        SQL_MAP_LOCATION = newLocation;
+    }
     /**
      * Returns SQLmap
      *
@@ -72,7 +80,7 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
      * single portlet
      */
     protected String getSqlMapLocation() {
-        return "META-INF/SqlMapConfig.xml";
+        return SQL_MAP_LOCATION;
     }
 
     protected String getNameSpace() {
@@ -86,11 +94,11 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
                 return clazz.newInstance();
             }
             catch (Exception ex) {
-                log.warn(ex, "Couldn't create instance for type:", type, "- Using default model.");
+                LOG.warn(ex, "Couldn't create instance for type:", type, "- Using default model.");
             }
         }
         else {
-            //log.info("Unregistered layertype:", type, "- Using default model.");
+            //LOG.info("Unregistered layertype:", type, "- Using default model.");
         }
         return new OskariLayer();
     }
@@ -108,7 +116,7 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
 
         final OskariLayer result = createLayerInstance((String) data.get("type"));
         if(result == null) {
-            log.warn("Unknown layer type:", data.get("type"));
+            LOG.warn("Unknown layer type:", data.get("type"));
             return null;
         }
 
@@ -131,11 +139,12 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
         result.setLegendImage((String) data.get("legend_image"));
         result.setMetadataId((String) data.get("metadataid"));
         result.setTileMatrixSetId((String) data.get("tile_matrix_set_id"));
-        result.setTileMatrixSetData((String) data.get("tile_matrix_set_data"));
 
         // map implementation parameters
         result.setParams(JSONHelper.createJSONObject((String) data.get("params")));
         result.setOptions(JSONHelper.createJSONObject((String) data.get("options")));
+        result.setAttributes(JSONHelper.createJSONObject((String) data.get("attributes")));
+        result.setCapabilities(JSONHelper.createJSONObject((String) data.get("capabilities")));
 
         // gfi configurations
         result.setGfiType((String) data.get("gfi_type"));
@@ -146,7 +155,14 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
         result.setRealtime((Boolean) data.get("realtime"));
         result.setRefreshRate((Integer) data.get("refresh_rate"));
 
+        // username and password
+        result.setUsername((String) data.get("username"));
+        result.setPassword((String) data.get("password"));
+
         result.setGeometry((String) data.get("geom"));
+
+        result.setSrs_name((String) data.get("srs_name"));
+        result.setVersion((String) data.get("version"));
 
         result.setCreated((Date) data.get("created"));
         result.setUpdated((Date) data.get("updated"));
@@ -160,18 +176,27 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
             Object groupId = data.get("groupid");
             if(groupId != null) {
                 result.setGroupId((Integer)groupId);
-                // populate layer group
-                // first run (~700 layers) with this lasts ~1800ms, second run ~300ms (cached)
-                final LayerGroup group = layerGroupService.find(result.getGroupId());
-                result.addGroup(group);
+                try {
+                    // populate layer group
+                    // first run (~700 layers) with this lasts ~1800ms, second run ~300ms (cached)
+                    final LayerGroup group = layerGroupService.find(result.getGroupId());
+                    result.addGroup(group);
+                } catch (Exception ex) {
+                    LOG.error("Couldn't get organisation for layer", result.getId());
+                    return null;
+                }
             }
 
             // FIXME: inspireThemeService has built in caching (very crude) to make this fast,
             // without it getting themes makes the query 10 x slower
-
             // populate inspirethemes
-            final List<InspireTheme> themes = inspireThemeService.findByMaplayerId(result.getId());
-            result.addInspireThemes(themes);
+            try {
+                final List<InspireTheme> themes = inspireThemeService.findByMaplayerId(result.getId());
+                result.addInspireThemes(themes);
+            } catch (Exception ex) {
+                LOG.error("Couldn't get inspirethemes for layer", result.getId());
+                return null;
+            }
         }
 
         return result;
@@ -202,6 +227,14 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
         return layers;
     }
 
+    public List<OskariLayer> findByUrlAndName(final String url, final String name) {
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("url", url);
+        params.put("name", name);
+        final List<OskariLayer> layers =  mapDataList(queryForList(getNameSpace() + ".findByUrlAndName", params));
+        return layers;
+    }
+
     public OskariLayer find(final String idStr) {
         final int id = ConversionHelper.getInt(idStr, -1);
         if(id != -1) {
@@ -209,21 +242,21 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
         }
         // try to find with external id
         try {
-            client = getSqlMapClient();
-            final Map<String, Object> result = (Map<String, Object>) client.queryForObject(getNameSpace() + ".findByExternalId", idStr);
-            final OskariLayer layer = mapData(result);
+            final List<Map<String, Object>> lresults = (List<Map<String, Object>>) getSqlMapClient().queryForList(getNameSpace() + ".findByExternalId", idStr);
+            final OskariLayer layer = mapData(lresults.get(0));
             if(layer.isCollection()) {
                 final List<OskariLayer> sublayers = findByParentId(layer.getId());
-                log.debug("FindByParent returned", sublayers.size(), "sublayers for parent id:", layer.getId());
+                LOG.debug("FindByParent returned", sublayers.size(), "sublayers for parent id:", layer.getId());
                 layer.addSublayers(sublayers);
             }
             return layer;
         } catch (Exception e) {
-            log.warn(e, "Couldn't find layer with id:", idStr);
+            LOG.warn(e, "Couldn't find layer with id:", idStr);
         }
         return null;
     }
 
+    
     public List<OskariLayer> find(final List<String> idList) {
         // TODO: break list into external and internalIds -> make 2 "where id/externalID in (...)" SQLs
         // ensure order stays the same
@@ -247,9 +280,24 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
                 return layers.get(0);
             }
         } catch (Exception e) {
-            log.warn(e, "Exception when getting layer with id:", id);
+            LOG.warn(e, "Exception when getting layer with id:", id);
         }
-        log.warn("Couldn't find layer with id:", id);
+        LOG.warn("Couldn't find layer with id:", id);
+        return null;
+    }
+
+    public List<OskariLayer> findByuuid(String uuid) {
+        try {
+            client = getSqlMapClient();
+            final List<OskariLayer> layers =  mapDataList(queryForList(getNameSpace() + ".findByUuId", uuid));
+            if(layers != null && !layers.isEmpty()) {
+                // should we check for multiples? only should have one since sublayers are mapped in mapDataList()
+                return layers;
+            }
+        } catch (Exception e) {
+            LOG.warn(e, "Exception when getting layer with uuid:", uuid);
+        }
+        LOG.warn("Couldn't find layer with id:", uuid);
         return null;
     }
 
@@ -258,7 +306,7 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
             client = getSqlMapClient();
             return mapDataList(queryForList(getNameSpace() + ".findByParentId", parentId));
         } catch (Exception e) {
-            log.warn(e, "Couldn't find layers with parentId:", parentId);
+            LOG.warn(e, "Couldn't find layers with parentId:", parentId);
         }
         return null;
     }
@@ -266,10 +314,10 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
     public List<OskariLayer> findAll() {
         long start = System.currentTimeMillis();
         final List<Map<String,Object>> result = queryForList(getNameSpace() + ".findAll");
-        log.debug("Find all layers:", System.currentTimeMillis() - start, "ms");
+        LOG.debug("Find all layers:", System.currentTimeMillis() - start, "ms");
         start = System.currentTimeMillis();
         final List<OskariLayer> layers = mapDataList(result);
-        log.debug("Parsing all layers:", System.currentTimeMillis() - start, "ms");
+        LOG.debug("Parsing all layers:", System.currentTimeMillis() - start, "ms");
         return layers;
     }
 
@@ -311,7 +359,7 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
         try {
             client.delete(getNameSpace() + ".delete", id);
         } catch (Exception e) {
-            log.error(e, "Couldn't delete with id:", id);
+            LOG.error(e, "Couldn't delete with id:", id);
         }
     }
 
@@ -332,7 +380,7 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
             List<Map<String,Object>> results = client.queryForList(sqlId, param);
             return results;
         } catch (Exception e) {
-            log.error(e, "Couldn't query list. SqlId:", sqlId, " - Param:", param);
+            LOG.error(e, "Couldn't query list. SqlId:", sqlId, " - Param:", param);
         }
         return Collections.emptyList();
     }
@@ -343,7 +391,7 @@ public class OskariLayerServiceIbatisImpl implements OskariLayerService {
             List<Map<String,Object>> results = client.queryForList(sqlId);
             return results;
         } catch (Exception e) {
-            log.error(e, "Couldn't query list. SqlId:", sqlId);
+            LOG.error(e, "Couldn't query list. SqlId:", sqlId);
         }
         return Collections.emptyList();
     }

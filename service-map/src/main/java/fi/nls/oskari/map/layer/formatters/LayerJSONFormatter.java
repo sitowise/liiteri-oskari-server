@@ -1,12 +1,22 @@
 package fi.nls.oskari.map.layer.formatters;
 
+import fi.mml.map.mapwindow.service.db.InspireThemeService;
+import fi.mml.map.mapwindow.service.db.InspireThemeServiceIbatisImpl;
+import fi.nls.oskari.domain.map.InspireTheme;
+import fi.nls.oskari.domain.map.LayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.map.layer.LayerGroupService;
+import fi.nls.oskari.map.layer.LayerGroupServiceIbatisImpl;
+import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.JSONHelper;
+import fi.nls.oskari.util.PropertyUtil;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,6 +28,17 @@ import java.util.Map;
  * To change this template use File | Settings | File Templates.
  */
 public class LayerJSONFormatter {
+
+    public static final String PROPERTY_AJAXURL = "oskari.ajax.url.prefix";
+    public static final String KEY_STYLES = "styles";
+
+    private static final InspireThemeService inspireThemeService = new InspireThemeServiceIbatisImpl();
+    private static final LayerGroupService groupService = new LayerGroupServiceIbatisImpl();
+
+    private static final String KEY_ID = "id";
+    private static final String KEY_TYPE = "type";
+    private static final String KEY_ADMIN = "admin";
+    protected static final String[] STYLE_KEYS ={"name", "title", "legend"};
 
     private static Logger log = LogFactory.getLogger(LayerJSONFormatter.class);
     // map different layer types for JSON formatting
@@ -67,46 +88,44 @@ public class LayerJSONFormatter {
 
         final String externalId = layer.getExternalId();
         if(externalId != null && !externalId.isEmpty()) {
-            JSONHelper.putValue(layerJson, "id", externalId);
+            JSONHelper.putValue(layerJson, KEY_ID, externalId);
         }
         else {
-            JSONHelper.putValue(layerJson, "id", layer.getId());
+            JSONHelper.putValue(layerJson, KEY_ID, layer.getId());
         }
 
         //log.debug("Type", layer.getType());
         if(layer.isCollection()) {
             // fixing frontend type for collection layers
             if(layer.isBaseMap()) {
-                JSONHelper.putValue(layerJson, "type", "base");
+                JSONHelper.putValue(layerJson, KEY_TYPE, "base");
             }
             else {
-                JSONHelper.putValue(layerJson, "type", "groupMap");
+                JSONHelper.putValue(layerJson, KEY_TYPE, "groupMap");
             }
         }
         else {
-            JSONHelper.putValue(layerJson, "type", layer.getType());
+            JSONHelper.putValue(layerJson, KEY_TYPE, layer.getType());
             //log.debug("wmsName", layer.getName());
             // for easier proxy routing on ssl hosts, maps all urls with prefix and a simplified url
             // so tiles can be fetched from same host from browsers p.o.v. and the actual url
             // is proxied with a proxy for example: /proxythis/<actual wmsurl>
-            JSONHelper.putValue(layerJson, "wmsUrl", layer.getUrl(isSecure));
-            JSONHelper.putValue(layerJson, "wmsName", layer.getName());
+            JSONHelper.putValue(layerJson, "url", layer.getUrl(isSecure));
+            JSONHelper.putValue(layerJson, "layerName", layer.getName());
+            if (useProxy(layer)) {
+                JSONHelper.putValue(layerJson, "url", getProxyUrl(layer));
+            }
         }
 
-        //log.debug("name", layer.getName(lang));
         JSONHelper.putValue(layerJson, "name", layer.getName(lang));
-        //log.debug("subtitle", layer.getTitle(lang));
         JSONHelper.putValue(layerJson, "subtitle", layer.getTitle(lang));
-        //log.debug("getGroup", layer.getGroup());
         if(layer.getGroup() != null) {
             JSONHelper.putValue(layerJson, "orgName", layer.getGroup().getName(lang));
         }
-        //log.debug("getInspireTheme", layer.getInspireTheme());
         if(layer.getInspireTheme() != null) {
             JSONHelper.putValue(layerJson, "inspire", layer.getInspireTheme().getName(lang));
         }
 
-        //log.debug("opacity", layer.getOpacity());
         if(layer.getOpacity() != null && layer.getOpacity() > -1 && layer.getOpacity() <= 100) {
             JSONHelper.putValue(layerJson, "opacity", layer.getOpacity());
         }
@@ -120,22 +139,23 @@ public class LayerJSONFormatter {
 
         JSONHelper.putValue(layerJson, "params", layer.getParams());
         JSONHelper.putValue(layerJson, "options", layer.getOptions());
+        JSONHelper.putValue(layerJson, "attributes", layer.getAttributes());
 
         JSONHelper.putValue(layerJson, "realtime", layer.getRealtime());
         JSONHelper.putValue(layerJson, "refreshRate", layer.getRefreshRate());
 
-        //log.debug("getLegendImage", layer.getLegendImage());
+        JSONHelper.putValue(layerJson, "srs_name", layer.getSrs_name());
+        JSONHelper.putValue(layerJson, "version", layer.getVersion());
+
         JSONHelper.putValue(layerJson, "legendImage", layer.getLegendImage());
         JSONHelper.putValue(layerJson, "baseLayerId", layer.getParentId());
 
-        //log.debug("getCreated", layer.getCreated());
         JSONHelper.putValue(layerJson, "created", layer.getCreated());
         JSONHelper.putValue(layerJson, "updated", layer.getUpdated());
         
         JSONHelper.putValue(layerJson, "downloadServiceUrl", layer.getDownloadServiceUrl());
         JSONHelper.putValue(layerJson, "copyrightInfo", layer.getCopyrightInfo());
 
-        //log.debug("dataUrl_uuid", getFixedDataUrl(layer));
         JSONHelper.putValue(layerJson, "dataUrl_uuid", getFixedDataUrl(layer));
 
         // sublayer handling
@@ -149,12 +169,46 @@ public class LayerJSONFormatter {
         }
         return layerJson;
     }
+    public void removeAdminInfo(final JSONObject layer) {
+        if(layer == null) {
+            return;
+        }
+        layer.remove(KEY_ADMIN);
+    }
+
+    public void addInfoForAdmin(final JSONObject layer, final String key, final Object value) {
+        if(layer == null) {
+            return;
+        }
+        // ensure we have the admin block in place
+        JSONObject additionalData = layer.optJSONObject(KEY_ADMIN);
+        if(additionalData == null) {
+            additionalData = new JSONObject();
+            JSONHelper.putValue(layer, KEY_ADMIN, additionalData);
+        }
+        JSONHelper.putValue(additionalData, key, value);
+    }
+
+    protected boolean useProxy(final OskariLayer layer) {
+        boolean forceProxy = false;
+        if (layer.getAttributes() != null) {
+            forceProxy = layer.getAttributes().optBoolean("forceProxy", false);
+        }
+        return ((layer.getUsername() != null) && (layer.getUsername().length() > 0)) || forceProxy;
+    }
+
+    public String getProxyUrl(final OskariLayer layer) {
+        Map<String, String> urlParams = new HashMap<String, String>();
+        urlParams.put("action_route", "GetLayerTile");
+        urlParams.put(KEY_ID, Integer.toString(layer.getId()));
+        return IOHelper.constructUrl(PropertyUtil.get(PROPERTY_AJAXURL), urlParams);
+    }
 
 
-    public JSONObject createStylesJSON(String name, String title, String legend) {
-        final JSONObject style = JSONHelper.createJSONObject("name", name);
-        JSONHelper.putValue(style, "title", title);
-        JSONHelper.putValue(style, "legend", legend);
+    public static JSONObject createStylesJSON(String name, String title, String legend) {
+        final JSONObject style = JSONHelper.createJSONObject(STYLE_KEYS[0], name);
+        JSONHelper.putValue(style, STYLE_KEYS[1], title);
+        JSONHelper.putValue(style, STYLE_KEYS[2], legend);
         return style;
     }
 
@@ -165,16 +219,89 @@ public class LayerJSONFormatter {
             return null;
         }       
         
-        //layerJson.put("dataUrl", metadataId);
-//        final int indexOf = metadataId.indexOf("uuid=");
-//        if (indexOf > 0) {
-//            // parse uuid from URL
-//            return metadataId.substring(indexOf + 5);
-//        }
-//        if(metadataId.startsWith("http")) {
-//            log.debug("Couldn't parse uuid from metadata url:", metadataId);
-//            return null;
-//        }
+/*        if(metadataId.toLowerCase().startsWith("http")) {
+            try {
+                URL url = new URL(metadataId);
+
+                String[] parameters = url.getQuery().split("&");
+                for (String param : parameters) {
+                    String[] keyvalue = param.split("=");
+                    if("uuid".equalsIgnoreCase(keyvalue[0]) || KEY_ID.equalsIgnoreCase(keyvalue[0])) {
+                        return keyvalue[1];
+                    }
+                }
+            } catch (Exception ignored) {
+                // propably just not valid URL
+            }
+            log.debug("Couldn't parse uuid from metadata url:", metadataId);
+            return null;
+        }*/
         return metadataId;
+    }
+
+    /**
+     * Minimal implementation for parsing layer in json format.
+     * @param json
+     * @return
+     */
+    public OskariLayer parseLayer (final JSONObject json) throws JSONException {
+        OskariLayer layer = new OskariLayer();
+
+        // read mandatory values, an JSONException is thrown if these are missing
+        layer.setType(json.getString("type"));
+        layer.setUrl(json.getString("url"));
+        layer.setName(json.getString("name"));
+        final String orgName = json.getString("organization");
+        final String themeName = json.getString("inspiretheme");
+        layer.setLocale(json.getJSONObject("locale"));
+
+        // read optional values
+        layer.setBaseMap(json.optBoolean("base_map", layer.isBaseMap()));
+        layer.setOpacity(json.optInt("opacity", layer.getOpacity()));
+        layer.setStyle(json.optString("style", layer.getStyle()));
+        layer.setMinScale(json.optDouble("minscale", layer.getMinScale()));
+        layer.setMaxScale(json.optDouble("maxscale", layer.getMaxScale()));
+        layer.setLegendImage(json.optString("legend_image", layer.getLegendImage()));
+        layer.setMetadataId(json.optString("metadataid", layer.getMetadataId()));
+        layer.setTileMatrixSetId(json.optString("tile_matrix_set_id", layer.getTileMatrixSetId()));
+        layer.setGfiType(json.optString("gfi_type", layer.getGfiType()));
+        layer.setGfiXslt(json.optString("gfi_xslt", layer.getGfiXslt()));
+        layer.setGfiContent(json.optString("gfi_content", layer.getGfiContent()));
+        layer.setGeometry(json.optString("geometry", layer.getGeometry()));
+        layer.setRealtime(json.optBoolean("realtime", layer.getRealtime()));
+        layer.setRefreshRate(json.optInt("refresh_rate", layer.getRefreshRate()));
+        layer.setSrs_name(json.optString("srs_name", layer.getGeometry()));
+        layer.setVersion(json.optString("version", layer.getGeometry()));
+        // omit permissions, these are handled by LayerHelper
+
+        // handle params, check for null to avoid overwriting empty JS Object Literal
+        final JSONObject params = json.optJSONObject("params");
+        if (params != null) {
+            layer.setParams(params);
+        }
+
+        // handle options, check for null to avoid overwriting empty JS Object Literal
+        final JSONObject options = json.optJSONObject("options");
+        if (options != null) {
+            layer.setOptions(options);
+        }
+
+        // handle inspiretheme
+        final InspireTheme theme = inspireThemeService.findByName(themeName);
+        if (theme == null) {
+            log.warn("Didn't find match for theme:", themeName);
+        } else {
+            layer.addInspireTheme(theme);
+        }
+
+        // setup data producer/layergroup
+        final LayerGroup group = groupService.findByName(orgName);
+        if(group == null) {
+            log.warn("Didn't find match for layergroup:", orgName);
+        } else {
+            layer.addGroup(group);
+        }
+
+        return layer;
     }
 }

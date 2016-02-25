@@ -4,7 +4,10 @@ import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
 import fi.nls.oskari.annotation.OskariActionRoute;
-import fi.nls.oskari.control.*;
+import fi.nls.oskari.control.ActionException;
+import fi.nls.oskari.control.ActionHandler;
+import fi.nls.oskari.control.ActionParameters;
+import fi.nls.oskari.control.ActionParamsException;
 import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -35,7 +38,7 @@ public class SaveLayerPermissionHandler extends ActionHandler {
         permissions.getUniqueResourceName().setType(Permissions.RESOURCE_TYPE_MAP_LAYER);
 
         final JSONArray resources = parseJSONArray(params.getHttpParam(PARAMETER_PERMISSION_DATA));
-        final String whoMakesThisModification = params.getUser().getEmail();
+        final String whoMakesThisModification = params.getUser().getScreenname();
 
         try {
             for (int i = 0; i < resources.length(); i++) {

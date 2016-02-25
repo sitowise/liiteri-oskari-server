@@ -3,6 +3,7 @@ package fi.nls.oskari.control.view;
 import fi.mml.map.mapwindow.util.OskariLayerWorker;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
+import fi.nls.oskari.control.ActionConstants;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.control.view.modifier.bundle.MapfullHandler;
 import fi.nls.oskari.control.view.modifier.param.CoordinateParamHandler;
@@ -27,6 +28,7 @@ import fi.nls.test.control.JSONActionRouteTest;
 import fi.nls.test.util.ResourceHelper;
 import fi.nls.test.view.BundleTestHelper;
 import fi.nls.test.view.ViewTestHelper;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -41,9 +43,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -99,6 +99,11 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
 
         handler.init();
     }
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
+    }
+
 
     @Test
     public void testIsSecure() {
@@ -107,29 +112,29 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
 
         // TRUE CASES
         Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put(GetAppSetupHandler.PARAM_SSL, "true");
-        assertTrue("isSecure should be true for request with param '" + GetAppSetupHandler.PARAM_SSL  + "' with value 'true'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
+        parameters.put(ActionConstants.PARAM_SECURE, "true");
+        assertTrue("isSecure should be true for request with param '" + ActionConstants.PARAM_SECURE  + "' with value 'true'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
 
         parameters.clear();
-        parameters.put(GetAppSetupHandler.PARAM_SSL, "True");
-        assertTrue("isSecure should be true for request with param '" + GetAppSetupHandler.PARAM_SSL  + "' with value 'True'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
+        parameters.put(ActionConstants.PARAM_SECURE, "True");
+        assertTrue("isSecure should be true for request with param '" + ActionConstants.PARAM_SECURE  + "' with value 'True'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
 
         parameters.clear();
-        parameters.put(GetAppSetupHandler.PARAM_SSL, "TRUE");
-        assertTrue("isSecure should be true for request with param '" + GetAppSetupHandler.PARAM_SSL  + "' with value 'TRUE'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
+        parameters.put(ActionConstants.PARAM_SECURE, "TRUE");
+        assertTrue("isSecure should be true for request with param '" + ActionConstants.PARAM_SECURE  + "' with value 'TRUE'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
 
         // FALSE CASES
         parameters.clear();
-        parameters.put(GetAppSetupHandler.PARAM_SSL, "false");
-        assertFalse("isSecure should be false for request with param '" + GetAppSetupHandler.PARAM_SSL  + "' with value 'false'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
+        parameters.put(ActionConstants.PARAM_SECURE, "false");
+        assertFalse("isSecure should be false for request with param '" + ActionConstants.PARAM_SECURE  + "' with value 'false'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
 
         parameters.clear();
-        parameters.put(GetAppSetupHandler.PARAM_SSL, "1");
-        assertFalse("isSecure should be false for request with param '" + GetAppSetupHandler.PARAM_SSL  + "' with value '1'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
+        parameters.put(ActionConstants.PARAM_SECURE, "1");
+        assertFalse("isSecure should be false for request with param '" + ActionConstants.PARAM_SECURE  + "' with value '1'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
 
         parameters.clear();
-        parameters.put(GetAppSetupHandler.PARAM_SSL, "yes");
-        assertFalse("isSecure should be false for request with param '" + GetAppSetupHandler.PARAM_SSL  + "' with value 'yes'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
+        parameters.put(ActionConstants.PARAM_SECURE, "yes");
+        assertFalse("isSecure should be false for request with param '" + ActionConstants.PARAM_SECURE  + "' with value 'yes'", GetAppSetupHandler.isSecure(createActionParams(parameters)));
     }
 
     @Test
@@ -137,7 +142,7 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
         final ActionParameters params = createActionParams();
         handler.handleAction(params);
 
-        // check that view was loaded vith id 2 as we mocked the default view to be for guest user
+        // check that view was loaded with id 2 as we mocked the default view to be for guest user
         verify(viewService, times(1)).getViewWithConf(2);
 
         // check that the guest view matches
@@ -149,7 +154,7 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
         final ActionParameters params = createActionParams(getLoggedInUser());
         handler.handleAction(params);
 
-        // check that view was loaded vith id 1 as we mocked the default view to be logged in user
+        // check that view was loaded with id 1 as we mocked the default view to be logged in user
         verify(viewService, times(1)).getViewWithConf(1);
 
         // check that the user is written to the config
@@ -160,13 +165,13 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
     public void testWithViewIdGiven() throws Exception {
         // setup params
         Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put(GetAppSetupHandler.PARAM_VIEW_ID, "3");
+        parameters.put(ActionConstants.PARAM_VIEW_ID, "3");
         // TODO: setup a cookie with state and see that it shouldn't change the view since a specific non-default view was requested
         // TODO: create a test without giving viewId and see that the cookie affects it
         final ActionParameters params = createActionParams(parameters);
         handler.handleAction(params);
 
-        // check that view was loaded vith id 3 as requested
+        // check that view was loaded with id 3 as requested
         verify(viewService, times(1)).getViewWithConf(3);
 
         // check that the response matches expected
@@ -193,7 +198,7 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
     public void testWithOldIdGiven() throws Exception {
         // setup params
         Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put(GetAppSetupHandler.PARAM_VIEW_ID, "456");
+        parameters.put(ActionConstants.PARAM_VIEW_ID, "456");
         parameters.put(GetAppSetupHandler.PARAM_OLD_ID, "123");
         // TODO: setup a cookie with state and see that it shouldn't change the view since a migrated view was requested
         final ActionParameters params = createActionParams(parameters);
@@ -214,10 +219,12 @@ public class GetAppSetupHandlerTest extends JSONActionRouteTest {
         doReturn(2L).when(viewService).getDefaultViewId(getGuestUser());
         // id 1 for logged in user
         doReturn(1L).when(viewService).getDefaultViewId(getLoggedInUser());
+
         final View dummyView = ViewTestHelper.createMockView("framework.mapfull");
         dummyView.setType(ViewTypes.USER);
         doReturn(dummyView).when(viewService).getViewWithConfByOldId(anyLong());
         doReturn(dummyView).when(viewService).getViewWithConf(anyLong());
+        doReturn(dummyView).when(viewService).getViewWithConfByUuId(anyString());
 
         // TODO: mock view loading
         /**

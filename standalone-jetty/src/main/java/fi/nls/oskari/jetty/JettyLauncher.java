@@ -3,10 +3,12 @@ package fi.nls.oskari.jetty;
 import fi.nls.oskari.map.servlet.IdaPrincipalAuthenticationFilter;
 import fi.nls.oskari.map.servlet.JaasAuthenticationFilter;
 import fi.nls.oskari.map.servlet.MapFullServlet;
+import fi.nls.oskari.map.servlet.OskariContextInitializer;
+import fi.nls.oskari.map.servlet.OskariRequestFilter;
+import fi.nls.oskari.map.servlet.PrincipalAuthenticationFilter;
 import fi.nls.oskari.map.servlet.MapFullServletContextListener;
 import fi.nls.oskari.util.PropertyUtil;
-
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.jasper.servlet.JspServlet;
 import org.eclipse.jetty.jaas.JAASLoginService;
 import org.eclipse.jetty.plus.jndi.EnvEntry;
@@ -14,6 +16,7 @@ import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.security.authentication.FormAuthenticator;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
@@ -38,11 +41,16 @@ public class JettyLauncher {
                                 String jndiDbPoolName,
                                 String authenticationType) throws Exception {
         Server server = new Server(serverPort);
-        server.setHandler(createServletContext(oskariClientVersion, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, jndiDbPoolName, authenticationType));
+
+        WebAppContext webapp = createServletContext(oskariClientVersion, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, jndiDbPoolName, authenticationType);
+        HandlerList handlerList = new HandlerList();
+        handlerList.addHandler(webapp);
+
+        server.setHandler(handlerList);
         return server;
     }
 
-    private static WebAppContext createServletContext(String oskariClientVersion,
+    public static WebAppContext createServletContext(String oskariClientVersion,
                                                       String jndiDriverClassName,
                                                       String jndiDbUrl,
                                                       String jndiDbUsername,
@@ -51,17 +59,23 @@ public class JettyLauncher {
                                                       String authenticationType) throws Exception {
         WebAppContext servletContext = new WebAppContext();
         servletContext.setConfigurationClasses(new String[]{"org.eclipse.jetty.plus.webapp.EnvConfiguration", "org.eclipse.jetty.plus.webapp.PlusConfiguration"});
-        servletContext.setResourceBase("src/main/webapp");
+        //servletContext.setResourceBase("src/main/webapp");
         servletContext.setContextPath("/");
+        servletContext.addEventListener(new OskariContextInitializer());
 
         // setup JSP/static resources
         servletContext.setBaseResource(createResourceCollection());
+        // OskariRequestFilter needs to be run before map-servlet.
+        // TODO: find a way to map filter to servlet instead of urls like this:
+        // <filter-mapping><filter-name>oskariRequestFilter</filter-name><servlet-name>mapFullServlet</servlet-name></filter-mapping>
+        servletContext.addFilter(OskariRequestFilter.class, "/", EnumSet.noneOf(DispatcherType.class));
+        servletContext.addFilter(OskariRequestFilter.class, "/j_security_check", EnumSet.noneOf(DispatcherType.class));
+        servletContext.addFilter(OskariRequestFilter.class, PropertyUtil.get("auth.logout.url", "/logout"), EnumSet.noneOf(DispatcherType.class));
+
         servletContext.addServlet(createFrontEndServlet(), "/Oskari/*");
         servletContext.addServlet(JspServlet.class, "*.jsp");
         servletContext.addServlet(DebugServlet.class, "/debug");
 
-        // map servlet
-        servletContext.addServlet(createMapServlet(oskariClientVersion), "/");
         
         // ServletContextListener
         servletContext.addEventListener(new MapFullServletContextListener());
@@ -69,6 +83,8 @@ public class JettyLauncher {
         // TODO: replace these with actual impls
         servletContext.addServlet(NotImplementedYetServlet.class, "/transport/*");
         servletContext.addServlet(NotImplementedYetServlet.class, "/geoserver/*");
+        // map servlet
+        servletContext.addServlet(createMapServlet(oskariClientVersion), "/");
 
         setupDatabaseConnectionInContext(servletContext, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, jndiDbPoolName);
         setupDatabaseConnectionInContext(servletContext, jndiDriverClassName, jndiDbUrl, jndiDbUsername, jndiDbPassword, "jdbc/omat_paikatPool");
@@ -90,12 +106,13 @@ public class JettyLauncher {
     		Configuration.setConfiguration(new JNDILoginConfiguration(jndiDbPoolName));
     		servletContext.setSecurityHandler(createJaasSecurityHandler());
             servletContext.addFilter(JaasAuthenticationFilter.class, "/", EnumSet.noneOf(DispatcherType.class));
-    	}               
+    	}
+        servletContext.addFilter(PrincipalAuthenticationFilter.class, PropertyUtil.get("auth.logout.url", "/logout"), EnumSet.noneOf(DispatcherType.class));
     }
 
     private static Resource createResourceCollection() throws Exception {
         final String[] paths = {
-                PropertyUtil.get("oskari.server.jsp.location", "src/main/webapp"),
+                PropertyUtil.get("oskari.server.jsp.location", "../webapp-map/src/main/webapp"),
                 PropertyUtil.get("oskari.client.location", "../..")
         };
         try {
@@ -140,7 +157,10 @@ public class JettyLauncher {
         loginService.setName("OskariRealm");
         loginService.setLoginModuleName("oskariLoginModule");
         securityHandler.setLoginService(loginService);
-        securityHandler.setAuthenticator(new FormAuthenticator("/", "/?loginState=failed", true));
+        // the last boolean param needs to be false on FormAuthenticator or
+        // we'll lose everything that's been put to request on failed login (login form url/error msg on failed login)
+        // TODO: mapping OskariRequestFilter to mapServlet instead of path should fix this
+        securityHandler.setAuthenticator(new FormAuthenticator("/", "/?loginState=failed", false));
         securityHandler.setRealmName("OskariRealm");
         return securityHandler;
     }
