@@ -766,7 +766,46 @@ public class MapProducer {
             throws ParseException, IOException, GeoWebCacheException,
             XMLStreamException, FactoryConfigurationError,
             RequestFilterException, TransformException, URISyntaxException {
-	
+
+        BufferedImage image = null;
+        /* setup */
+
+        final ReferencedEnvelope bounds = new ReferencedEnvelope(env.getMinX(),
+                env.getMaxX(), env.getMinY(), env.getMaxY(), crs);
+
+        final Rectangle rect = new Rectangle(0, 0, width, height);
+
+        viewport.setScreenArea(rect);
+        viewport.setBounds(bounds);
+
+        final Vector<FeatureCollection<SimpleFeatureType, SimpleFeature>> fcList = new Vector<FeatureCollection<SimpleFeatureType, SimpleFeature>>();
+        final Vector<DirectTileLayer> mapLayers = new Vector<DirectTileLayer>();
+
+        final AffineTransform transform = RendererUtilities
+                .worldToScreenTransform(bounds, rect, crs);
+
+        final Map<String, FeatureCollection<SimpleFeatureType, SimpleFeature>> fcs = new HashMap<String, FeatureCollection<SimpleFeatureType, SimpleFeature>>();
+
+        try {
+            buildLayers(mapLayers, layers, env, bounds, transform, fcs, fcList,
+                    asyncProc);
+            buildLayerTiles(mapLayers, layers, env, zoom);
+
+            image = buildMapImage(width, height, bounds, imageType, crop,
+                    transform);
+
+        } finally {
+            for (Layer layer : mapLayers) {
+                layer.preDispose();
+                map.removeLayer(layer);
+            }
+            map.dispose();
+        }
+
+        return image;
+
+    }
+    
 	public MapProducerAdditionalData getAdditionalData(final List<LayerDefinition> layers) {
 		
 		MapProducerAdditionalData result = new MapProducerAdditionalData();
@@ -808,45 +847,6 @@ public class MapProducer {
 		
 		return result;
 	}
-
-        BufferedImage image = null;
-        /* setup */
-
-        final ReferencedEnvelope bounds = new ReferencedEnvelope(env.getMinX(),
-                env.getMaxX(), env.getMinY(), env.getMaxY(), crs);
-
-        final Rectangle rect = new Rectangle(0, 0, width, height);
-
-        viewport.setScreenArea(rect);
-        viewport.setBounds(bounds);
-
-        final Vector<FeatureCollection<SimpleFeatureType, SimpleFeature>> fcList = new Vector<FeatureCollection<SimpleFeatureType, SimpleFeature>>();
-        final Vector<DirectTileLayer> mapLayers = new Vector<DirectTileLayer>();
-
-        final AffineTransform transform = RendererUtilities
-                .worldToScreenTransform(bounds, rect, crs);
-
-        final Map<String, FeatureCollection<SimpleFeatureType, SimpleFeature>> fcs = new HashMap<String, FeatureCollection<SimpleFeatureType, SimpleFeature>>();
-
-        try {
-            buildLayers(mapLayers, layers, env, bounds, transform, fcs, fcList,
-                    asyncProc);
-            buildLayerTiles(mapLayers, layers, env, zoom);
-
-            image = buildMapImage(width, height, bounds, imageType, crop,
-                    transform);
-
-        } finally {
-            for (Layer layer : mapLayers) {
-                layer.preDispose();
-                map.removeLayer(layer);
-            }
-            map.dispose();
-        }
-
-        return image;
-
-    }
 
     public MapLinkWorkingSetProcessor getProcessor() {
         return processor;

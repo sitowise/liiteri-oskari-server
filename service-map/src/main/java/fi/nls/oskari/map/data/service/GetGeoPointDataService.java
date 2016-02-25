@@ -28,21 +28,6 @@ import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.Map;
 
-import fi.nls.oskari.domain.map.UserWmsLayer;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.util.JSONHelper;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
-import org.w3c.dom.Document;
-
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.map.data.domain.GFIRequestParams;
-import fi.nls.oskari.util.IOHelper;
-
 public class GetGeoPointDataService {
 
     private Logger log = LogFactory.getLogger(GetGeoPointDataService.class);
@@ -156,39 +141,6 @@ public class GetGeoPointDataService {
             return gfiResponse;
         } catch (IOException e) {
             log.error(e, "Couldn't call GFI URL with url:", url);
-        }
-        if (gfiResponse != null && !gfiResponse.isEmpty()) {
-            final JSONObject response = new JSONObject();
-            JSONHelper.putValue(response, TYPE, params.getLayer().getType());
-            
-            if (params.getLayer() instanceof UserWmsLayer) {
-            	JSONHelper.putValue(response, LAYER_ID, UserWmsLayer.PREFIX + params.getLayer().getId());
-            } else {
-            	JSONHelper.putValue(response, LAYER_ID, params.getLayer().getId());
-            }
-            
-            // try transform if XSLT is provided
-            final String xslt = params.getLayer().getGfiXslt();
-            JSONObject respObj = null;
-            if (xslt != null && !xslt.isEmpty()) {
-                final String transformedResult = transformResponse(xslt, gfiResponse);
-                respObj = JSONHelper.createJSONObject(transformedResult);
-                if(respObj != null) {
-                    JSONHelper.putValue(response, PRESENTATION_TYPE, PRESENTATION_TYPE_JSON);
-                    JSONHelper.putValue(response, CONTENT, respObj);
-                }
-            }
-            // use text content if respObj isn't present (transformed JSON not created)
-            if(respObj == null) {
-                JSONHelper.putValue(response, PRESENTATION_TYPE, PRESENTATION_TYPE_TEXT);
-                JSONHelper.putValue(response, CONTENT, gfiResponse);
-            }
-            // Add gfi content, it needs to be a separate field so we can mangle it as we like in the frontend
-            final String gfiContent = params.getLayer().getGfiContent();
-            if (gfiContent != null) {
-                JSONHelper.putValue(response, GFI_CONTENT, gfiContent);
-            }
-            return response;
         }
         return null;
     }

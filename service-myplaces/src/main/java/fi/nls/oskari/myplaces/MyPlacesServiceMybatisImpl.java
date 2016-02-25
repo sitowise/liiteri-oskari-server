@@ -7,10 +7,12 @@ import fi.nls.oskari.db.DatasourceHelper;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MyPlace;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.util.ConversionHelper;
+
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
@@ -20,7 +22,12 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 
 import javax.sql.DataSource;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -228,4 +235,65 @@ public class MyPlacesServiceMybatisImpl extends MyPlacesService {
         }
         return Collections.emptyList();
     }
+
+	@Override
+	public List<UserGisData> getSharedMyPlaceLayers(long userId) {
+		List<UserGisData> resultList = Collections.emptyList();
+		
+        final SqlSession session = factory.openSession();
+        try {
+            final MyPlaceMapper mapper = session.getMapper(MyPlaceMapper.class);
+            resultList = mapper.findSharedCategories(userId);
+        } catch (Exception e) {
+            LOG.error(e, "Failed load list", userId);
+        } finally {
+            session.close();
+        }		
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			LOG.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
+	@Override
+	public List<UserGisData> getUnexpiredMyPlaceLayers(long userId) {		
+		List<UserGisData> resultList = Collections.emptyList();
+		
+        final SqlSession session = factory.openSession();
+        try {
+            final MyPlaceMapper mapper = session.getMapper(MyPlaceMapper.class);
+            resultList = mapper.findUnexpiredCategories(userId);
+        } catch (Exception e) {
+            LOG.error(e, "Failed load list", userId);
+        } finally {
+            session.close();
+        }
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			LOG.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
 }

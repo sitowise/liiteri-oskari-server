@@ -1,14 +1,11 @@
 package fi.nls.oskari.control.layer;
 
-import fi.mml.map.mapwindow.util.OskariLayerWorker;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.User;
-import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.domain.map.UserGisData;
-import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -16,11 +13,12 @@ import fi.nls.oskari.map.userlayer.service.UserLayerDataService;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceIbatisImpl;
 import fi.nls.oskari.util.JSONHelper;
+import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.util.ResponseHelper;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,7 +54,7 @@ public class GetUserLayersHandler extends ActionHandler {
 				//FIXME: do it better, sending SQL to datbase for every layer is inefficiently
 				UserLayer userLayer = userLayerService.getUserLayerById(id);
 				
-				JSONObject userLayerJson = userlayerService.parseUserLayer2JSON(userLayer);
+				JSONObject userLayerJson = userLayerDataService.parseUserLayer2JSON(userLayer);
 				JSONHelper.putValue(userLayerJson, "shared", "false");
 				JSONHelper.putValue(userLayerJson, "downloadServiceUrl", u.getDownloadServiceUrl());
 				layers.put(userLayerJson);
@@ -68,7 +66,7 @@ public class GetUserLayersHandler extends ActionHandler {
 				//FIXME: do it better, sending SQL to datbase for every layer is inefficiently
 				UserLayer userLayer = userLayerService.getUserLayerById(id);
 				
-				JSONObject userLayerJson = userlayerService.parseUserLayer2JSON(userLayer);
+				JSONObject userLayerJson = userLayerDataService.parseUserLayer2JSON(userLayer);
 				JSONHelper.putValue(userLayerJson, "shared", "true");
 				JSONHelper.putValue(userLayerJson, "downloadServiceUrl", u.getDownloadServiceUrl());
 				layers.put(userLayerJson);

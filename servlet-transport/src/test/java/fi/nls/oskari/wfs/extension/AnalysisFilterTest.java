@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import fi.nls.oskari.work.MapLayerJobType;
 import fi.nls.test.util.ResourceHelper;
 
 import org.apache.axiom.om.OMElement;
@@ -21,13 +20,6 @@ import org.custommonkey.xmlunit.Diff;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AnalysisFilterTest {
     private SessionStore session;

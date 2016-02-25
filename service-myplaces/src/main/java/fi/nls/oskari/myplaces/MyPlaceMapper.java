@@ -2,6 +2,8 @@ package fi.nls.oskari.myplaces;
 
 import fi.nls.oskari.domain.map.MyPlace;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
+
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
@@ -21,4 +23,6 @@ public interface MyPlaceMapper {
     List<MyPlaceCategory> findByIds(@Param("list") List<Long> idList);
     List<MyPlaceCategory> freeFind(Map<String, Object> data);
     List<MyPlaceCategory> findAll();
+	List<UserGisData> findUnexpiredCategories(long userId);
+	List<UserGisData> findSharedCategories(long userId);
 }

@@ -28,12 +28,17 @@ public class WebMapServiceFactory {
 	 * Builds new WMS interface with correct version
 	 * 
 	 * @param layerId id of the map layer
+	 * @param isUserWmsLayer 
 	 * 
 	 * @return WebMapService implementation that service url is implemented
 	 * @throws WebMapServiceParseException if something goes wrong when parsing
 	 * @throws RemoteServiceDownException if Web Map service is down
 	 */
 	public static WebMapService buildWebMapService(int layerId) throws WebMapServiceParseException {
+        return buildWebMapService(layerId, false);
+    }
+	
+	public static WebMapService buildWebMapService(int layerId, boolean isUserWmsLayer) throws WebMapServiceParseException {
         return buildWebMapService(LAYER_SERVICE.find(layerId));
     }
 

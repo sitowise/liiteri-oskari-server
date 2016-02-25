@@ -276,7 +276,7 @@ public class WebServiceMapProducerResource extends MapProducerResource {
 
         mapLayerJsonParser.getMapLinkParser().validate(mapLink);
 
-        StreamingPNGImpl result = new StreamingPNGImpl(producer, mapLink);
+        StreamingPNGImpl result = new StreamingPNGImpl(producer, mapLink, opts);
         result.underflow();
 
         return result;
@@ -564,7 +564,7 @@ public class WebServiceMapProducerResource extends MapProducerResource {
 
         mapLinkParser.validate(mapLink);
 
-        StreamingPNGImpl result = new StreamingPNGImpl(producer, mapLink);
+        StreamingPNGImpl result = new StreamingPNGImpl(producer, mapLink, opts);
         result.underflow();
 
         return result;
@@ -637,7 +637,7 @@ public class WebServiceMapProducerResource extends MapProducerResource {
         mapLink.getValues().putAll(values);
         mapLinkParser.validate(mapLink);
 
-        StreamingPNGImpl result = new StreamingPNGImpl(producer, mapLink);
+        StreamingPNGImpl result = new StreamingPNGImpl(producer, mapLink, opts);
         result.underflow();
 
         return result;
@@ -671,7 +671,7 @@ public class WebServiceMapProducerResource extends MapProducerResource {
         Options opts = getPageOptions(values);
         opts.setContent(mapLink.getPrintoutContent());
 		if (values.get("COPYRIGHT") != null && !values.get("COPYRIGHT").isEmpty()) {
-			pageOptions.setCopyrightText(values.get("COPYRIGHT"));
+			opts.setCopyrightText(values.get("COPYRIGHT"));
 		}					
 
         int width = page.getMapWidthTargetInPoints(opts);

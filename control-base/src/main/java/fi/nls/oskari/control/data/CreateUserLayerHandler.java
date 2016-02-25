@@ -87,7 +87,6 @@ public class CreateUserLayerHandler extends ActionHandler {
         		throw new ActionException("server_error_key_limit");
         	}
 
-            User user = params.getUser();
             // import format
             GeoJsonWorker geojsonWorker = null;
 

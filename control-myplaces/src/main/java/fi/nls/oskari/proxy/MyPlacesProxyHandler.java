@@ -1,14 +1,11 @@
 package fi.nls.oskari.proxy;
 
-import fi.mml.map.mapwindow.service.db.MyPlacesService;
-import fi.mml.map.mapwindow.service.db.MyPlacesServiceIbatisImpl;
 import fi.nls.oskari.control.ActionParameters;
-import fi.nls.oskari.domain.map.MyPlaceCategory;
 import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.map.analysis.service.AnalysisDbService;
-import fi.nls.oskari.map.analysis.service.AnalysisDbServiceIbatisImpl;
+import fi.nls.oskari.myplaces.MyPlacesService;
+import fi.nls.oskari.myplaces.MyPlacesServiceMybatisImpl;
 import fi.nls.oskari.service.ProxyServiceConfig;
 
 import java.util.ArrayList;
@@ -22,7 +19,7 @@ import java.util.List;
  */
 public class MyPlacesProxyHandler extends ProxyServiceConfig {
     private static final Logger log = LogFactory.getLogger(MyPlacesProxyHandler.class);
-    private static final MyPlacesService myPlacesService = new MyPlacesServiceIbatisImpl();
+    private static final MyPlacesService myPlacesService = new MyPlacesServiceMybatisImpl();
     private static final String PARAM_CATEGORY_ID = "myCat";
 
     /**

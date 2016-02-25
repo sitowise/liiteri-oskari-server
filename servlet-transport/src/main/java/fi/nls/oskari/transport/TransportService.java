@@ -34,15 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.wfs.CachingSchemaLocator;
-import fi.nls.oskari.work.GeneralMapLayerJob;
-import fi.nls.oskari.work.Job;
-import fi.nls.oskari.work.JobFactory;
-import fi.nls.oskari.work.JobQueue;
-import fi.nls.oskari.work.MapLayerJobType;
-
 /**
  * Handles all incoming requests (channels) and manages Job queues
  *
@@ -137,9 +128,7 @@ public class TransportService extends AbstractService {
 	// JobQueue singleton
 	private static JobQueue jobs;
 
-    private LayerUpdateSubscriber sub;
-    
-    private JobFactory jobFactory;
+	public static ObjectMapper mapper = new ObjectMapper();
 
 	/**
 	 * Constructs TransportService with BayeuxServer instance
@@ -176,8 +165,6 @@ public class TransportService extends AbstractService {
         JedisManager.connect(workerCount + 2,
                 PropertyUtil.get("redis.hostname"),
                 PropertyUtil.getOptional("redis.port", 6379));
-
-        jobFactory = new JobFactory();
 
         CachingSchemaLocator.init(); // init schemas
 
@@ -253,7 +240,7 @@ public class TransportService extends AbstractService {
 			Map<String, Object> output = new HashMap<String, Object>();
             output.put("once", false);
             output.put("message", "parameters_init_invalid");
-			this.send(store.getClient(), CHANNEL_ERROR, output);
+			TransportResultProcessor.send(local, bayeux, store.getClient(), ResultProcessor.CHANNEL_ERROR, output);
 		}	
     }
 

@@ -3,12 +3,14 @@ package fi.nls.oskari.myplaces;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.map.layer.formatters.LayerJSONFormatterWMS;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.service.OskariComponent;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.wms.WMSCapabilities;
+
 import org.json.JSONObject;
 
 import java.util.List;
@@ -46,6 +48,9 @@ public abstract class MyPlacesService extends OskariComponent {
     public abstract Resource getResource(final long categoryId);
 
     public abstract Resource getResource(final String myplacesLayerId);
+    
+    public abstract List<UserGisData> getSharedMyPlaceLayers(long userId);
+    public abstract List<UserGisData> getUnexpiredMyPlaceLayers(long userId);
 
     public MyPlacesService() {
         // default 'myplaces.client.wmsurl' to ajax url for tiles if not configured

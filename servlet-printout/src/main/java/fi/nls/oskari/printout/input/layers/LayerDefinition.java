@@ -121,6 +121,10 @@ public class LayerDefinition {
         def.setFormat(format);
         def.setUrlTemplatesForFormat(urlTemplatesForFormat);
         def.setSingleTile(isSingleTile);
+        
+		def.setCopyrightText(copyrightText);
+		def.setShowLegend(showLegend);
+		def.setLegendUrl(legendUrl);
 
         for (LayerDefinition subdef : getSubLayers()) {
             LayerDefinition subCopy = new LayerDefinition();
@@ -128,9 +132,7 @@ public class LayerDefinition {
             def.getSubLayers().add(subCopy);
         }
     }
-		def.setCopyrightText(copyrightText);
-		def.setShowLegend(showLegend);
-		def.setLegendUrl(legendUrl);
+
 
     public String getCredentials() {
         return credentials;

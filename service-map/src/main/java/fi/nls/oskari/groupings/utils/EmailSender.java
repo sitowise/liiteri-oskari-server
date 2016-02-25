@@ -1,6 +1,5 @@
 package fi.nls.oskari.groupings.utils;
 
-import java.util.Date;
 import java.util.Properties;
 import javax.mail.*;
 import javax.mail.internet.*;

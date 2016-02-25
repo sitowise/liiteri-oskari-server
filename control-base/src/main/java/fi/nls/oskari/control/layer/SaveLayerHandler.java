@@ -13,8 +13,6 @@ import fi.nls.oskari.domain.map.InspireTheme;
 import fi.nls.oskari.domain.map.LayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
-import fi.nls.oskari.domain.map.UserGisData;
-import fi.nls.oskari.domain.map.wfs.WFSSLDStyle;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.data.domain.OskariLayerResource;
@@ -25,9 +23,6 @@ import fi.nls.oskari.permission.domain.Permission;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.capabilities.CapabilitiesCacheService;
 import fi.nls.oskari.service.capabilities.OskariLayerCapabilities;
-import fi.nls.oskari.map.userowndata.GisDataDbService;
-import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
-import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.*;
 import fi.nls.oskari.wfs.WFSLayerConfigurationService;
 import fi.nls.oskari.wfs.util.WFSParserConfigs;
@@ -36,24 +31,12 @@ import fi.nls.oskari.wmts.domain.ResourceUrl;
 import fi.nls.oskari.wmts.domain.WMTSCapabilities;
 import fi.nls.oskari.wmts.domain.WMTSCapabilitiesLayer;
 import org.json.JSONArray;
-import fi.nls.oskari.wfs.WFSLayerConfigurationService;
-import fi.nls.oskari.wfs.WFSLayerConfigurationServiceIbatisImpl;
-import fi.nls.oskari.wfs.WFSLayerConfiguration;
-
 import org.json.JSONObject;
 
-import pl.sito.liiteri.groupings.service.GroupingsService;
-
 import javax.servlet.http.HttpServletRequest;
-
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 
 /**
  * Admin insert/update of WMS map layer
@@ -74,25 +57,10 @@ public class SaveLayerHandler extends ActionHandler {
     private CapabilitiesCacheService capabilitiesService = ServiceFactory.getCapabilitiesCacheService();
     private WFSParserConfigs wfsParserConfigs = new WFSParserConfigs();
 
-    private final WFSLayerConfigurationService layerConfigurationService = new WFSLayerConfigurationServiceIbatisImpl();    
-    private final GroupingsService groupingsService = GroupingsService.getInstance();
-    private static final GisDataDbService gisDataService = new GisDataDbServiceImpl();
     private static final Logger LOG = LogFactory.getLogger(SaveLayerHandler.class);
     private static final String PARAM_LAYER_ID = "layer_id";
     private static final String PARAM_LAYER_NAME = "layerName";
     private static final String PARAM_LAYER_URL = "layerUrl";
-    
-    private static final String PARAM_WFS_USERNAME = "username";
-    private static final String PARAM_WFS_PASSWORD = "password";
-    private static final String PARAM_WFS_GMLVERSION = "GMLVersion";
-    private static final String PARAM_WFS_GMLGeometryProperty = "GMLGeometryProperty";
-    private static final String PARAM_WFS_FeatureNamespaceURI = "featureNamespaceURI";
-    private static final String PARAM_WFS_FeatureNamespace = "featureNamespace";
-    private static final String PARAM_WFS_FeatureElement = "featureElement";
-    private static final String PARAM_WFS_WFSVersion = "WFSVersion";
-    private static final String PARAM_WFS_GeometryNamespaceURI = "geometryNamespaceURI";
-    
-    private static final String PARAM_SRS_NAME = "srsName";    
 
     private static final String LAYER_NAME_PREFIX = "name_";
     private static final String LAYER_TITLE_PREFIX = "title_";
@@ -101,10 +69,7 @@ public class SaveLayerHandler extends ActionHandler {
     private static final String ERROR_NO_LAYER_WITH_ID = "no_layer_with_id:";
     private static final String ERROR_OPERATION_NOT_PERMITTED = "operation_not_permitted_for_layer_id:";
     private static final String ERROR_MANDATORY_FIELD_MISSING = "mandatory_field_missing:";
-    private static final String ERROR_INVALID_FIELD_VALUE = "invalid_field_value:";    
-    
-    
-    
+    private static final String ERROR_INVALID_FIELD_VALUE = "invalid_field_value:";
     private static final String ERROR_FE_PARSER_CONFIG_MISSING = "FE WFS feature parser config missing";
 
     private static final String OSKARI_FEATURE_ENGINE = "oskari-feature-engine";
@@ -113,59 +78,12 @@ public class SaveLayerHandler extends ActionHandler {
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
 
-    	final String layerType = params.getHttpParam("layerType");
-    	final String layerIdStr = params.getHttpParam("layer_id");
-    	if (layerType.equals("myplaces") || layerType.equals("analysis") || layerType.equals("userlayer")) {
-    		//find dataset by data_id
-    		UserGisData ugd = null;
-    		
-    		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			Date expirationDate = null;
-			try {
-				expirationDate = sdf.parse(sdf.format(new Date()));
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}		
-			
-    		List<UserGisData> ugds = null;
-			try {
-				ugds = gisDataService.getGisData(params.getUser().getId(), expirationDate);
-			} catch (ServiceException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    		for (UserGisData u : ugds) {
-    			if (u.getDataId().equals(layerIdStr)) {
-    				ugd = u;
-    				break;
-    			}
-    		}
-    		if (ugd != null) {
-	    		String downloadServiceUrl = params.getHttpParam("downloadServiceUrl");
-	    		ugd.setDownloadServiceUrl(downloadServiceUrl);
-	    		gisDataService.update(ugd);			
-	    		//TODO create response to frontend
-	    		//ResponseHelper.writeResponse(params, "You successfully saved the layer.");
-    		}
-    	}
-        final int layerId = saveLayer(params);
+        final SaveResult result = saveLayer(params);
+        final int layerId = (int)result.layerId;
         final OskariLayer ml = mapLayerService.find(layerId);
         if(ml == null) {
             throw new ActionParamsException("Couldn't get the saved layer from DB - id:" + layerId);
         }
-
-        // update cache - do this before creating json!
-        boolean cacheUpdated = ml.isCollection();
-        // skip cache update for collections since they don't have the info
-        if(!ml.isCollection() && ml.getType().equals(OskariLayer.TYPE_WMS)) {
-            cacheUpdated = updateCache(ml, params.getRequiredParam("version"));
-        }
-        
-        if (!ml.isCollection() && 
-        		(ml.getType().equals(OskariLayer.TYPE_ARCGISLAYER) || ml.getType().equals(OskariLayer.TYPE_WFS))) {
-        	updateFeatureLayer(ml, params);
-        }               
 
         // construct response as layer json
         final JSONObject layerJSON = OskariLayerWorker.getMapLayerJSON(ml, params.getUser(), params.getLocale().getLanguage());
@@ -173,76 +91,12 @@ public class SaveLayerHandler extends ActionHandler {
             // handle error getting JSON failed
             throw new ActionException("Error constructing JSON for layer");
         }
-        if(!result.capabilitiesUpdated && !ml.isCollection() && ml.getType().equals(OskariLayer.TYPE_WMS)) {
+        if(!result.capabilitiesUpdated) {
             // Cache update failed, no biggie
             JSONHelper.putValue(layerJSON, "warn", "metadataReadFailure");
             LOG.debug("Metadata read failure");
         }
         ResponseHelper.writeResponse(params, layerJSON);
-    }   
-    
-    private void updateFeatureLayer(final OskariLayer oskariLayer, final ActionParameters params) {
-    	WFSLayerConfiguration configuration = layerConfigurationService.findConfiguration(oskariLayer.getId());
-    	
-    	if (configuration == null) {
-    		configuration = mapConfiguration(oskariLayer, params);    		
-    		layerConfigurationService.insert(configuration);
-    	} else {
-    		configuration.destroy();
-    		configuration = mapConfiguration(oskariLayer, params);
-    		layerConfigurationService.update(configuration);
-    	}
-    }
-    
-    private WFSLayerConfiguration mapConfiguration(final OskariLayer oskariLayer, final ActionParameters params) {
-    	WFSLayerConfiguration configuration = new WFSLayerConfiguration();
-		configuration.setLayerId("" + oskariLayer.getId());
-		configuration.setLayerName(oskariLayer.getName());
-		configuration.setURL(oskariLayer.getUrl());
-		
-		configuration.setGML2Separator(false);
-		configuration.setGetHighlightImage(true);		
-		configuration.setMaxFeatures(1000);
-		
-		if (oskariLayer.getType().equals(OskariLayer.TYPE_ARCGISLAYER)) {
-			configuration.setGMLVersion("3.1.1");
-			configuration.setGMLGeometryProperty("geom");
-			configuration.setFeatureNamespaceURI("''");
-			configuration.setFeatureNamespace("arcgis");
-			configuration.setFeatureElement("''");
-			configuration.setWFSVersion("1.0.0");
-			configuration.setGeometryNamespaceURI("''");
-		}			
-		else if (oskariLayer.getType().equals(OskariLayer.TYPE_WFS)) {
-			configuration.setUsername(params.getHttpParam(PARAM_WFS_USERNAME, null));
-			configuration.setPassword(params.getHttpParam(PARAM_WFS_PASSWORD, null));
-			configuration.setGMLVersion(params.getHttpParam(PARAM_WFS_GMLVERSION, "3.1.1"));
-			configuration.setGMLGeometryProperty(params.getHttpParam(PARAM_WFS_GMLGeometryProperty, "geom"));
-			configuration.setFeatureNamespaceURI(params.getHttpParam(PARAM_WFS_FeatureNamespaceURI, null));
-			configuration.setFeatureNamespace(params.getHttpParam(PARAM_WFS_FeatureNamespace, null));
-			configuration.setFeatureElement(params.getHttpParam(PARAM_WFS_FeatureElement, null));
-			configuration.setWFSVersion(params.getHttpParam(PARAM_WFS_WFSVersion, "1.1.0"));
-			configuration.setGeometryNamespaceURI(params.getHttpParam(PARAM_WFS_GeometryNamespaceURI, "''"));
-		}
-			
-		configuration.setFeatureType("{}");
-		configuration.setSelectedFeatureParams("{}");
-		configuration.setFeatureParamsLocales("{}");
-		configuration.setGeometryType("2d");
-		configuration.setGetMapTiles(true);
-		configuration.setGetFeatureInfo(true);
-		configuration.setTileRequest(false);
-		configuration.setTileBuffer("{}");
-		configuration.setWps_params("{}");
-		configuration.setSRSName(params.getHttpParam(PARAM_SRS_NAME, "EPSG:3067"));
-		configuration.setCustomParser(false);
-		configuration.setTestLocation(null);
-		configuration.setTestZoom(9);   
-		configuration.setSLDStyles(new ArrayList<WFSSLDStyle>());
-		configuration.setMaxScale(oskariLayer.getMaxScale());
-		configuration.setMinScale(oskariLayer.getMinScale());		
-		
-		return configuration;
     }
 
     private SaveResult saveLayer(final ActionParameters params) throws ActionException {
@@ -317,10 +171,6 @@ public class SaveLayerHandler extends ActionHandler {
                         getPermissionSet(params.getHttpParam("publishPermissions")),
                         getPermissionSet(params.getHttpParam("downloadPermissions")),
                         getPermissionSet(params.getHttpParam("enbeddedPermissions")));
-                
-                int userThemeId = params.getHttpParam("userThemeId", -1);
-                if (userThemeId != -1)
-                	mapToUserTheme(ml, params.getUser(), userThemeId);
 
                 // update keywords
                 GetLayerKeywords glk = new GetLayerKeywords();
@@ -339,58 +189,6 @@ public class SaveLayerHandler extends ActionHandler {
         }
     }
 
-    private void mapToUserTheme(OskariLayer ml, User user, int userThemeId)
-	{
-    	groupingsService.AddLayerToUserTheme(ml.getId(), userThemeId);		
-	}
-
-	private boolean updateCache(OskariLayer ml, final String version) throws ActionException {
-        if(ml == null) {
-            return false;
-        }
-        if(ml.isCollection()) {
-            // just be happy for collection layers, nothing to do
-            return true;
-        }
-        if(version == null) {
-            // check this here since it's not always required (for collection layers)
-            throw new ActionParamsException("Version is required!");
-        }
-        // retrieve capabilities
-        final String wmsUrl = getWmsUrl(ml.getUrl());
-        CapabilitiesCache cc = null;
-        try {
-        	CapabilitiesCache ccForSearch = new CapabilitiesCache();
-        	ccForSearch.setLayerId(ml.getId());
-        	ccForSearch.setUserWms(false);
-        	
-            cc = capabilitiesService.findByLayer(ccForSearch);
-            boolean isNew = false;
-            if (cc == null) {
-                cc = new CapabilitiesCache();
-                cc.setLayerId(ml.getId());
-                cc.setUserWms(false);
-                isNew = true;
-            }
-            cc.setVersion(version);
-
-            final String capabilitiesXML = GetWMSCapabilities.getResponse(wmsUrl);
-            cc.setData(capabilitiesXML);
-
-            // update cache by updating db
-            if (isNew) {
-                capabilitiesService.insert(cc);
-            } else {
-                capabilitiesService.update(cc);
-            }
-            // flush cache, otherwise only db is updated but code retains the old cached version
-            WebMapServiceFactory.flushCache(ml.getId(), false);
-        } catch (Exception ex) {
-            log.info(ex, "Error updating capabilities: ", cc, "from URL:", wmsUrl);
-            return false;
-        }
-        return true;
-    }
     /**
      * Treats the param as comma-separated list. Splits to individual values and
      * returns a set of values that could be converted to Long
@@ -400,17 +198,17 @@ public class SaveLayerHandler extends ActionHandler {
     private Set<Long> getPermissionSet(final String param) {
         if(param == null) {
             return Collections.emptySet();
-		}
-		final Set<Long> set = new HashSet<Long>();
+        }
+        final Set<Long> set = new HashSet<Long>();
         final String[] roleIds = param.split(",");
         for (String externalId : roleIds) {
             final long extId = ConversionHelper.getLong(externalId, -1);
             if (extId != -1) {
                 set.add(extId);
-			}
-		}
-		return set;
-	}
+            }
+        }
+        return set;
+    }
 
     private boolean handleRequestToMapLayer(final ActionParameters params, OskariLayer ml) throws ActionException {
 
@@ -423,7 +221,7 @@ public class SaveLayerHandler extends ActionHandler {
         }
 
         // organization id
-        final LayerGroup group = layerGroupService.find(params.getHttpParam("groupId", PropertyUtil.getOptional("oskari.defaultLayerGroup", -1)));
+        final LayerGroup group = layerGroupService.find(params.getHttpParam("groupId", -1));
         ml.addGroup(group);
 
         // get names and descriptions
@@ -648,9 +446,6 @@ public class SaveLayerHandler extends ActionHandler {
             LOG.error(ex, "Couldn't update capabilities for layer", ml);
             return false;
         }
-        
-        ml.setDownloadServiceUrl(params.getHttpParam("downloadServiceUrl"));
-        ml.setCopyrightInfo(params.getHttpParam("copyrightInfo"));
     }
 
     private boolean handleWMTSSpecific(final ActionParameters params, OskariLayer ml) throws ActionException {

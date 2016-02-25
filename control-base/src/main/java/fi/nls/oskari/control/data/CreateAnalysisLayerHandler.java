@@ -45,8 +45,12 @@ import org.json.JSONObject;
 import pl.sito.liiteri.arcgis.ArcgisAnalysisMapper;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @OskariActionRoute("CreateAnalysisLayer")
@@ -109,11 +113,15 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
             throw new ActionDeniedException("Session expired");
         }
 
-        final String analyse = params.getRequiredParam(PARAM_ANALYSE, ERROR_ANALYSE_PARAMETER_MISSING);
+        // filter conf data
+        final String filter1 = params.getHttpParam(PARAM_FILTER1);
+        final String filter2 = params.getHttpParam(PARAM_FILTER2);
+
+        String analyse = params.getRequiredParam(PARAM_ANALYSE, ERROR_ANALYSE_PARAMETER_MISSING);
         if (arcgisAnalysisMapper.isArcgisAnalysis(analyse)) {
         	try
 			{
-				analyse = arcgisAnalysisMapper.MapArcgisAnalysisConfiguration(analyse, filter);
+				analyse = arcgisAnalysisMapper.MapArcgisAnalysisConfiguration(analyse, filter1);
 			} catch (Exception e)
 			{
 				this.MyError(ERROR_UNABLE_TO_GET_ARCGIS_FEATURES, params, e);
@@ -125,10 +133,6 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
             // json corrupted/parsing failed
             throw new ActionParamsException(ERROR_ANALYSE_PARAMETER_MISSING);
         }
-
-        // filter conf data
-        final String filter1 = params.getHttpParam(PARAM_FILTER1);
-        final String filter2 = params.getHttpParam(PARAM_FILTER2);
 
         // Get baseProxyUrl
         //http://liiteri.sitois.local

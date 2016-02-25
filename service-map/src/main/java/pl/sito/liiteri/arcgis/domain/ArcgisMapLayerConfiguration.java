@@ -2,16 +2,15 @@ package pl.sito.liiteri.arcgis.domain;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import org.codehaus.jackson.JsonGenerationException;
+
 import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import fi.nls.oskari.cache.JedisManager;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 
@@ -22,7 +21,6 @@ public class ArcgisMapLayerConfiguration {
     
     public static final String KEY = "ArcgisMapLayer_";
     
-    private static final String ERROR = "error";
     private static final String ID = "id";
     private static final String NAME = "name";
     private static final String SUBLAYER_IDS = "subLayerIds";
@@ -39,7 +37,6 @@ public class ArcgisMapLayerConfiguration {
     private ArrayList<Integer> subLayerIds;
     private double maxScale;
     private double minScale;
-    private List<ArcgisMapLayerConfiguration> subLayers;
     
     private String geometryType;
     private String type;
@@ -126,8 +123,6 @@ public class ArcgisMapLayerConfiguration {
     public String getAsJSON() {
         try {
             return ArcgisMapLayerConfiguration.mapper.writeValueAsString(this);
-        } catch (JsonGenerationException e) {
-            log.error(e, "JSON Generation failed");
         } catch (JsonMappingException e) {
             log.error(e, "Mapping from Object to JSON String failed");
         } catch (IOException e) {

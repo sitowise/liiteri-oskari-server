@@ -4,16 +4,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import fi.nls.oskari.cache.JedisManager;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 
@@ -23,8 +22,7 @@ public class ArcgisMapLegendConfiguration {
     public static ObjectMapper mapper = new ObjectMapper();
     
     public static final String KEY = "ArcgisMapLayer_";
-    
-    private static final String ERROR = "error";
+
     private static final String LAYERS = "layers";
            
     private List<ArcgisMapLayerLegendConfiguration> items = new ArrayList<ArcgisMapLayerLegendConfiguration>();
@@ -62,8 +60,6 @@ public class ArcgisMapLegendConfiguration {
     public String getAsJSON() {
         try {
             return ArcgisMapLegendConfiguration.mapper.writeValueAsString(this);
-        } catch (JsonGenerationException e) {
-            log.error(e, "JSON Generation failed");
         } catch (JsonMappingException e) {
             log.error(e, "Mapping from Object to JSON String failed");
         } catch (IOException e) {

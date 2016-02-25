@@ -1,15 +1,11 @@
 package fi.nls.oskari.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.transport.TransportService;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
 import fi.nls.oskari.pojo.style.CustomStyleStore;
 
 import java.io.IOException;
@@ -34,23 +30,6 @@ public class WFSCustomStyleStore extends CustomStyleStore {
 
     private static final ObjectMapper mapper = new ObjectMapper();
     public static final String KEY = "WFSCustomStyle_";
-    // custom style params
-    public static final String PARAM_FILL_COLOR = "fill_color";
-    public static final String PARAM_FILL_PATTERN = "fill_pattern";
-    public static final String PARAM_BORDER_COLOR = "border_color";
-    public static final String PARAM_BORDER_LINEJOIN = "border_linejoin";
-    public static final String PARAM_BORDER_DASHARRAY = "border_dasharray";
-    public static final String PARAM_BORDER_WIDTH = "border_width";
-
-    public static final String PARAM_STROKE_LINECAP = "stroke_linecap";
-    public static final String PARAM_STROKE_COLOR = "stroke_color";
-    public static final String PARAM_STROKE_LINEJOIN = "stroke_linejoin";
-    public static final String PARAM_STROKE_DASHARRAY = "stroke_dasharray";
-    public static final String PARAM_STROKE_WIDTH = "stroke_width";
-
-    public static final String PARAM_DOT_COLOR = "dot_color";
-    public static final String PARAM_DOT_SHAPE = "dot_shape";
-    public static final String PARAM_DOT_SIZE = "dot_size";
 
     public static final String HIGHLIGHT_FILL_COLOR = "#FAEBD7";
     public static final String HIGHLIGHT_BORDER_COLOR = "#000000";
@@ -345,35 +324,6 @@ public class WFSCustomStyleStore extends CustomStyleStore {
         template = template.replaceAll(GEOMETRY, geometry);
 
         this.sld = template;
-    }
-
-    /**
-     * Saves into redis
-     *
-     * @return <code>true</code> if saved a valid session; <code>false</code>
-     *         otherwise.
-     */
-    public void save() {
-        JedisManager.setex(KEY + client + "_" + layerId, 86400, getAsJSON());
-    }
-
-    /**
-     * Transforms object to JSON String
-     *
-     * @return JSON String
-     */
-    @JsonIgnore
-    public String getAsJSON() {
-        try {
-            return mapper.writeValueAsString(this);
-        } catch (JsonGenerationException e) {
-            log.error(e, "JSON Generation failed");
-        } catch (JsonMappingException e) {
-            log.error(e, "Mapping from Object to JSON String failed");
-        } catch (IOException e) {
-            log.error(e, "IO failed");
-        }
-        return null;
     }
 
     /**

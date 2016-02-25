@@ -13,9 +13,6 @@ import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
 import fi.nls.oskari.wfs.WFSLayerConfigurationService;
 import fi.nls.oskari.wfs.WFSLayerConfigurationServiceIbatisImpl;
-import fi.nls.oskari.wfs.WFSLayerConfiguration;
-import fi.nls.oskari.wfs.WFSLayerConfigurationService;
-import fi.nls.oskari.wfs.WFSLayerConfigurationServiceIbatisImpl;
 
 /**
  * Admin WMS layer delete for single layer, for base/group layers -> use DeleteOrganizationHandler
@@ -46,9 +43,9 @@ public class DeleteLayerHandler extends ActionHandler {
         }                
 
         try {
-        	WFSLayerConfiguration configuration = layerConfigurationService.findConfiguration(layer.getId());
+        	WFSLayerConfiguration configuration = wfsLayerService.findConfiguration(layer.getId());
         	if (configuration != null) {
-        		layerConfigurationService.delete(layer.getId());
+        		wfsLayerService.delete(layer.getId());
         		configuration.destroy();            		
         	}
         	

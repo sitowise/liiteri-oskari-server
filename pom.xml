@@ -747,25 +747,8 @@
                 <executions>
                     <execution>
                         <id>attach-sources</id>
-                        <phase>deploy</phase>
                         <goals>
                             <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9.1</version>
-                <configuration>
-                    <failOnError>false</failOnError>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>jar</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -911,16 +894,10 @@
         <module>shared-test-resources</module>
         <module>geoserver-ext/geoserver-rest-client</module>
 
-				<module>control-base</module>
-				<module>control-example</module>
-				<module>control-myplaces</module>
-				<module>content-resources</module>
-		
-		<!--
-				<module>jetty-extensions</module>
-		-->	
-				<module>servlet-map</module>		
-				<module>webapp-map</module>		
+        <module>service-base</module>
+        <module>service-users</module>
+        <module>service-permissions</module>
+        <module>service-map</module>
         <module>service-wfs</module>
         <module>service-myplaces</module>
         <module>service-rating</module>

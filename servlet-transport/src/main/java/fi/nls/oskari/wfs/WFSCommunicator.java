@@ -9,7 +9,6 @@ import fi.nls.oskari.wfs.util.XMLHelper;
 import fi.nls.oskari.work.JobType;
 import fi.nls.oskari.work.ResultProcessor;
 import org.apache.axiom.om.*;
-import fi.nls.oskari.work.MapLayerJobType;
 
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.geotools.feature.FeatureCollection;

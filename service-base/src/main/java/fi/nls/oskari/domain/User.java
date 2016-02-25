@@ -3,11 +3,13 @@ package fi.nls.oskari.domain;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.JSONHelper;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Date;
@@ -27,6 +29,7 @@ public class User implements Serializable {
     private static final String KEY_USERUUID = "userUUID";
     private static final String KEY_USERID = "userID";
     private final static String KEY_ROLES = "roles";
+    private static final String KEY_TOSACCEPTED = "tosAccepted";
 
     private long id = -1;
     private String lastname = "guest";
@@ -226,6 +229,7 @@ public class User implements Serializable {
             userData.put(KEY_NICKNAME, getScreenname());
             userData.put(KEY_USERUUID, getUuid());
             userData.put(KEY_USERID, getId());
+            userData.put(KEY_TOSACCEPTED, getTosAccepted());
 
             JSONArray roles = new JSONArray();
             for (Role role: getRoles()) {
@@ -248,6 +252,9 @@ public class User implements Serializable {
             user.setEmail(json.optString(KEY_EMAIL));
             user.setScreenname(json.optString(KEY_NICKNAME));
             user.setUuid(json.optString(KEY_USERUUID));
+            //Tue Oct 20 09:40:59 EEST 2015
+            SimpleDateFormat parserSDF=new SimpleDateFormat("EEE MMM d HH:mm:ss zzz yyyy");
+            user.setTosAccepted(parserSDF.parse(json.optString(KEY_TOSACCEPTED)));
             JSONArray roles = json.optJSONArray(KEY_ROLES);
             for( int i = 0; i < roles.length(); ++i) {
                 user.addRole(Role.parse(roles.getJSONObject(i)));

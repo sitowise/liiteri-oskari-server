@@ -13,19 +13,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import fi.nls.oskari.work.MapLayerJobType;
-
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.opengis.filter.Filter;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.*;
 
 public class WFSFilterTest {
 	private SessionStore session;

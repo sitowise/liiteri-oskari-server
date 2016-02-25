@@ -404,7 +404,7 @@ public class GetArcGisStatsTileHandler extends ActionHandler {
         final int visId = ConversionHelper.getInt(
                 params.getHttpParam(PARAM_VISUALIZATION_ID), -1);
         return service.getVisualization(
-                statsLayerId, 
+                //statsLayerId, 
                 visId,
                 params.getHttpParam(PARAM_VISUALIZATION_CLASSES),
                 params.getHttpParam(PARAM_VISUALIZATION_NAME),

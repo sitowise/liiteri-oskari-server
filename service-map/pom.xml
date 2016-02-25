@@ -114,12 +114,25 @@
   			<groupId>com.esri.geometry</groupId>
   			<artifactId>esri-geometry-api</artifactId>
   			<version>1.2</version>
+            <exclusions>
+            	<exclusion>
+            		<artifactId>json</artifactId>
+            		<groupId>org.json</groupId>
+            	</exclusion>
+            </exclusions>
 		</dependency>
 		
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 		</dependency>
+		
+        <dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+			<version>1.5.0-b01</version>
+        </dependency>
+        
     </dependencies>
 
 </project>

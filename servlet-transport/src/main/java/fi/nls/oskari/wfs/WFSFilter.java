@@ -8,15 +8,10 @@ import fi.nls.oskari.pojo.GeoJSONFilter;
 import fi.nls.oskari.pojo.Location;
 import fi.nls.oskari.pojo.PropertyFilter;
 
-import com.vividsolutions.jts.util.GeometricShapeFactory;
-
-import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.SessionStore;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.work.JobType;
-import fi.nls.oskari.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.extension.AnalysisFilter;
-import fi.nls.oskari.work.MapLayerJobType;
 
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.geojson.geom.GeometryJSON;

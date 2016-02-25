@@ -298,15 +298,15 @@ public class MapLayerJSONParser {
             String wmsurl = (String) layerObj.get("url");
 
             String wmsversion = (String) layerObj.get("version");
-			
-			if (layerObj.get("copyrightInfo") != null) {
-				layerDefinition.setCopyrightText(layerObj.get("copyrightInfo").toString());
-			}
 
             List<Map<String, ?>> tiles = (List<Map<String, ?>>) layerObj
                     .get("tiles");
 
-            LayerDefinition layerDefinition = new LayerDefinition();
+            LayerDefinition layerDefinition = new LayerDefinition();            
+			
+			if (layerObj.get("copyrightInfo") != null) {
+				layerDefinition.setCopyrightText(layerObj.get("copyrightInfo").toString());
+			}
 
             if (maxScale != null) {
                 layerDefinition.setMaxScale(maxScale.doubleValue());

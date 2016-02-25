@@ -248,16 +248,7 @@ public class OskariLayerWorker {
                     JSONHelper.putValue(permission, "download", DOWNLOAD_PERMISSION_OK);
                 }
             }
-        }
-        
-        if (downloadAccessList != null) {
-        	for (Role role : user.getRoles()) {
-                if (downloadAccessList.contains(layerPermissionKey + ":" + role.getId())) {
-                    JSONHelper.putValue(permission, "download", true);
-                }
-            }	
-        }
-        
+        }        
         
         return permission;
     }

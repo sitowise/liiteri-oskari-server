@@ -415,23 +415,6 @@ public class SessionStore {
 	}
 
     /**
-     *  Is geometry property in feature response
-     * @return
-     */
-    @JsonIgnore
-    public boolean isGeomRequest() {
-        return geomRequest;
-    }
-
-    /**
-     * Geometry property in feature response
-     * @param geomRequest  true (yes)
-     */
-    public void setGeomRequest(boolean geomRequest) {
-        this.geomRequest = geomRequest;
-    }
-
-    /**
 	 *  Is geometry property in feature response
 	 * @return
 	 */

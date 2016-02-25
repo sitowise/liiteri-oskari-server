@@ -10,7 +10,7 @@ import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.work.JobHelper;
 import fi.nls.oskari.work.JobType;
 import fi.nls.oskari.work.RequestResponse;
-import fi.nls.oskari.work.MapLayerJobType;
+import fi.nls.oskari.work.WFSMapLayerJob;
 
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;

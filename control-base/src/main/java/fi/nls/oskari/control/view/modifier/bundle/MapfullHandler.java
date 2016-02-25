@@ -33,16 +33,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import fi.mml.map.mapwindow.service.db.MyPlacesService;
-import fi.mml.map.mapwindow.service.db.MyPlacesServiceIbatisImpl;
-import fi.nls.oskari.domain.User;
-import fi.nls.oskari.domain.map.MyPlaceCategory;
 import fi.nls.oskari.domain.map.UserWmsLayer;
-import fi.nls.oskari.domain.map.view.ViewTypes;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.view.modifier.ModifierParams;
-import fi.nls.oskari.util.ConversionHelper;
-import fi.nls.oskari.util.JSONHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -61,8 +52,6 @@ public class MapfullHandler extends BundleHandler {
     private static final String KEY_ID = "id";
 
     private static final String KEY_USER = "user";
-    private static final String KEY_TOSACCEPTED = "tosAccepted";
-
 
     private static final String KEY_MAP_OPTIONS = "mapOptions";
     private static final String KEY_SRS = "srsName";
@@ -508,37 +497,6 @@ public class MapfullHandler extends BundleHandler {
                         stateLayerId, "vs confLayerId:", confLayerId);
             }
         }
-    }
-
-    private JSONObject getUserJSON(final User user) {
-        try {
-            JSONObject userData = new JSONObject();
-            userData.put(KEY_FIRSTNAME, user.getFirstname());
-            userData.put(KEY_LASTNAME, user.getLastname());
-            userData.put(KEY_LOGINNAME, user.getEmail());
-            userData.put(KEY_NICKNAME, user.getScreenname());
-            userData.put(KEY_USERUUID, user.getUuid());
-            userData.put(KEY_USERID, user.getId());
-            userData.put(KEY_TOSACCEPTED, user.getTosAccepted());
-
-            JSONArray roles = getUserRolesJSON(user);
-            userData.put(KEY_ROLES, roles);
-            return userData;
-        } catch (JSONException jsonex) {
-            log.warn("Unable to populate user data:", user);
-        }
-        return null;
-    }
-
-    private JSONArray getUserRolesJSON(final User user) throws JSONException {
-        JSONArray userRoles = new JSONArray();
-        for (Role role: user.getRoles()) {
-            JSONObject roleData = new JSONObject();
-            roleData.put(KEY_ROLE_ID, role.getId());
-            roleData.put(KEY_ROLE_NAME, role.getName());
-            userRoles.put(roleData);
-        }
-        return userRoles;
     }
 
     public static JSONObject getPlugin(final String pluginClassName,
