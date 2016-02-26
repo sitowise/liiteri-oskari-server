@@ -1,4 +1,4 @@
--- database: analysis
+﻿-- database: analysis
 
 
 ALTER TABLE analysis
@@ -40,6 +40,6 @@ CREATE OR REPLACE VIEW analysis_data_style AS
   WHERE ad.analysis_id = a.id AND a.style_id = st.id;
 
 ALTER TABLE analysis_data_style
-  OWNER TO liferay;
-GRANT ALL ON TABLE analysis_data_style TO liferay;
-GRANT SELECT ON TABLE analysis_data_style TO omat_paikat;
+  OWNER TO oskari;
+GRANT ALL ON TABLE analysis_data_style TO oskari;
+GRANT SELECT ON TABLE analysis_data_style TO oskari;

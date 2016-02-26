@@ -61,6 +61,7 @@ public class MyPlacesServiceMybatisImpl extends MyPlacesService {
         final Configuration configuration = new Configuration(environment);
         configuration.getTypeAliasRegistry().registerAlias(MyPlaceCategory.class);
         configuration.getTypeAliasRegistry().registerAlias(MyPlace.class);
+        configuration.getTypeAliasRegistry().registerAlias(UserGisData.class);
         configuration.setLazyLoadingEnabled(true);
         configuration.addMapper(MyPlaceMapper.class);
 

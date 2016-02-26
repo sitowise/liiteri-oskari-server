@@ -5,11 +5,6 @@
 
 <mapper namespace="fi.nls.oskari.myplaces.MyPlaceMapper">
 
-    <!-- Use type aliases to avoid typing the full classname every time. -->
-    <typeAlias alias="MyPlaceCategory" type="fi.nls.oskari.domain.map.MyPlaceCategory" />
-    <typeAlias alias="MyPlace" type="fi.nls.oskari.domain.map.MyPlace" />
-    <typeAlias alias="UserGisData" type="fi.nls.oskari.domain.map.UserGisData" />
-
     <resultMap id="CategoryResult" type="MyPlaceCategory">
 	    <result property="id" column="id" /> 
 	    <result property="category_name" column="category_name" />
@@ -35,7 +30,7 @@
         <result property="attentionText" column="attention_text" />
     </resultMap>
     
-    <resultMap id="UserGisDataResult" class="UserGisData">
+    <resultMap id="UserGisDataResult" type="UserGisData">
 		<result property="dataId" column="data_id" />
 		<result property="expirationDate" column="expirationdate" />
 	</resultMap>
@@ -157,20 +152,9 @@
                     categories.publisher_name is not null
           ]]>       
     </select>
-    
-    
-    
-    
-    <update id="updatePublisherName" 
-        parameterClass="Map">
-        update categories set
-            publisher_name = #publisher_name:VarChar#
-        where uuid = #uuid# and id = #id#
-    </update>
-    
-    
+   
     <select id="findSharedCategories" 
-        resultMap="UserGisDataResult" parameterClass="java.lang.Long">
+        resultMap="UserGisDataResult" parameterType="java.lang.Long">
         select 
             oskari_user_gis_data.data_id,
             oskari_user_gis_data.expirationdate
@@ -184,7 +168,7 @@
     </select>
     
     <select id="findUnexpiredCategories" 
-    resultMap="UserGisDataResult" parameterClass="java.lang.Long">
+    resultMap="UserGisDataResult" parameterType="java.lang.Long">
         select 
             oskari_user_gis_data.data_id,
             oskari_user_gis_data.expirationdate
