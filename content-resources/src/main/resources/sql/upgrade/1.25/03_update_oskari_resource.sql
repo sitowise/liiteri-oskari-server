@@ -40,3 +40,9 @@ update oskari_resource as a
 set resource_mapping = b.type || '+' || b.url || '+' || b.name from oskari_maplayer as b 
 where b.type='wfslayer' and a.resource_type='maplayer' and substring(resource_mapping from position('+' in resource_mapping)+1)=b.name 
  and substring(resource_mapping from 1 for 4)='wfs+' ;
+
+-- oskari_resource update for arcgis layers resource mappings
+update oskari_resource as a
+set resource_mapping = b.type || '+' || b.url || '+' || b.name from oskari_maplayer as b 
+where b.type='arcgislayer' and a.resource_type='maplayer' and substring(resource_mapping from position('+' in resource_mapping)+1)=b.name 
+ and substring(resource_mapping from 1 for position('+' in resource_mapping)-1)=b.url ;
