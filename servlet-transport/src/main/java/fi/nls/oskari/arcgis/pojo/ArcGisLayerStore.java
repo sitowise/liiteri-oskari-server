@@ -1,25 +1,25 @@
 package fi.nls.oskari.arcgis.pojo;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.wfs.pojo.WFSLayerStore;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import fi.nls.oskari.cache.JedisManager;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 
 public class ArcGisLayerStore extends WFSLayerStore {
     private static final Logger log = LogFactory.getLogger(ArcGisLayerStore.class);
 
     public static final String KEY = "ArcGisLayer_";
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-    private static final String ERROR = "error";
     private static final String ARCGIS_ID = "id";
     private static final String TYPE = "type";
     private static final String SUBLAYERS = "subLayers";
@@ -27,7 +27,6 @@ public class ArcGisLayerStore extends WFSLayerStore {
     private static final String MINSCALE = "minScale";
     private static final String MAXSCALE = "maxScale";
     private static final String GEOMETRY_TYPE = "geometryType";
-
 
     private String layerId;
     private String arcGisId;
@@ -41,6 +40,14 @@ public class ArcGisLayerStore extends WFSLayerStore {
 
     public void setSubLayers(List<ArcGisLayerStore> subLayers) {
         this.subLayers = subLayers;
+    }
+
+    public int getId() {
+        return Integer.parseInt(getIdStr());
+    }
+
+    public void setId(int id) {
+        this.setIdStr(""+id);
     }
 
     public String getIdStr() {
@@ -105,4 +112,13 @@ public class ArcGisLayerStore extends WFSLayerStore {
         return store;
     }
 
+    public void save() {
+        //JedisManager.setex(KEY + this.layerId, 86400, getAsJSON()); // expire in 1 day
+    }
+
+    @JsonIgnore
+    public static String getCache(String layerId) {
+        return JedisManager.get(KEY + layerId);
+    }
+    
 }

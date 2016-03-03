@@ -189,7 +189,7 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
      * Worker calls this when starts the job.
      */
     public String run() {
-        final boolean thisMethodShouldBeRefactoredForNewJobModel = true;
+        final boolean thisMethodShouldBeRefactoredForNewJobModel = false;
         if(thisMethodShouldBeRefactoredForNewJobModel) {
             throw new RuntimeException("Needs refactoring");
         }
