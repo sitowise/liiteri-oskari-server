@@ -16,8 +16,7 @@
 		SELECT MAX(workspaceAmountLimit)
 		FROM
 		oskari_workspaces_role_settings WHERE roleId IN (SELECT DISTINCT
-		role_id from oskari_role_oskari_user WHERE user_name = (SELECT user_name from oskari_users WHERE id 
-		=#userId#))
+		role_id from oskari_role_oskari_user WHERE user_id = #userId#)
 	</select>
 
 	<select id="getMaxExpirationDateLimit" parameterClass="java.lang.Long"
@@ -25,8 +24,7 @@
 		SELECT MAX(validWorkspaceDaysLimit)
 		FROM
 		oskari_workspaces_role_settings WHERE roleId IN (SELECT DISTINCT
-		role_id from oskari_role_oskari_user WHERE user_name = (SELECT user_name from oskari_users WHERE id 
-		=#userId#))
+		role_id from oskari_role_oskari_user WHERE user_id = #userId#)
 	</select>
 
 
