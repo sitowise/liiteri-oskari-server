@@ -1,15 +1,20 @@
 package fi.nls.oskari.spring;
 
+import java.util.EnumSet;
+
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.map.servlet.IdaExternalAuthenticationFilter;
 import fi.nls.oskari.servlet.WebappHelper;
 import fi.nls.oskari.util.PropertyUtil;
+
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
@@ -29,6 +34,14 @@ public class SpringInitializer implements WebApplicationInitializer {
         log = LogFactory.getLogger(SpringInitializer.class);
         final WebApplicationContext context = getContext();
         servletContext.addListener(new ContextLoaderListener(context));
+        //Add old IDA authentication, should be rewritten in similar way as LoginDatabase and LoginSAML
+        String authenticationType = PropertyUtil.get("oskari.authentication",
+                "default");
+        if ("ida".equals(authenticationType))
+            servletContext.addFilter("ida",
+                    new IdaExternalAuthenticationFilter())
+                    .addMappingForUrlPatterns(
+                            EnumSet.noneOf(DispatcherType.class), false, "/*");
         ServletRegistration.Dynamic dispatcher = servletContext.addServlet("DispatcherServlet", new DispatcherServlet(context));
         dispatcher.setLoadOnStartup(1);
         dispatcher.addMapping("/");
