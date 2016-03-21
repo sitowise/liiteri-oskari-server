@@ -1,5 +1,24 @@
 package fi.nls.oskari.control.layer;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import pl.sito.liiteri.groupings.service.GroupingsService;
 import fi.mml.map.mapwindow.service.db.InspireThemeService;
 import fi.mml.map.mapwindow.service.wms.WebMapService;
 import fi.mml.map.mapwindow.service.wms.WebMapServiceFactory;
@@ -7,11 +26,15 @@ import fi.mml.map.mapwindow.util.OskariLayerWorker;
 import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.nls.oskari.annotation.OskariActionRoute;
-import fi.nls.oskari.control.*;
-import fi.nls.oskari.domain.User;
+import fi.nls.oskari.control.ActionDeniedException;
+import fi.nls.oskari.control.ActionException;
+import fi.nls.oskari.control.ActionHandler;
+import fi.nls.oskari.control.ActionParameters;
+import fi.nls.oskari.control.ActionParamsException;
 import fi.nls.oskari.domain.map.InspireTheme;
 import fi.nls.oskari.domain.map.LayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -19,24 +42,25 @@ import fi.nls.oskari.map.data.domain.OskariLayerResource;
 import fi.nls.oskari.map.layer.LayerGroupService;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.formatters.LayerJSONFormatterWMS;
+import fi.nls.oskari.map.userowndata.GisDataDbService;
+import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
 import fi.nls.oskari.permission.domain.Permission;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.capabilities.CapabilitiesCacheService;
 import fi.nls.oskari.service.capabilities.OskariLayerCapabilities;
-import fi.nls.oskari.util.*;
+import fi.nls.oskari.util.ConversionHelper;
+import fi.nls.oskari.util.GetLayerKeywords;
+import fi.nls.oskari.util.JSONHelper;
+import fi.nls.oskari.util.PropertyUtil;
+import fi.nls.oskari.util.RequestHelper;
+import fi.nls.oskari.util.ResponseHelper;
+import fi.nls.oskari.util.ServiceFactory;
 import fi.nls.oskari.wfs.WFSLayerConfigurationService;
 import fi.nls.oskari.wfs.util.WFSParserConfigs;
 import fi.nls.oskari.wmts.WMTSCapabilitiesParser;
 import fi.nls.oskari.wmts.domain.ResourceUrl;
 import fi.nls.oskari.wmts.domain.WMTSCapabilities;
 import fi.nls.oskari.wmts.domain.WMTSCapabilitiesLayer;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import javax.servlet.http.HttpServletRequest;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.*;
 
 /**
  * Admin insert/update of WMS map layer
@@ -56,6 +80,8 @@ public class SaveLayerHandler extends ActionHandler {
     private InspireThemeService inspireThemeService = ServiceFactory.getInspireThemeService();
     private CapabilitiesCacheService capabilitiesService = ServiceFactory.getCapabilitiesCacheService();
     private WFSParserConfigs wfsParserConfigs = new WFSParserConfigs();
+    private final GroupingsService groupingsService = GroupingsService.getInstance();
+    private final GisDataDbService gisDataService = new GisDataDbServiceImpl();
 
     private static final Logger LOG = LogFactory.getLogger(SaveLayerHandler.class);
     private static final String PARAM_LAYER_ID = "layer_id";
@@ -78,13 +104,50 @@ public class SaveLayerHandler extends ActionHandler {
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
 
+    	final String layer_id = params.getHttpParam("layer_id");
+    	final String layerType = params.getHttpParam("layerType");
+		if (layerType.equals("myplaces") || layerType.equals("analysis")
+				|| layerType.equals("userlayer")) {
+			// find dataset by data_id
+			UserGisData ugd = null;
+
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			Date expirationDate = null;
+			try {
+				expirationDate = sdf.parse(sdf.format(new Date()));
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			List<UserGisData> ugds = null;
+			try {
+				ugds = gisDataService.getGisData(params.getUser().getId(),
+						expirationDate);
+			} catch (ServiceException e) {
+				LOG.error("Could not get gis data", e);
+			}
+			for (UserGisData u : ugds) {
+				if (u.getDataId().equals(layer_id)) {
+					ugd = u;
+					break;
+				}
+			}
+			if (ugd != null) {
+				String downloadServiceUrl = params
+						.getHttpParam("downloadServiceUrl");
+				ugd.setDownloadServiceUrl(downloadServiceUrl);
+				gisDataService.update(ugd);
+			}
+		}
+
         final SaveResult result = saveLayer(params);
         final int layerId = (int)result.layerId;
         final OskariLayer ml = mapLayerService.find(layerId);
         if(ml == null) {
             throw new ActionParamsException("Couldn't get the saved layer from DB - id:" + layerId);
         }
-
+        
         // construct response as layer json
         final JSONObject layerJSON = OskariLayerWorker.getMapLayerJSON(ml, params.getUser(), params.getLocale().getLanguage());
         if (layerJSON == null) {
@@ -103,6 +166,7 @@ public class SaveLayerHandler extends ActionHandler {
 
         // layer_id can be string -> external id!
         final String layer_id = params.getHttpParam(PARAM_LAYER_ID);
+
         SaveResult result = new SaveResult();
 
         try {
@@ -164,6 +228,14 @@ public class SaveLayerHandler extends ActionHandler {
                     int idwfsl = wfsLayerService.insert(wfsl);
                     wfsl.setId(idwfsl);
 
+                } else if(OskariLayer.TYPE_ARCGISLAYER.equals(ml.getType())) {
+                    final WFSLayerConfiguration wfsl = new WFSLayerConfiguration();
+                    wfsl.setDefaults();
+                    wfsl.setLayerId(Integer.toString(id));
+                    wfsl.setAttributes(ml.getAttributes());
+                    handleRequestToArcGisLayer(params, wfsl);
+                    int idwfsl = wfsLayerService.insert(wfsl);
+                    wfsl.setId(idwfsl);
                 }
 
                 addPermissionsForRoles(ml,
@@ -171,6 +243,10 @@ public class SaveLayerHandler extends ActionHandler {
                         getPermissionSet(params.getHttpParam("publishPermissions")),
                         getPermissionSet(params.getHttpParam("downloadPermissions")),
                         getPermissionSet(params.getHttpParam("enbeddedPermissions")));
+                
+                int userThemeId = params.getHttpParam("userThemeId", -1);
+                if (userThemeId != -1)
+                	groupingsService.AddLayerToUserTheme(ml.getId(), userThemeId);
 
                 // update keywords
                 GetLayerKeywords glk = new GetLayerKeywords();
@@ -189,7 +265,15 @@ public class SaveLayerHandler extends ActionHandler {
         }
     }
 
-    /**
+    private void handleRequestToArcGisLayer(ActionParameters params,
+			WFSLayerConfiguration wfsl) throws ActionException {
+        wfsl.setGMLGeometryProperty("geom");
+        wfsl.setLayerName(params.getHttpParam("layerName"));
+    	wfsl.setFeatureNamespace("arcgis");
+    	wfsl.setJobType("arcgis-rest");
+	}
+
+	/**
      * Treats the param as comma-separated list. Splits to individual values and
      * returns a set of values that could be converted to Long
      * @param param
@@ -498,30 +582,6 @@ public class SaveLayerHandler extends ActionHandler {
         return url;
     }
 
-    private void addPermissionsForRoles(final OskariLayer ml, final User user, final String[] externalIds) {
-
-        OskariLayerResource res = new OskariLayerResource(ml);
-        // insert permissions
-        for (String externalId : externalIds) {
-            final long extId = ConversionHelper.getLong(externalId, -1);
-            if (extId != -1 && user.hasRoleWithId(extId)) {
-                Permission permission = new Permission();
-                permission.setExternalType(Permissions.EXTERNAL_TYPE_ROLE);
-                permission.setExternalId(externalId);
-                permission.setType(Permissions.PERMISSION_TYPE_VIEW_LAYER);
-                res.addPermission(permission);
-
-                permission = new Permission();
-                permission.setExternalType(Permissions.EXTERNAL_TYPE_ROLE);
-                permission.setExternalId(externalId);
-                permission.setType(Permissions.PERMISSION_TYPE_EDIT_LAYER);
-                res.addPermission(permission);
-            }
-        }
-        permissionsService.saveResourcePermissions(res);
-
-    }
-
     private void addPermissionsForRoles(final OskariLayer ml,
                                         final Set<Long> externalIds,
                                         final Set<Long> publishRoleIds,
@@ -574,4 +634,5 @@ public class SaveLayerHandler extends ActionHandler {
 
         permissionsService.saveResourcePermissions(res);
     }
+
 }
