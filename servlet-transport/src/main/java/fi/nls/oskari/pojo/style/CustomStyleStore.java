@@ -25,7 +25,7 @@ public abstract class CustomStyleStore {
 
 	    private static final Logger log = LogFactory.getLogger(CustomStyleStore.class);
 
-	    public static final String KEY = "CustomStyle_";
+	    public static final String KEY = "WFSCustomStyle_";
 
 	    protected static final String TYPE = "type";
 	    

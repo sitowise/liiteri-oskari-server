@@ -57,21 +57,21 @@ public class CustomStyleStoreFactory {
 		WFSCustomStyleStore customStyle = new WFSCustomStyleStore();	        
 		
         customStyle.setFillColor(symbolStyle.get(WFSCustomStyleStore.PARAM_FILL_COLOR).toString());
-        customStyle.setFillPattern(((Long)symbolStyle.get(WFSCustomStyleStore.PARAM_FILL_PATTERN)).intValue());
+        customStyle.setFillPattern((int) symbolStyle.get(WFSCustomStyleStore.PARAM_FILL_PATTERN));
         customStyle.setBorderColor(symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_COLOR).toString());
         customStyle.setBorderLinejoin(symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_LINEJOIN).toString());
         customStyle.setBorderDasharray(symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_DASHARRAY).toString());
-        customStyle.setBorderWidth(((Long)symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_WIDTH)).intValue());
+        customStyle.setBorderWidth((int) symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_WIDTH));
 
         customStyle.setStrokeLinecap(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_LINECAP).toString());
         customStyle.setStrokeColor(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_COLOR).toString());
         customStyle.setStrokeLinejoin(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_LINEJOIN).toString());
         customStyle.setStrokeDasharray(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_DASHARRAY).toString());
-        customStyle.setStrokeWidth(((Long)symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_WIDTH)).intValue());
+        customStyle.setStrokeWidth((int) symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_WIDTH));
 
         customStyle.setDotColor(symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_COLOR).toString());
-        customStyle.setDotShape(((Long)symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_SHAPE)).intValue());
-        customStyle.setDotSize(((Long)symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_SIZE)).intValue());
+        customStyle.setDotShape((int) symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_SHAPE));
+        customStyle.setDotSize((int) symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_SIZE));
         
         return customStyle;
 	}
