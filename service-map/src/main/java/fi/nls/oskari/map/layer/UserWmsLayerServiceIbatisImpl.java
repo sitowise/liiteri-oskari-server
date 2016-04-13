@@ -122,6 +122,8 @@ public class UserWmsLayerServiceIbatisImpl implements UserWmsLayerService {
         // map implementation parameters
         result.setParams(JSONHelper.createJSONObject((String) data.get("params")));
         result.setOptions(JSONHelper.createJSONObject((String) data.get("options")));
+        result.setAttributes(JSONHelper.createJSONObject((String) data.get("attributes")));
+        result.setCapabilities(JSONHelper.createJSONObject((String) data.get("capabilities")));
 
         // gfi configurations
         result.setGfiType((String) data.get("gfi_type"));
@@ -131,8 +133,15 @@ public class UserWmsLayerServiceIbatisImpl implements UserWmsLayerService {
         // realtime configurations
         result.setRealtime((Boolean) data.get("realtime"));
         result.setRefreshRate((Integer) data.get("refresh_rate"));
+        
+        // username and password
+        result.setUsername((String) data.get("username"));
+        result.setPassword((String) data.get("password"));
 
         result.setGeometry((String) data.get("geom"));
+
+        result.setSrs_name((String) data.get("srs_name"));
+        result.setVersion((String) data.get("version"));
 
         result.setCreated((Date) data.get("created"));
         result.setUpdated((Date) data.get("updated"));

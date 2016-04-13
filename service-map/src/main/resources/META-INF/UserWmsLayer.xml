@@ -14,7 +14,7 @@
 
     <parameterMap id="LayerInsertParameter" class="UserWmsLayer">
     	<parameter property="userId" />
-        <parameter property="parentId" />
+        <parameter property="parentId" jdbcType="INTEGER"  javaType="int" />
         <parameter property="type" />
         <parameter property="baseMap" />
         <parameter property="groupId" />
@@ -34,6 +34,8 @@
         <parameter property="tileMatrixSetId" />
         <parameter property="params" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="options" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="capabilities" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
 
         <parameter property="gfiXslt" />
         <parameter property="gfiType" />
@@ -41,6 +43,12 @@
 
         <parameter property="realtime" />
         <parameter property="refreshRate" />
+
+        <parameter property="username" />
+        <parameter property="password" />
+
+        <parameter property="version" />
+        <parameter property="srs_name" />
 
         <parameter property="created" jdbcType="DATETIME" javaType="java.util.Date" />
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
@@ -72,6 +80,8 @@
         <parameter property="tileMatrixSetId" />
         <parameter property="params" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="options" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
+        <parameter property="capabilities" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
 
         <parameter property="gfiXslt" />
         <parameter property="gfiType" />
@@ -79,6 +89,12 @@
 
         <parameter property="realtime" />
         <parameter property="refreshRate" />
+
+        <parameter property="username" />
+        <parameter property="password" />
+
+        <parameter property="version" />
+        <parameter property="srs_name" />
 
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
 
@@ -116,12 +132,18 @@
         l.tile_matrix_set_id,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
 
         l.created,
         l.updated,
@@ -165,12 +187,18 @@
         l.tile_matrix_set_id,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
 
         l.created,
         l.updated,
@@ -213,12 +241,18 @@
         l.tile_matrix_set_id,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
 
         l.created,
         l.updated,
@@ -262,12 +296,18 @@
         l.tile_matrix_set_id,
         l.params,
         l.options,
+        l.attributes,
+        l.capabilities,
 
         l.gfi_xslt,
         l.gfi_type,
         l.gfi_content,
         l.realtime,
         l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
 
         l.created,
         l.updated,
@@ -311,19 +351,24 @@
     l.tile_matrix_set_id,
     l.params,
     l.options,
+    l.attributes,
+    l.capabilities,
 
     l.gfi_xslt,
     l.gfi_type,
     l.gfi_content,
     l.realtime,
     l.refresh_rate,
-    m.geom,
+    l.username,
+    l.password,
+    l.version,
+    l.srs_name,
 
     l.created,
     l.updated,
     
     l.download_service_url,
-	l.copyright_info
+    l.copyright_info
 
     FROM
     oskari_user_maplayer l
@@ -361,6 +406,8 @@
             tile_matrix_set_id,
             params,
             options,
+            attributes,
+            capabilities,
 
             gfi_xslt,
             gfi_type,
@@ -369,19 +416,25 @@
             realtime,
             refresh_rate,
 
+            username,
+            password,
+
+            version,
+            srs_name,
+
             created,
             updated,
             
             download_service_url,
 			copyright_info)
-        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     </statement>
 
     <statement id="update" parameterMap="LayerUpdateParameter">
         UPDATE oskari_user_maplayer
         SET
         user_id = ?,
-        parentId = ?,
+		parentId = ?,
         base_map = ?,
         groupId = ?,
 
@@ -400,6 +453,8 @@
         tile_matrix_set_id = ?,
         params = ?,
         options = ?,
+        attributes = ?,
+        capabilities = ?,
 
         gfi_xslt = ?,
         gfi_type=?,
@@ -407,6 +462,12 @@
 
         realtime = ?,
         refresh_rate = ?,
+
+        username = ?,
+        password = ?,
+
+        version = ?,
+        srs_name = ?,
 
         updated=?,
         

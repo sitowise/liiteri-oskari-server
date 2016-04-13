@@ -151,6 +151,8 @@ public class SaveUserWmsLayerHandler extends ActionHandler {
 
         HttpServletRequest request = params.getRequest();
 
+        ml.setUserId(params.getUser().getId());
+        
         if(ml.getId() == -1) {
             // setup type and parent for new layers only
             ml.setType(params.getHttpParam("layerType"));
@@ -240,18 +242,7 @@ public class SaveUserWmsLayerHandler extends ActionHandler {
         ml.setRealtime(ConversionHelper.getBoolean(params.getHttpParam("realtime"), ml.getRealtime()));
         ml.setRefreshRate(ConversionHelper.getInt(params.getHttpParam("refreshRate"), ml.getRefreshRate()));
 
-        if(UserWmsLayer.TYPE_WMS.equals(ml.getType())) {
-            return handleWMSSpecific(params, ml);
-        }
-        else if(UserWmsLayer.TYPE_WFS.equals(ml.getType())) {
-            handleWFSSpecific(params, ml);
-            return true;
-        }
-        else if(UserWmsLayer.TYPE_WMTS.equals(ml.getType())) {
-            return handleWMTSSpecific(params, ml);
-        }
-        // no capabilities to update, return true
-        return true;
+        return handleWMSSpecific(params, ml);
     }
 
     private boolean handleWMSSpecific(final ActionParameters params, UserWmsLayer ml) throws ActionException {
@@ -282,46 +273,6 @@ public class SaveUserWmsLayerHandler extends ActionHandler {
         }
     }
 
-    private boolean handleWMTSSpecific(final ActionParameters params, UserWmsLayer ml) throws ActionException {
-        ml.setTileMatrixSetId(params.getHttpParam("matrixSetId", ml.getTileMatrixSetId()));
-
-        try {
-            OskariLayerCapabilities capabilities = capabilitiesService.getCapabilities(ml, true);
-            // flush cache, otherwise only db is updated but code retains the old cached version
-            WebMapServiceFactory.flushCache(ml.getId());
-            // parse capabilities
-            WMTSCapabilities caps = new WMTSCapabilitiesParser().parseCapabilities(capabilities.getData());
-            if (caps == null) {
-                throw new ServiceException("Couldn't parse capabilities for service!");
-            }
-            WMTSCapabilitiesLayer layer = caps.getLayer(ml.getName());
-            ResourceUrl resUrl = layer.getResourceUrlByType("tile");
-            if(resUrl != null) {
-                JSONHelper.putValue(ml.getOptions(), "requestEncoding", "REST");
-                JSONHelper.putValue(ml.getOptions(), "format", resUrl.getFormat());
-                JSONHelper.putValue(ml.getOptions(), "urlTemplate", resUrl.getTemplate());
-            }
-            return true;
-
-        } catch (Exception ex) {
-            LOG.error(ex, "Couldn't update capabilities for layer", ml);
-            return false;
-        }
-    }
-
-    private void handleWFSSpecific(final ActionParameters params, UserWmsLayer ml) throws ActionException {
-        // these are only in insert
-        ml.setSrs_name(params.getHttpParam("srs_name", ml.getSrs_name()));
-        ml.setVersion(params.getHttpParam("WFSVersion",ml.getVersion()));
-
-        // Put manual Refresh mode to attributes if true
-        JSONObject attributes = ml.getAttributes();
-        attributes.remove("manualRefresh");
-        if(ConversionHelper.getOnOffBoolean(params.getHttpParam("manualRefresh", "off"), false)){
-            JSONHelper.putValue(attributes, "manualRefresh", true);
-            ml.setAttributes(attributes);
-        }
-    }
     private String validateUrl(final String url) throws ActionParamsException {
         try {
             // check that it's a valid url by creating an URL object...

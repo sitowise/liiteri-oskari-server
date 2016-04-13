@@ -15,6 +15,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.UserWmsLayerService;
 import fi.nls.oskari.map.layer.UserWmsLayerServiceIbatisImpl;
 import fi.nls.oskari.map.layer.formatters.LayerJSONFormatter;
+import fi.nls.oskari.map.layer.formatters.LayerJSONFormatterWMS;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.ResponseHelper;
 
@@ -32,7 +33,7 @@ public class GetUserWmsLayersHandler extends ActionHandler {
             .getLogger(GetUserWmsLayersHandler.class);
     final static String LANGUAGE_ATTRIBUTE = "lang";
     private static final UserWmsLayerService userWmsLayerService = new UserWmsLayerServiceIbatisImpl();
-    private final static LayerJSONFormatter FORMATTER = new LayerJSONFormatter();
+    private final static LayerJSONFormatter FORMATTER = new LayerJSONFormatterWMS();
 
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
