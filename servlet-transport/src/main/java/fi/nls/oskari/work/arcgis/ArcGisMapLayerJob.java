@@ -37,7 +37,7 @@ import java.util.Map;
 public class ArcGisMapLayerJob extends OWSMapLayerJob {
 
     private static final Logger log = LogFactory.getLogger(ArcGisMapLayerJob.class);
-    private static final List<List<Object>> EMPTY_LIST = new ArrayList();
+    private static final List<List<Object>> EMPTY_LIST = new ArrayList<List<Object>>();
 
     public static final String OUTPUT_LAYER_ID = "layerId";
     public static final String OUTPUT_ONCE = "once";
@@ -52,13 +52,9 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
     public static String ERROR_REST_REQUEST_FAILED = "arcgis_request_failed";
 
     // process information
-    ResultProcessor service;
     private ArcGisLayerStore arcGisLayer;
-    private ArcGisLayerStore arcGisLayerScaled;
     private List<ArcGisLayerStore> arcGisLayers = new ArrayList<ArcGisLayerStore>();
 
-    private MathTransform transformService;
-    private MathTransform transformClient;
     private ArrayList<ArcGisFeature> features;
     private List<List<Object>> featureValuesList;
     private List<List<Object>> geomValuesList;
@@ -74,7 +70,6 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
     public ArcGisMapLayerJob(ResultProcessor service, JobType type, SessionStore store, WFSLayerStore layer,
                              boolean reqSendFeatures, boolean reqSendImage, boolean reqSendHighlight) {
         super(service, type, store, layer, reqSendFeatures, reqSendImage, reqSendHighlight);
-
     }
 
     /**
@@ -102,19 +97,6 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
         } else {
             log.warn("Failed to make a request because of undefined layer type", layer.getTemplateType());
         }
-
-        return response;
-    }
-
-    private BufferedReader sendIdentifyRequest(WFSLayerStore layer, List<ArcGisLayerStore> layers,
-                                               SessionStore session, List<Double> bounds,
-                                               String token) {
-        BufferedReader response = null;
-
-        String payload = ArcGisCommunicator.createIdentifyRequestPayload(layers, session, bounds, token);
-        String url = layer.getURL() + "/identify?";
-        log.debug("Request data\n", url, "\n", payload);
-        response = HttpHelper.getRequestReader(url + payload, "", layer.getUsername(), layer.getPassword());
 
         return response;
     }
@@ -232,7 +214,6 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
         }
 
         this.arcGisLayers = getArcGisLayersDependingOnScale();
-        this.arcGisLayerScaled = this.arcGisLayers.get(0);
 
         if (this.type == JobType.NORMAL) { // tiles for grid
 

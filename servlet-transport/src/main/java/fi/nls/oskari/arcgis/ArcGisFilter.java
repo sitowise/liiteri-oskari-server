@@ -226,7 +226,7 @@ public class ArcGisFilter {
         
         HashMap<String, String> filter = new HashMap<String, String>();
         
-        filter.put("objectIds", StringUtils.join(featureIds, ", "));
+        filter.put("objectIds", StringUtils.join(featureIds, ","));
 
 //        Set<FeatureId> fids = new HashSet<FeatureId>();
 //        for (String fid : featureIds) {
