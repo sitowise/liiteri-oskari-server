@@ -334,6 +334,7 @@ public class MapLayerJSONParser {
                 if (cacheExclusions.contains(layerid)) {
                     layerDefinition.setCacheable(false);
                 }
+            }
 			
 			if (!"statslayer".equals(type)) {
 			    if (layerObj.get("legendImage") != null && !layerObj.get("legendImage").toString().isEmpty()) {
@@ -344,8 +345,6 @@ public class MapLayerJSONParser {
 				    layerDefinition.setShowLegend(true);
 				}
 			}
-
-            }
 
             layerDefinition.setTileMatrixSetId((String) layerObj
                     .get("tileMatrixSetId"));
