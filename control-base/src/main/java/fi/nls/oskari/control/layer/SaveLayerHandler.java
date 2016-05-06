@@ -393,6 +393,9 @@ public class SaveLayerHandler extends ActionHandler {
 
         ml.setRealtime(ConversionHelper.getBoolean(params.getHttpParam("realtime"), ml.getRealtime()));
         ml.setRefreshRate(ConversionHelper.getInt(params.getHttpParam("refreshRate"), ml.getRefreshRate()));
+        
+        ml.setDownloadServiceUrl(params.getHttpParam("downloadServiceUrl"));
+        ml.setCopyrightInfo(params.getHttpParam("copyrightInfo"));
 
         if(OskariLayer.TYPE_WMS.equals(ml.getType())) {
             return handleWMSSpecific(params, ml);
