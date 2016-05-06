@@ -2,10 +2,10 @@ package pl.sito.liiteri.arcgis.domain;
 
 import java.io.IOException;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
