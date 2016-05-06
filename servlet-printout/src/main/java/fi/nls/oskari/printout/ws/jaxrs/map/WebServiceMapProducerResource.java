@@ -724,6 +724,10 @@ public class WebServiceMapProducerResource extends MapProducerResource {
             pageOptions.setPageMapRectFromString(values.get("PAGEMAPRECT"));
         }
 
+        if (values.get("COPYRIGHT") != null && !values.get("COPYRIGHT").isEmpty()) {
+            pageOptions.setCopyrightText(values.get("COPYRIGHT"));
+        }
+
         return pageOptions;
     }
 
