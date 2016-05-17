@@ -1,11 +1,14 @@
 package fi.nls.oskari.user;
 
 import fi.nls.oskari.domain.Role;
+import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseIbatisService;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class IbatisRoleService extends BaseIbatisService<Role> {
     @Override
@@ -86,6 +89,35 @@ public class IbatisRoleService extends BaseIbatisService<Role> {
             }
         }
         return mapping;
+    }
+
+    public Set<Role> ensureRolesInDB(final Set<Role> userRoles) throws ServiceException {
+        List<Role> roleList = this.findAll();
+        final Role[] systemRoles =  roleList.toArray(new Role[roleList.size()]);
+        final Set<Role> rolesToInsert = new HashSet<Role>(userRoles.size());
+        for(Role userRole : userRoles) {
+            boolean found = false;
+            for(Role role : systemRoles) {
+                if(role.getName().equals(userRole.getName())) {
+                    // assign ID from role with same name in db
+                    userRole.setId(role.getId());
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) {
+                rolesToInsert.add(userRole);
+            }
+        }
+        // insert missing roles to DB and assign ID
+        for(Role role : rolesToInsert) {
+            Role dbRole = new Role();
+            dbRole.setName(role.getName());
+            long id = this.insert(dbRole);
+            dbRole.setId(id);
+            role.setId(dbRole.getId());
+        }
+        return userRoles;
     }
 
 

@@ -10,6 +10,7 @@ import fi.nls.oskari.util.PropertyUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -267,6 +268,10 @@ public abstract class UserService {
      * @throws ServiceException
      */
     public void updateUserPassword(String screenname, String password) throws ServiceException {
+        throw new ServiceException("Not implemented");
+    }
+    
+    public User modifyUserwithRoles(User user, Set<Role> roles) throws ServiceException {
         throw new ServiceException("Not implemented");
     }
 }

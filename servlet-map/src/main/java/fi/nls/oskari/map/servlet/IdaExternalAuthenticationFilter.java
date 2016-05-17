@@ -1,9 +1,6 @@
 package fi.nls.oskari.map.servlet;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -35,14 +32,12 @@ public class IdaExternalAuthenticationFilter implements Filter {
     private IdaValidatorService validatorService = null;
 
     private boolean addMissingUsers = true;
-    private Map<String, Role> externalRolesMapping = null;
 
     private String loggedOutPage;
     private boolean idaAuthentication = false;
 
     @Override
     public void destroy() {
-        externalRolesMapping.clear();
     }
 
     @Override
@@ -59,17 +54,6 @@ public class IdaExternalAuthenticationFilter implements Filter {
 
         validatorService = new IdaValidatorService();
         roleService = new IbatisRoleService();
-        externalRolesMapping = new HashMap<String, Role>();
-        try {
-            List<Role> roles = roleService.findAll();
-            for (Role role : roles) {
-                externalRolesMapping.put(role.getName(), role);
-            }
-        } catch (Exception e) {
-            log.error(e, "Error getting UserService. Is it configured?");
-            addMissingUsers = false;
-        }
-
     }
 
     @Override
@@ -134,7 +118,14 @@ public class IdaExternalAuthenticationFilter implements Filter {
                 loadedUser = addUser(user);
             }
             if (loadedUser != null) {
-                log.info("Starting session for " + loadedUser.getScreenname());
+                if (!loadedUser.getRoles().containsAll(user.getRoles())
+                        || !user.getRoles().containsAll(loadedUser.getRoles())) {
+                    log.debug("roles differ, updating");
+                    loadedUser = UserService.getInstance().modifyUserwithRoles(
+                            loadedUser, user.getRoles());
+                }
+                log.info("Starting session for " + loadedUser.getScreenname() + " with " + loadedUser.getRoles().size() + " roles");
+                
                 httpRequest.getSession(true).setAttribute(KEY_USER, loadedUser);
             }
         }
@@ -158,13 +149,9 @@ public class IdaExternalAuthenticationFilter implements Filter {
                 user.getScreenname()));
         user.setTosAccepted(userStub.getTosAccepted());
 
-        for (Role role : userStub.getRoles()) {
-            if (externalRolesMapping.containsKey(role.getName())) {
-                user.addRole(externalRolesMapping.get(role.getName()));
-            } else {
-                log.warn("Role [" + role.getName()
-                        + "] is not present in Liiteri and won't be added");
-            }
+      //make sure all roles are in known before adding user
+        for (Role role : roleService.ensureRolesInDB(userStub.getRoles())) {
+            user.addRole(role);
         }
 
         log.info("Adding new user to database " + user.getScreenname());
