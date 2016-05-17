@@ -1,22 +1,14 @@
 package fi.nls.oskari.map.userowndata;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import com.ibatis.sqlmap.client.SqlMapSession;
 
-import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.UserGisData;
-import fi.nls.oskari.domain.map.UserGisDataSharing;
-import fi.nls.oskari.domain.workspaces.WorkSpace;
-import fi.nls.oskari.domain.workspaces.WorkSpaceSharing;
-import fi.nls.oskari.groupings.utils.EmailSender;
 import fi.nls.oskari.service.ServiceException;
-import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.service.db.BaseIbatisService;
-import fi.nls.oskari.util.PropertyUtil;
 
 public class GisDataDbServiceImpl extends BaseIbatisService<UserGisData> implements GisDataDbService{	
 	

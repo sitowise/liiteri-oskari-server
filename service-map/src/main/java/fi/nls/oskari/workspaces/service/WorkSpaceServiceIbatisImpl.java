@@ -1,22 +1,12 @@
 package fi.nls.oskari.workspaces.service;
 
-import java.sql.SQLException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.ibatis.sqlmap.client.SqlMapSession;
-
-import fi.nls.oskari.domain.groupings.GroupingPermission;
-import fi.nls.oskari.domain.groupings.GroupingTheme;
-import fi.nls.oskari.domain.workspaces.WorkSpaceSharing;
 import fi.nls.oskari.domain.workspaces.WorkSpace;
-import fi.nls.oskari.groupings.utils.EmailSender;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseIbatisService;
-import fi.nls.oskari.util.PropertyUtil;
 
 public class WorkSpaceServiceIbatisImpl extends BaseIbatisService<WorkSpace>
 		implements WorkSpaceDbService {

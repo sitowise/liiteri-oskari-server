@@ -55,13 +55,17 @@ public class WorkspaceReminder implements Runnable {
 
                     NotificationItem item = new NotificationItem();
                     item.setContent(String.format(PropertyUtil.get(EMAIL_TEXT),
+                            workspace.getName(),
                             sdf.format(workspace.getExpirationDate())));
                     item.setRecipient(username);
                     item.setTitle(PropertyUtil.get(EMAIL_TITLE));
                     notificationService.SendNotification(item);
+                    // update status of workspace to REMINDED, if email sending successful
+                    workspace.setStatus(WORKSPACE_STATUS_REMINDED);
+                } else {
+                    // update status of workspace to REMINDED, if no email address
+                    workspace.setStatus(WORKSPACE_STATUS_REMINDED);
                 }
-                // update status of workspace to REMINDED
-                workspace.setStatus(WORKSPACE_STATUS_REMINDED);
 
                 try {
                     service.updateWorkspace(workspace, true);

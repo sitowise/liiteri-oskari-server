@@ -3,18 +3,14 @@ package fi.nls.oskari.groupings.db;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 
 import com.ibatis.sqlmap.client.SqlMapSession;
 
 import fi.nls.oskari.domain.groupings.Grouping;
-import fi.nls.oskari.domain.groupings.GroupingPermission;
 import fi.nls.oskari.domain.groupings.GroupingTheme;
 import fi.nls.oskari.domain.groupings.GroupingThemeData;
-import fi.nls.oskari.groupings.utils.EmailSender;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.db.BaseIbatisService;
-import fi.nls.oskari.util.PropertyUtil;
 
 public class GroupingServiceIbatisImpl extends BaseIbatisService<Grouping>
 		implements GroupingDbService {

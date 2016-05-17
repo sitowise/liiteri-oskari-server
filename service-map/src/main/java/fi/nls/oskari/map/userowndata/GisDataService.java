@@ -6,22 +6,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
-import pl.sito.liiteri.sharing.ISharingService;
-import pl.sito.liiteri.sharing.SharingItem;
-import pl.sito.liiteri.sharing.SharingService;
-import pl.sito.liiteri.sharing.SharingItem.ResourceType;
-import pl.sito.liiteri.sharing.SharingItem.Status;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.UserGisDataSharing;
-import fi.nls.oskari.domain.workspaces.WorkSpace;
-import fi.nls.oskari.domain.workspaces.WorkSpaceSharing;
-import fi.nls.oskari.groupings.utils.EmailSender;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.ServiceException;
-import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.PropertyUtil;
+import pl.sito.liiteri.sharing.ISharingService;
+import pl.sito.liiteri.sharing.SharingItem;
+import pl.sito.liiteri.sharing.SharingItem.ResourceType;
+import pl.sito.liiteri.sharing.SharingItem.Status;
+import pl.sito.liiteri.sharing.SharingService;
 
 public class GisDataService
 {	
