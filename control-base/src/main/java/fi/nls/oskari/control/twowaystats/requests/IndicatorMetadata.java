@@ -59,8 +59,8 @@ public class IndicatorMetadata extends TwowayRequest {
                             "title");
                     JSONCopyHelper.LanguageAwareCopy(source, "Description",
                             result, "description");
-                    JSONHelper.putValue(result, "additionalInfo",
-                            JSONSzopaHelper.createLanguageJSONObject(" "));
+                    JSONCopyHelper.LanguageAwareCopy(source, "AdditionalInformation",
+                            result, "additionalInfo");
                     JSONHelper.putValue(result, "unit", " ");
                     JSONHelper.putValue(result, "stage", JSONSzopaHelper
                             .createLanguageJSONObject("ProcessingStage"));
