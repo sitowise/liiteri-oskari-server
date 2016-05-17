@@ -6,7 +6,6 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
@@ -225,7 +224,6 @@ public class IdaValidatorService {
 
         identity = new User();
         identity.setScreenname(userName);
-        identity.setTosAccepted(new Date()); //OIVA users have already accepted TOS when creating OIVA account
 
         int i = 0;
         for (String role : roles) {
