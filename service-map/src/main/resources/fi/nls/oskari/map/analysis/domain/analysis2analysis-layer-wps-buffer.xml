@@ -41,6 +41,12 @@
 	        <wps:LiteralData>{includeOriginal}</wps:LiteralData>
 	      </wps:Data>
 	    </wps:Input>
+		<wps:Input>
+		  <ows:Identifier>mergeBuffers</ows:Identifier>
+		  <wps:Data>
+			<wps:LiteralData>{mergeBuffers}</wps:LiteralData>
+		  </wps:Data>
+		</wps:Input>
     </wps:DataInputs>
     <wps:ResponseForm>
         <wps:RawDataOutput mimeType="text/xml; subtype=wfs-collection/1.1">

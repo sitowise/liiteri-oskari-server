@@ -1,8 +1,10 @@
 package org.geoserver.wps.oskari.oskari;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.geotools.data.DataUtilities;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -32,13 +34,18 @@ public class BufferFeatureCollection2 implements GSProcess {
 			@DescribeParameter(name = "features", description = "features") SimpleFeatureCollection features,
 			@DescribeParameter(name = "distance", description = "buffer size") Double distance,
 			@DescribeParameter(name = "attributeName", description = "attributeName", min = 0) String attributeName,			
-			@DescribeParameter(name = "includeOriginal", description = "includeOriginal", min = 0, defaultValue = "True") Boolean includeOriginal) {
+			@DescribeParameter(name = "includeOriginal", description = "includeOriginal", min = 0, defaultValue = "True") Boolean includeOriginal,
+			@DescribeParameter(name = "mergeBuffers", description = "mergeBuffers", min = 0, defaultValue = "False") Boolean mergeBuffers) {
 
 		if (includeOriginal == null) {
 			includeOriginal = true;
 		}
 		
 		List<SimpleFeature> ret = new ArrayList<SimpleFeature>();
+		
+		SimpleFeatureTypeBuilder mergedFtb = new SimpleFeatureTypeBuilder();
+		Map<String, String> attributeMap = new HashMap<String, String>();
+		Geometry mergedGeometry = null;
 		
 		SimpleFeatureIterator iter = features.features();
 
@@ -51,6 +58,11 @@ public class BufferFeatureCollection2 implements GSProcess {
                 if (!(descriptor.getType() instanceof GeometryTypeImpl)
                         || (!feature.getFeatureType().getGeometryDescriptor().equals(descriptor))) {
                     tb.add(descriptor);
+					
+					if (mergeBuffers == true) {
+						mergedFtb.add(descriptor);
+					}
+					
                 } else {
                     AttributeTypeBuilder builder = new AttributeTypeBuilder();
                     builder.setBinding(MultiPolygon.class);
@@ -60,12 +72,26 @@ public class BufferFeatureCollection2 implements GSProcess {
                     if(tb.getDefaultGeometry() == null) {
                         tb.setDefaultGeometry(descriptor.getLocalName());
                     }
+					
+					if (mergeBuffers == true) {
+						mergedFtb.add(descriptor);
+						
+						if(mergedFtb.getDefaultGeometry() == null) {
+							mergedFtb.setDefaultGeometry(descriptor.getLocalName());
+						}
+					}
                 }
             }
             tb.setDescription(feature.getFeatureType().getDescription());
             tb.setCRS(feature.getFeatureType().getCoordinateReferenceSystem());
             tb.setName(feature.getFeatureType().getName());
             
+			if (mergeBuffers == true) {
+				mergedFtb.setDescription(feature.getFeatureType().getDescription());
+				mergedFtb.setCRS(feature.getFeatureType().getCoordinateReferenceSystem());
+				mergedFtb.setName(feature.getFeatureType().getName());
+			}
+			
             SimpleFeatureType sft  = tb.buildFeatureType();
             SimpleFeatureBuilder fb = new SimpleFeatureBuilder(sft);
             
@@ -79,7 +105,20 @@ public class BufferFeatureCollection2 implements GSProcess {
                 AttributeDescriptor ad = firstIterator.next();
                 Object firstAttribute = feature.getAttribute(ad.getLocalName());
                 if (!(firstAttribute instanceof Geometry)) {
-                    fb.add(feature.getAttribute(ad.getLocalName()));
+                    fb.set(ad.getLocalName(), feature.getAttribute(ad.getLocalName()));
+					
+					if (mergeBuffers == true) {
+						String attrValue = "";
+						String oldValue = attributeMap.get(ad.getLocalName());
+						if (oldValue != null) {
+							attrValue = oldValue + " ";
+						}
+						if (feature.getAttribute(ad.getLocalName()) != null) {
+							attrValue += feature.getAttribute(ad.getLocalName()).toString();
+						}
+						
+						attributeMap.put(ad.getLocalName(), attrValue);
+					}
                 }
     			if (attributeName != null && ad.getLocalName().equals(attributeName)) {
     				try{
@@ -106,7 +145,36 @@ public class BufferFeatureCollection2 implements GSProcess {
 			
 			sf.setDefaultGeometry(buffered);
 			
+			if (mergeBuffers == true) {
+				if (mergedGeometry == null) {
+					mergedGeometry = buffered;
+				} else {
+					mergedGeometry = mergedGeometry.union(buffered);
+				}
+			}
+			
 			ret.add(sf);
+		}
+		
+		if (mergeBuffers == true) {
+				
+				ret = new ArrayList<SimpleFeature>();
+				
+				SimpleFeatureType sft  = mergedFtb.buildFeatureType();
+				SimpleFeatureBuilder fb = new SimpleFeatureBuilder(sft);
+				
+				Iterator it = attributeMap.entrySet().iterator();
+				while (it.hasNext()) {
+					Map.Entry attributeEntry = (Map.Entry)it.next();
+					fb.set(attributeEntry.getKey().toString(), attributeEntry.getValue());
+				}
+				
+				SimpleFeature sf = fb.buildFeature(null);
+				
+				sf.setDefaultGeometry(mergedGeometry);
+				
+				ret.add(sf);
+			
 		}
 		
 		return DataUtilities.collection(ret);

@@ -87,7 +87,10 @@ public class SaveAnnouncementHandler extends ActionHandler{
 
 			} else {
 				try {
-					announcementService.updateAnnouncement(a);
+					//delete old announcement and add new one (with new id)
+					//it's because the announcement should be shown after edition, even if user selects option to not show this message anymore  
+					announcementService.deleteAnnouncement(a.getId());
+					announcementService.insertAnnouncement(a);
 					response.put("success", "Announcement has been updated");
 				} catch (JSONException e) {
 					throw new ActionException("Error during generating response", e);	
