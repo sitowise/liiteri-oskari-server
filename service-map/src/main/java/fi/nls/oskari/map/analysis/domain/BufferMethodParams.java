@@ -21,11 +21,13 @@ public class BufferMethodParams extends AnalysisMethodParams {
     // distance is read from feature attribute field
     private final String ATTRIBUTENAME = "{attributeName}";
     private final String INCLUDEORIGINAL = "{includeOriginal}";
+	private final String MERGEBUFFERS = "{mergeBuffers}";
     // private final String HREF = "{href}";
 
     private String distance = "";
     private String attributeName = "";
     private Boolean includeOriginal = true;
+	private Boolean mergeBuffers = false;
 
     public Boolean getIncludeOriginal() {
 		return includeOriginal;
@@ -50,6 +52,14 @@ public class BufferMethodParams extends AnalysisMethodParams {
     public void setAttributeName(String attributeName) {
         this.attributeName = attributeName;
     }
+	
+	public Boolean getMergeBuffers() {
+		return mergeBuffers;
+	}
+
+	public void setMergeBuffers(Boolean mergeBuffers) {
+		this.mergeBuffers = mergeBuffers;
+	}
 
     /**
      * DEPRECATED - NOT IN USE
@@ -76,6 +86,7 @@ public class BufferMethodParams extends AnalysisMethodParams {
         this.setLiteralDataContent(doc, DISTANCE, this.getDistance());
         this.setLiteralDataContent(doc, ATTRIBUTENAME, this.getAttributeName());
         this.setLiteralDataContent(doc, INCLUDEORIGINAL, this.getIncludeOriginal().toString());
+		this.setLiteralDataContent(doc, MERGEBUFFERS, this.getMergeBuffers().toString());
 
         // add features and inputs to dataInputs node
         return doc;
@@ -85,20 +96,21 @@ public class BufferMethodParams extends AnalysisMethodParams {
             SAXException, ParserConfigurationException {
 
         String doctemp = null;
-        if (this.getWps_reference_type().equals(this.REFERENCE_TYPE_GS))
-        {
-            doctemp = this.getTemplate(this.analysisMethodTemplate2);
-        }
-        else if (this.getWps_reference_type().equals(this.INPUT_GEOJSON))
-        {
-            doctemp = this.getTemplate(this.analysisMethodTemplate3);
-            doctemp = doctemp.replace(GEOJSONFEATURES, this.getGeojson());
-        }
-        else
-        {
-            doctemp = this.getTemplate(this.analysisMethodTemplate);
-            doctemp = doctemp.replace(HREF,this.getHref());
-        }
+		
+		if (this.getWps_reference_type().equals(this.REFERENCE_TYPE_GS))
+		{
+			doctemp = this.getTemplate(this.analysisMethodTemplate2);
+		}
+		else if (this.getWps_reference_type().equals(this.INPUT_GEOJSON))
+		{
+			doctemp = this.getTemplate(this.analysisMethodTemplate3);
+			doctemp = doctemp.replace(GEOJSONFEATURES, this.getGeojson());
+		}
+		else
+		{
+			doctemp = this.getTemplate(this.analysisMethodTemplate);
+			doctemp = doctemp.replace(HREF,this.getHref());
+		}
 
         doctemp = doctemp.replace(MAXFEATURES, this.getMaxFeatures()); // may be capacity problems, if big one
         doctemp = doctemp.replace(OUTPUTFORMAT, this.getOutputFormat());
@@ -109,6 +121,7 @@ public class BufferMethodParams extends AnalysisMethodParams {
         doctemp = doctemp.replace(DISTANCE, this.getDistance());
         doctemp = doctemp.replace(ATTRIBUTENAME, "");
         doctemp = doctemp.replace(INCLUDEORIGINAL, this.getIncludeOriginal().toString());
+		doctemp = doctemp.replace(LOCALTYPENAME, "bufferedFeature");
         
         //Properties
         if (this.getProperties() != null) {

@@ -716,6 +716,7 @@ public class AnalysisParser {
 
             method.setDistance(params.optString(JSON_KEY_DISTANCE));
             method.setIncludeOriginal(params.optBoolean("includeOriginal", true));
+			method.setMergeBuffers(params.optBoolean("mergeBuffers", false));
             method.setGeojson(geojson);
 
         } catch (JSONException e) {
