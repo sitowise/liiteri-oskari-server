@@ -13,7 +13,8 @@
 
 	<select id="getAllAnnouncements" resultMap="AnnouncementMap">
 		SELECT id, title, message, expiration_date
-  			FROM oskari_announcements;
+  			FROM oskari_announcements
+			ORDER BY id DESC;
 	</select>
 	
 	<statement id="insertAnnouncement" resultClass="java.lang.Long" parameterClass="Announcement">
