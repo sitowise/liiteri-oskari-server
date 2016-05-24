@@ -121,6 +121,7 @@ public class BufferMethodParams extends AnalysisMethodParams {
         doctemp = doctemp.replace(DISTANCE, this.getDistance());
         doctemp = doctemp.replace(ATTRIBUTENAME, "");
         doctemp = doctemp.replace(INCLUDEORIGINAL, this.getIncludeOriginal().toString());
+		doctemp = doctemp.replace(MERGEBUFFERS, this.getMergeBuffers().toString());
 		doctemp = doctemp.replace(LOCALTYPENAME, "bufferedFeature");
         
         //Properties
