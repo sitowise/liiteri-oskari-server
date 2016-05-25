@@ -90,10 +90,7 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
             String payload = ArcGisCommunicator.createQueryRequestPayload(type, layer, session, bounds, token);
             String url = layer.getURL() + "/" + arcGisLayer.getId() + "/query?";
             log.debug("Request data\n", url, "\n", payload);
-            //response = HttpHelper.postRequestReader(url, "", payload, layer.getUsername(), layer.getPassword());
-
-            //TODO: POST
-            response = HttpHelper.getRequestReader(url + payload, "", layer.getUsername(), layer.getPassword());
+            response = HttpHelper.postRequestReader(url, "application/x-www-form-urlencoded", payload, layer.getUsername(), layer.getPassword());
         } else {
             log.warn("Failed to make a request because of undefined layer type", layer.getTemplateType());
         }

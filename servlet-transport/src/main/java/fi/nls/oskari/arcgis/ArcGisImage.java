@@ -200,7 +200,7 @@ public class ArcGisImage extends WFSImage {
 
         String url = layer.getURL() + "/export?";
         String payload = ArcGisCommunicator.createImageRequestPayload(layer, arcGisLayer, arcGisLayers, screenArea, bounds, mapSrs, token);
-
+        
         if (isHighlight) {
             WFSCustomStyleStore highlightStyle = getDefaultHighlightStyle();
             String stylePayload = ArcGisCommunicator.createHighlightStyleRequestPayload(layer, arcGisLayer, arcGisLayers, features, highlightStyle);
@@ -210,7 +210,7 @@ public class ArcGisImage extends WFSImage {
             payload += stylePayload;
         }
 
-        BufferedInputStream response = HttpHelper.getRequestStream(url + payload, "", layer.getUsername(), layer.getPassword());
+        BufferedInputStream response = HttpHelper.postRequestStream(url, "application/x-www-form-urlencoded", payload, layer.getUsername(), layer.getPassword());
 
         return streamToImage(response);
     }
