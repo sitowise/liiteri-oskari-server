@@ -1,15 +1,10 @@
 package fi.nls.oskari.arcgis;
 
-import com.vividsolutions.jts.geom.*;
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
-import com.vividsolutions.jts.util.GeometricShapeFactory;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.pojo.GeoJSONFilter;
-import fi.nls.oskari.pojo.Location;
-import fi.nls.oskari.pojo.SessionStore;
-import fi.nls.oskari.wfs.pojo.WFSLayerStore;
-import fi.nls.oskari.work.JobType;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.commons.lang.StringUtils;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.geojson.geom.GeometryJSON;
@@ -25,10 +20,24 @@ import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.referencing.operation.MathTransform;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.LinearRing;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
+import com.vividsolutions.jts.util.GeometricShapeFactory;
+
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.pojo.GeoJSONFilter;
+import fi.nls.oskari.pojo.Location;
+import fi.nls.oskari.pojo.SessionStore;
+import fi.nls.oskari.wfs.pojo.WFSLayerStore;
+import fi.nls.oskari.work.JobType;
 
 /**
  * WFS geotools filter creation
@@ -133,10 +142,10 @@ public class ArcGisFilter {
                 filterMap = initCoordinateFilter(coordinate, mapSrs);
             } else if(type == JobType.GEOJSON) {
                 log.debug("Filter: GeoJSON");
-                log.error("Unsupported filter GeoJSON");
-                //setDefaultBuffer(session.getMapScales().get((int) session.getLocation().getZoom()));
-                //GeoJSONFilter geoJSONFilter = session.getFilter();
+                setDefaultBuffer(session.getMapScales().get((int) session.getLocation().getZoom()));
+                GeoJSONFilter geoJSONFilter = session.getFilter();
                 //filter = initGeoJSONFilter(geoJSONFilter);
+                filterMap = initGeoJSONFilter(geoJSONFilter, mapSrs);
             } else if(type == JobType.NORMAL) {
                 log.debug("Filter: normal");
                 Location location;
@@ -293,75 +302,86 @@ public class ArcGisFilter {
      *
      * @return filter
      */
-    public Filter initGeoJSONFilter(GeoJSONFilter geoJSONFilter) {
+    public HashMap<String, String> initGeoJSONFilter(GeoJSONFilter geoJSONFilter, String mapSrs) {
         if(geoJSONFilter == null || geoJSONFilter.getFeatures() == null || this.defaultBuffer == 0.0d) {
             log.error("Failed to create geoJSON filter (invalid JSON or default buffer unset)");
             return null;
         }
-        Filter filter = null;
-        List<Filter> geometryFilters = new ArrayList<Filter>();
-        Filter tmpFilter = null;
+        HashMap<String, String> filter = null;
         Polygon polygon = null;
 
         JSONArray features = (JSONArray) geoJSONFilter.getFeatures();
         try {
-            for (int i = 0; i < features.length(); i++) {
-                polygon = null;
-                JSONObject feature = (JSONObject) features.get(i);
-                JSONObject geometry = (JSONObject) feature.get("geometry");
-
-                JSONObject properties = (JSONObject) feature.get("properties");
-                String sdistance = properties.optString("buffer_radius", "0");
-                double distance = Double.parseDouble(sdistance);
-                if (distance == 0) {
-                    distance = this.defaultBuffer;
-                }
-
-                String geomType = geometry.getString("type").toUpperCase();
-                GeometryJSON geom = new GeometryJSON(3);
-                if (geomType.equals(GT_GEOM_POLYGON)) {
-                    polygon = geom.readPolygon(geometry.toString());
-                } else if (geomType.equals(GT_GEOM_LINESTRING)) {
-                    LineString lineGeom = geom.readLine(geometry.toString());
-                    Geometry gtgeom = (Geometry) lineGeom;
-                    polygon = (Polygon) gtgeom.buffer(distance);
-                } else if (geomType.equals(GT_GEOM_POINT)) {
-                    Point pointGeom = geom.readPoint(geometry.toString());
-                    gsf.setSize(distance);
-                    gsf.setCentre(pointGeom.getCoordinate());
-                    // IF oskari point (10)
-                    gsf.setNumPoints(CIRCLE_POINTS_COUNT);
-                    // IF oskari circle (40)
-                    // gsf.setNumPoints(40);
-                    polygon = gsf.createCircle();
-                }
-
-//                // transform
-//                if (this.transform != null) {
-//                    try {
-//                        polygon = (Polygon) JTS.transform(polygon,
-//                                this.transform);
-//                    } catch (Exception e) {
-//                        log.error(e, "Transforming failed");
-//                    }
-//                }
-
-                tmpFilter = ff.intersects(ff.property(layer
-                        .getGMLGeometryProperty()), ff.literal(polygon));
-
-                geometryFilters.add(tmpFilter);
+            if(features.length() > 1) {
+                //TODO: support for multiple geometries?
+                log.warn("Got " + features.length() + " features, but using only first for filter");
             }
+            JSONObject feature = (JSONObject) features.get(0);
+            JSONObject geometry = (JSONObject) feature.get("geometry");
+
+            JSONObject properties = (JSONObject) feature.get("properties");
+            String sdistance = properties.optString("buffer_radius", "0");
+            double distance = Double.parseDouble(sdistance);
+            if (distance == 0) {
+                distance = this.defaultBuffer;
+            }
+
+            String geomType = geometry.getString("type").toUpperCase();
+            GeometryJSON geom = new GeometryJSON(3);
+            if (geomType.equals(GT_GEOM_POLYGON)) {
+                polygon = geom.readPolygon(geometry.toString());
+            } else if (geomType.equals(GT_GEOM_LINESTRING)) {
+                LineString lineGeom = geom.readLine(geometry.toString());
+                Geometry gtgeom = (Geometry) lineGeom;
+                polygon = (Polygon) gtgeom.buffer(distance);
+            } else if (geomType.equals(GT_GEOM_POINT)) {
+                Point pointGeom = geom.readPoint(geometry.toString());
+                gsf.setSize(distance);
+                gsf.setCentre(pointGeom.getCoordinate());
+                // IF oskari point (10)
+                gsf.setNumPoints(CIRCLE_POINTS_COUNT);
+                // IF oskari circle (40)
+                // gsf.setNumPoints(40);
+                polygon = gsf.createCircle();
+            }
+
+            filter = new HashMap<String, String>();
+
+            StringWriter polygonJson = new StringWriter(); 
+
+            polygonJson.write("{\"rings\" : [ [");
+
+            LineString exterior = polygon.getExteriorRing();
+            for(int j = 0; j < exterior.getNumPoints(); ++j) {
+                Point p = exterior.getPointN(j);
+                polygonJson.write("[");
+                polygonJson.write(Double.toString(p.getX()).replace(",", "."));
+                polygonJson.write(",");
+                polygonJson.write(Double.toString(p.getY()).replace(",", "."));
+                polygonJson.write("]");
+                polygonJson.write(",");
+            }
+
+            polygonJson.write("[");
+            polygonJson.write(Double.toString(exterior.getStartPoint().getX()).replace(",", "."));
+            polygonJson.write(",");
+            polygonJson.write(Double.toString(exterior.getStartPoint().getY()).replace(",", "."));
+            polygonJson.write("]");
+
+            polygonJson.write("] ]}");
+
+            Envelope envelope = polygon.getEnvelopeInternal();
+            filter.put("bbox", envelope.getMinX() + "," + envelope.getMinY() + "," + envelope.getMaxX() + "," + envelope.getMaxY());
+            filter.put("geometry", polygonJson.toString());
+            filter.put("inSR", mapSrs);
+            filter.put("geometryType", "esriGeometryPolygon");
+            filter.put("spatialRel", "esriSpatialRelIntersects");
         } catch (JSONException e) {
             log.error(e, "Reading geojson data failed");
         } catch (Exception e) {
             log.error(e, "Generating geometries from geojson failed");
         }
 
-        if(geometryFilters.size() > 1) {
-            filter = ff.or(geometryFilters);
-        } else {
-            filter = tmpFilter;
-        }
 
         return filter;
     }
