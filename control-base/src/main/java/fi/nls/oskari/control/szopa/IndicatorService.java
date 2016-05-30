@@ -1,5 +1,6 @@
 package fi.nls.oskari.control.szopa;
 
+import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -13,6 +14,7 @@ import fi.nls.oskari.control.szopa.requests.SzopaRequest;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.util.JSONHelper;
 
 public class IndicatorService {
     private static class IndicatorServiceHolder {
@@ -175,9 +177,9 @@ public class IndicatorService {
                 isEmpty = false;
             }
         }
-
+        
         String parsedGeometryFilter = filterParser.parseGeometryFilter(
-                geometryFilter, user);
+                convertJsonFilter(geometryFilter), user);
         if (!parsedGeometryFilter.isEmpty()) {
 
             if (!isEmpty)
@@ -191,5 +193,24 @@ public class IndicatorService {
             isEmpty = false;
         }
         return result;
+    }
+
+    private String convertJsonFilter(final String geometryFilter)
+            throws ActionException {
+        org.json.JSONArray geometryFilterJson = JSONHelper
+                .createJSONArray(geometryFilter);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < geometryFilterJson.length(); ++i) {
+            try {
+                sb.append(geometryFilterJson.getJSONObject(i).getString("geom"));
+            } catch (JSONException e) {
+                throw new ActionException("Error reading geometry filter", e);
+            }
+
+            if (i < geometryFilterJson.length() - 1) {
+                sb.append('|');
+            }
+        }
+        return sb.toString();
     }
 }
