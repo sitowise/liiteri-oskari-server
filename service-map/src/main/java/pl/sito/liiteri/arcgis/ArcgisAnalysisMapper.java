@@ -30,7 +30,7 @@ public class ArcgisAnalysisMapper
 	{
 		JSONObject json = JSONHelper.createJSONObject(configuration);
 		String layerType = json.optString("layerType", null);
-		return "arcgislayer".equals(layerType);
+		return "arcgis".equals(layerType);
 	}
 	
 	public String MapArcgisAnalysisConfiguration(String configuration, String filter) throws Exception

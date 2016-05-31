@@ -163,7 +163,7 @@ public abstract class AnalysisMethodParams {
     }
 
     public String getVersion() {
-        return version;
+        return version != null ? version : "";
     }
 
     public void setVersion(String version) {
