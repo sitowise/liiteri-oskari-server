@@ -9,6 +9,13 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.PrecisionModel;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.io.WKTWriter;
+
 import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.mml.portti.service.db.permissions.PermissionsServiceIbatisImpl;
@@ -128,9 +135,21 @@ public class FilterParser {
         StringBuffer buffer = new StringBuffer();
 
         String[] geometryFilterParams = param.split("\\|");
+        
+        GeometryFactory geomFactory = new GeometryFactory(new PrecisionModel(10));
+        WKTReader reader = new WKTReader(geomFactory);
+        WKTWriter writer = new WKTWriter();
+        
         for (int i = 0; i < geometryFilterParams.length; ++i) {
-            buffer.append(gridSize + " INTERSECTS '" + geometryFilterParams[i]
-                    + "'");
+            try {
+                Geometry g = reader.read(geometryFilterParams[i]).buffer(0);
+
+                buffer.append(gridSize + " INTERSECTS '" + writer.write(g)
+                        + "'");
+            } catch (ParseException e) {
+                throw new ActionException("Geometry error", e);
+            }
+
             if (i < geometryFilterParams.length - 1) {
                 buffer.append(" OR ");
             }
