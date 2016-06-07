@@ -6,7 +6,7 @@
 <head>
     <title>Liiteri-tietopalvelu</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <script type="text/javascript" src="//code.jquery.com/jquery-1.7.2.min.js">
+    <script type="text/javascript" src="/Oskari/libraries/jquery/jquery-1.7.2.min.js">
     </script>
 	
 
@@ -41,7 +41,7 @@
             type="text/css"
             href="/Oskari${path}/css/bootstrap/bootstrap-theme.css"/>					
 			
-	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>			
+	<script src="/Oskari/libraries/bootstrap/bootstrap.min.js"></script>			
 	
     <style type="text/css">
         @media screen {
