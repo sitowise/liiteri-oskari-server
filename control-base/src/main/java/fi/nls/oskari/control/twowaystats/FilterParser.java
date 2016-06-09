@@ -3,9 +3,17 @@ package fi.nls.oskari.control.twowaystats;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.PrecisionModel;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.io.WKTWriter;
 
 import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.service.db.permissions.PermissionsService;
@@ -15,6 +23,7 @@ import fi.nls.oskari.control.szopa.RegionDefinition;
 import fi.nls.oskari.control.szopa.RegionDefinition.RegionType;
 import fi.nls.oskari.control.szopa.RegionService;
 import fi.nls.oskari.domain.User;
+import fi.nls.oskari.util.JSONHelper;
 
 public class FilterParser {
     private static class FilterParserHolder {
@@ -120,12 +129,6 @@ public class FilterParser {
 
         StringBuffer buffer = new StringBuffer();
 
-        String[] filterParts = param.split(":");
-
-        if (filterParts.length != 2 || !filterParts[0].equalsIgnoreCase(type)) {
-            return "";
-        }
-
         if (user == null) {
             throw new ActionException("No permissions");
         }
@@ -138,11 +141,27 @@ public class FilterParser {
             throw new ActionException("No permissions");
         }
 
-        String[] geometryFilterParams = filterParts[1].split("\\|");
-        for (int i = 0; i < geometryFilterParams.length; ++i) {
-            buffer.append(gridSize + " INTERSECTS '" + geometryFilterParams[i]
+        org.json.JSONArray geomFilters = JSONHelper.createJSONArray(param);
+        GeometryFactory geomFactory = new GeometryFactory(new PrecisionModel(10));
+        WKTReader reader = new WKTReader(geomFactory);
+        WKTWriter writer = new WKTWriter();
+        List<String> filterGeometries = new ArrayList<String>();
+        try {
+            for (int i = 0; i < geomFilters.length(); ++i) {
+                org.json.JSONObject filterObject = geomFilters.getJSONObject(i);
+                if(type.equalsIgnoreCase(filterObject.getString("direction"))) {
+                    Geometry g = reader.read(filterObject.getString("geom")).buffer(0);
+                    filterGeometries.add(writer.write(g));
+                }
+            }
+        } catch (JSONException | ParseException e) {
+            throw new ActionException("Could not handle geometry filters", e);
+        }
+
+        for (int i = 0; i < filterGeometries.size(); ++i) {
+            buffer.append(gridSize + " INTERSECTS '" + filterGeometries.get(i)
                     + "'");
-            if (i < geometryFilterParams.length - 1) {
+            if (i < filterGeometries.size() - 1) {
                 buffer.append(" OR ");
             }
         }

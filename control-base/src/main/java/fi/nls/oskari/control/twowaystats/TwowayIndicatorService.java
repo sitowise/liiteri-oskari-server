@@ -135,9 +135,10 @@ public class TwowayIndicatorService {
         }
 
         if (bbox != null) {
+            JSONObject bboxFilter = new JSONObject();
+            bboxFilter.put("id", "bbox");
+            bboxFilter.put("direction", type);
             StringBuilder buf = new StringBuilder();
-            buf.append(type);
-            buf.append(":");
             buf.append("POLYGON((");
             buf.append(bbox.getXMin());
             buf.append(" ");
@@ -159,9 +160,12 @@ public class TwowayIndicatorService {
             buf.append(" ");
             buf.append(bbox.getYMin());
             buf.append("))");
+            bboxFilter.put("geom", buf.toString());
+            JSONArray filterArray = new JSONArray();
+            filterArray.add(bboxFilter);
 
             String parsedBboxGeometryFilter = filterParser.parseGeometryFilter(
-                    buf.toString(), gridSizeString, type, user);
+                    filterArray.toJSONString(), gridSizeString, type, user);
             if (!parsedBboxGeometryFilter.isEmpty()) {
 
                 if (!isEmpty)
