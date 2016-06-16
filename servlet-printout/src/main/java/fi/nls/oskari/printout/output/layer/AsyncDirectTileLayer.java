@@ -167,7 +167,7 @@ public class AsyncDirectTileLayer extends DirectTileLayer {
         if (xClientInfo != null) {
 
             for (Entry<String, String> e : xClientInfo.entrySet()) {
-                if (e.getKey().equals("Cookie")) {
+                if (e.getKey().equals("Cookie") && !(cookie == null && url.getHost().equals("localhost"))) {
                     continue;
                 }
                 request.setHeader(e.getKey(), e.getValue());
