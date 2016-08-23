@@ -1,6 +1,25 @@
 package fi.nls.oskari.arcgis;
 
+import java.awt.Rectangle;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import com.vividsolutions.jts.geom.Coordinate;
+
 import fi.nls.oskari.arcgis.pojo.ArcGisFeature;
 import fi.nls.oskari.arcgis.pojo.ArcGisLayerStore;
 import fi.nls.oskari.arcgis.pojo.ArcGisProperty;
@@ -11,20 +30,6 @@ import fi.nls.oskari.pojo.SessionStore;
 import fi.nls.oskari.pojo.WFSCustomStyleStore;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.work.JobType;
-import org.apache.commons.lang.StringUtils;
-import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
-import java.awt.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * WFS request creators and response parsers
@@ -269,17 +274,27 @@ public class ArcGisCommunicator {
 				log.error("Error during parsing features. Unexpected json.", json);
 				return null;
 			}
-								
-			for (Object featureItem : featuresArray) {
-				ArcGisFeature item = ArcGisFeature.setJSON((JSONObject) featureItem);
-				
-				if (item.getGeometry() == null) {
-					log.warn("There is no geometry. Skipping feature");
-				}
-				else {
-					result.add(item);	
-				}				
-			}		
+            if (featuresArray != null)
+            {
+                ArrayList<String> dateFields = ArcGisFeature.getDateFields((JSONArray)json.get("fields"));
+                for (Object featureItem : featuresArray) {
+                    ArcGisFeature item = ArcGisFeature.setJSON((JSONObject) featureItem);
+                    
+                    if (item.getGeometry() == null) {
+                        log.warn("There is no geometry. Skipping feature");
+                    }
+                    else {
+                        for (String dateField : dateFields) {
+                            ArcGisProperty property = item.getProperty(dateField);
+                            Timestamp ts = new Timestamp((Long)property.getValue());
+                            Date date = new Date(ts.getTime());
+                            String newstring = new SimpleDateFormat("dd.MM.yyyy").format(date);
+                            property.setValue(newstring);
+                        }
+                        result.add(item);
+                    }
+                }
+            }
 		} catch (IOException e) {
 			log.error(e, "Error during parsing features");
 			return null;

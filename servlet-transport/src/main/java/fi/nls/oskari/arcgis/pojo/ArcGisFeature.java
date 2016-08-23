@@ -1,5 +1,17 @@
 package fi.nls.oskari.arcgis.pojo;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Set;
+
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import com.esri.core.geometry.Geometry.Type;
 import com.esri.core.geometry.MapGeometry;
 import com.esri.core.geometry.OperatorExportToWkb;
@@ -7,18 +19,9 @@ import com.esri.core.geometry.OperatorImportFromJson;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
+
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.json.simple.JSONObject;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Set;
 
 public class ArcGisFeature {
 	private static final Logger log = LogFactory.getLogger(ArcGisFeature.class);
@@ -75,6 +78,30 @@ public class ArcGisFeature {
 		return prop != null ? prop.getValue() : null;
 	}
 
+    public ArcGisProperty getProperty(String key) {
+        ArcGisProperty prop = this.properties.get(key);
+
+        return prop != null ? prop : null;
+    }
+
+    public static ArrayList<String> getDateFields(JSONArray json) {
+        ArrayList<String> list = new ArrayList<String>();
+
+        for (int i = 0; i < json.size(); i++) {
+            JSONObject item = (JSONObject) json.get(i);
+            String type = item.get("type").toString();
+            if (type.indexOf("Date") > -1) {
+                list.add(item.get("name").toString());
+            }
+        }
+
+        return list;
+    }
+
+    public static ArcGisFeature convertDates(ArcGisFeature asd) {
+        return asd;
+    }
+	
 	public static ArcGisFeature setJSON(JSONObject json) {
 		OperatorImportFromJson Importer = OperatorImportFromJson.local();
 		OperatorExportToWkb Exporter = OperatorExportToWkb.local();
