@@ -27,6 +27,7 @@ public class ArcGisLayerStore extends WFSLayerStore {
     private static final String MINSCALE = "minScale";
     private static final String MAXSCALE = "maxScale";
     private static final String GEOMETRY_TYPE = "geometryType";
+    private static final String FIELDS = "fields";
 
     private String layerId;
     private String arcGisId;
@@ -93,6 +94,15 @@ public class ArcGisLayerStore extends WFSLayerStore {
             store.setGeometryType(geometryType != null ? geometryType.toString() : null);
         }
 
+        if (jsonObj.containsKey(FIELDS)) {
+            JSONArray fields = (JSONArray) jsonObj.get(FIELDS);
+            List<String> paramNames = new ArrayList<String>();
+            for (int i = 0; i < fields.size(); ++i) {
+                JSONObject field = (JSONObject) fields.get(i);
+                paramNames.add(field.get("name").toString());
+            }
+            store.addSelectedFeatureParams("default", paramNames);
+        }
 
         JSONArray subLayersArray = (JSONArray) jsonObj.get(SUBLAYERS);
         for (Object object : subLayersArray) {

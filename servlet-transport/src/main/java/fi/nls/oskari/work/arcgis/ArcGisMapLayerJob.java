@@ -499,11 +499,11 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
         log.debug("Starting properties handler");
 
         List<String> selectedProperties = new ArrayList<String>();
-        List<String> layerSelectedProperties = layer.getSelectedFeatureParams(session.getLanguage());
+        List<String> layerSelectedProperties = arcGisLayer.getSelectedFeatureParams(session.getLanguage());
 
         // selected props
         if (layerSelectedProperties != null && layerSelectedProperties.size() != 0) {
-            selectedProperties.addAll(this.layer.getSelectedFeatureParams(this.session.getLanguage()));
+            selectedProperties.addAll(layerSelectedProperties);
         } else { // all properties
             for (ArcGisFeature feat : this.features) {
                 for (ArcGisProperty prop : feat.getProperties()) {
@@ -568,7 +568,7 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
                     Point centerPoint = WFSParser.getGeometryCenter(geometry);
 
                     // selected values
-                    List<String> selectedProperties = layer.getSelectedFeatureParams(session.getLanguage());
+                    List<String> selectedProperties = arcGisLayer.getSelectedFeatureParams(session.getLanguage());
                     if (selectedProperties != null && selectedProperties.size() != 0) {
                         for (String attr : selectedProperties) {
                             values.add(feature.getPropertyValue(attr));
