@@ -97,6 +97,11 @@ public class MapLayerJSONParser {
                         ConfigValue.LAYER_URLTEMPLATE_MYPLACES_LAYERS
                                 .getConfigProperty(props), "UTF-8");
             }
+        } else if ("userlayer".equals(type)) {
+            layerURL = ConfigValue.MAPPRODUCER_LOCALURL_PREFIX
+                    .getConfigProperty(props) + layerDefinition.getWmsurl(); 
+            layersParam = URLEncoder.encode(layerDefinition.getLayerid().replace("userlayer_", ""),
+                    "UTF-8");
         } else if ("wmslayer".equals(type)) {
             layerURL = layerDefinition.getWmsurl();
             layersParam = URLEncoder.encode(layerDefinition.getWmsname(),
@@ -286,7 +291,8 @@ public class MapLayerJSONParser {
                     || "statslayer".equals(type) || "base".equals(type)
                     || "groupMap".equals(type) || "myplaces".equals(type)
                     || "geojson".equals(type) || "wmtslayer".equals(type)
-                    || "arcgislayer".equals(type))) {
+                    || "arcgislayer".equals(type) || "userlayer".equals(type))) {
+                System.out.println("Skipping unknown layer type " + type);
                 continue;
             }
 

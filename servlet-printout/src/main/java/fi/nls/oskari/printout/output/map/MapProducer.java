@@ -65,18 +65,6 @@ import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 
-import javax.xml.stream.FactoryConfigurationError;
-import javax.xml.stream.XMLStreamException;
-import java.awt.*;
-import java.awt.geom.AffineTransform;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.text.ParseException;
-import java.util.*;
-import java.util.List;
-
 /* 
  *
  * This class manages resources that are assumed to be non-threadsafe.
@@ -605,6 +593,18 @@ public class MapProducer {
              * 
              * url = layerUrl + wmtsKvpPart;
              */
+        } else if (layerType.equals("userlayer")) {
+            url = layerUrl + layersParam
+                    + "&SERVICE=WMS"
+                    + "&VERSION="
+                    + "1.1.1"
+                    + "&REQUEST=GetMap" + "&WIDTH=" + tw + "&HEIGHT=" + th
+                    + "&FORMAT=image/png"
+                    + "&STYLES="
+                    + "&LAYERS=oskari%3Auser_layer_data_style" + "&SRS="
+                    + URLEncoder.encode(epsgCode, "UTF-8")
+                    + "&TRANSPARENT=TRUE" + "&BBOX=" + e.getMinX() + ","
+                    + e.getMinY() + "," + e.getMaxX() + "," + e.getMaxY();
         }
 
         return url;
