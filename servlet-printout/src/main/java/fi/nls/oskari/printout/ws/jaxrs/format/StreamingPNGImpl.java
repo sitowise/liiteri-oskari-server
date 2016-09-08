@@ -12,6 +12,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
@@ -141,6 +142,10 @@ public class StreamingPNGImpl implements StreamingOutput {
             g2d.drawImage(producedImage, 0, 0, null);
             g2d.setPaint(Color.black);
 
+            g2d.setRenderingHint(
+                    RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
+
             if (opts.isPageScale()) {
                 // copypaste code from
                 // fi.nls.oskari.printout.printing.page.PDFLayeredImagesPage
@@ -225,14 +230,13 @@ public class StreamingPNGImpl implements StreamingOutput {
                         .floatValue(), y));
                 g2d.draw(new Line2D.Double(x, y, x, y - fm.getHeight()));
             }
-
+            g2d.setFont(new Font("Serif", Font.PLAIN, (int)opts.getFontSize()));
             FontMetrics fm = g2d.getFontMetrics();
             x += 5;
-            float y = height + footerHeight - 5;
+            float y = height + footerHeight - fm.getDescent();
             float maxWidth = 0;
             String copyTitle = _copyrightTitleProvider.GetCopyrightTitle();
             float titleWidth = fm.stringWidth(copyTitle);
-            g2d.setFont(new Font("Serif", Font.PLAIN, 12));
             if (opts.getCopyrightText() != null) {
                 String[] lines = opts.getCopyrightText().split("\\|");
                 List<String> escapedLines = new ArrayList<String>();
@@ -250,6 +254,11 @@ public class StreamingPNGImpl implements StreamingOutput {
                 if (titleWidth > maxWidth)
                     maxWidth = titleWidth;
 
+                g2d.setPaint(Color.white);
+
+                g2d.fillRect((int)(width - maxWidth - 10), (int)(y - escapedLines.size() * fm.getHeight() + fm.getDescent()), (int)maxWidth + 10, escapedLines.size() * fm.getHeight());
+
+                g2d.setPaint(Color.black);
                 for (int i = 0; i < escapedLines.size(); i++) {
                     g2d.drawString(escapedLines.get(i), width - maxWidth - 5, y
                             - i * fm.getHeight());

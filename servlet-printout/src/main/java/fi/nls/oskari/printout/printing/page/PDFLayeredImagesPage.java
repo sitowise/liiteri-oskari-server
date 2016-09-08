@@ -413,38 +413,54 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
         /* END overlay content */
 
         contentStream.endMarkedContentSequence();
-		String copyTtile = _copyrightTitleProvider.GetCopyrightTitle();
-		float titleWidth = font.getStringWidth(copyTtile);
-		float y = 0.5f;
-		float maxWidth = 0;
-		float width = page.getMapWidthTargetInPoints(opts) * PX_TO_PT_FACTOR;
-		if (opts.getCopyrightText() != null) {			
-			String[] lines = opts.getCopyrightText().split("\\|");
-			List<String> escapedLines = new ArrayList<String>();									
-			for (String line : lines)
-			{
-				String escapedLine = StringEscapeUtils.unescapeHtml4(Jsoup.clean(
-					line, Whitelist.simpleText()));
-				escapedLines.add(escapedLine);				
-				float lineWidth = font.getStringWidth(escapedLine);
-				if (lineWidth > maxWidth)
-					maxWidth = lineWidth;													
-			}		
-			escapedLines.add(copyTtile);			
-			if (titleWidth > maxWidth)
-				maxWidth = titleWidth;							
-			float x = width - (maxWidth / 1000 * opts.getFontSize()) * PX_TO_PT_FACTOR;			
-			for (String escapedLine : escapedLines) {
-				createTextAt(contentStream, escapedLine, x, y,
-						opts.getFontSize(), 0, 0, 0);
-				y += opts.getFontSize() * PX_TO_PT_FACTOR;
-			}			
-		}
-		else
-		{
-			createTextAt(contentStream,copyTtile,width - (titleWidth / 1000 * opts.getFontSize()) * PX_TO_PT_FACTOR,y,opts.getFontSize(), 0, 0, 0);
-		}
-		
+        String copyTtile = _copyrightTitleProvider.GetCopyrightTitle();
+        float titleWidth = font.getStringWidth(copyTtile);
+        float y = 0.5f;
+        float maxWidth = 0;
+        float width = page.getWidth();
+        if (opts.getCopyrightText() != null) {
+            String[] lines = opts.getCopyrightText().split("\\|");
+            List<String> escapedLines = new ArrayList<String>();
+            for (String line : lines) {
+                String escapedLine = StringEscapeUtils.unescapeHtml4(
+                        Jsoup.clean(line, Whitelist.simpleText()));
+                escapedLines.add(escapedLine);
+                float lineWidth = font.getStringWidth(escapedLine);
+                if (lineWidth > maxWidth)
+                    maxWidth = lineWidth;
+            }
+            escapedLines.add(copyTtile);
+            if (titleWidth > maxWidth)
+                maxWidth = titleWidth;
+            float x = width //paper width
+                    - (width - page.getMapWidthTargetInPoints(opts) * PX_TO_PT_FACTOR)/2 //margin
+                    - (maxWidth / 1000 * opts.getFontSize()) * PX_TO_PT_FACTOR; //text width
+
+            contentStream.setNonStrokingColor(255, 255, 255);
+
+            float f[] = { x, y };
+            page.getTransform().transform(f, 0, f, 0, 1);
+            contentStream.fillRect(f[0] - opts.getFontSize() / 2,
+                    f[1] + font.getFontDescriptor().getDescent() / 1000
+                            * opts.getFontSize(),
+                    maxWidth / 1000 * opts.getFontSize() + opts.getFontSize(),
+                    font.getFontBoundingBox().getHeight() / 1000
+                            * opts.getFontSize() * escapedLines.size());
+            contentStream.closeAndStroke();
+
+            for (String escapedLine : escapedLines) {
+                createTextAt(contentStream, escapedLine, x, y,
+                        opts.getFontSize(), 0, 0, 0);
+                y += opts.getFontSize() * PX_TO_PT_FACTOR;
+            }
+        } else {
+            createTextAt(contentStream, copyTtile,
+                    width - (width - page.getMapWidthTargetInPoints(opts)
+                            * PX_TO_PT_FACTOR) / 2
+                            - (titleWidth / 1000 * opts.getFontSize())
+                                    * PX_TO_PT_FACTOR,
+                    y, opts.getFontSize(), 0, 0, 0);
+        }
     }
 
     /*
