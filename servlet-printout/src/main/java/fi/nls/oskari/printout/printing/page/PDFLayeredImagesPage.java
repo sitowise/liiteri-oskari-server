@@ -119,7 +119,7 @@ public class PDFLayeredImagesPage extends PDFAbstractPage implements PDFPage {
             List<PDXObjectImage> ximages) throws IOException {
 
         int r = 0;
-        float f[] = { 1.0f, 1.5f };
+        float f[] = { 1.0f, 1.9f };
 
         if (opts.getPageMapRect() != null) {
             f[0] = opts.getPageMapRect()[0];

@@ -120,7 +120,7 @@ public class StreamingPNGImpl implements StreamingOutput {
 
 		Point centre = mapLink.getCentre();
 		int zoom = mapLink.getZoom();		
-		int footerHeight = 40;		
+		int footerHeight = 51;
 		int width = mapLink.getWidth();
 		int height = mapLink.getHeight();
 
