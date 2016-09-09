@@ -1,20 +1,8 @@
 package fi.nls.oskari.printout.output.layer;
 
-import fi.nls.oskari.printout.caching.jedis.JedisCache;
-import fi.nls.oskari.printout.input.layers.LayerDefinition;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.nio.reactor.IOReactorException;
-import org.geotools.data.Base64;
-import org.geotools.feature.DefaultFeatureCollection;
-import org.geotools.feature.FeatureIterator;
-import org.geotools.map.MapContent;
-import org.geotools.map.MapViewport;
-import org.opengis.feature.simple.SimpleFeature;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -26,6 +14,24 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import javax.imageio.ImageIO;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.nio.reactor.IOReactorException;
+import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.params.HttpParams;
+import org.geotools.data.Base64;
+import org.geotools.feature.DefaultFeatureCollection;
+import org.geotools.feature.FeatureIterator;
+import org.geotools.map.MapContent;
+import org.geotools.map.MapViewport;
+import org.opengis.feature.simple.SimpleFeature;
+
+import fi.nls.oskari.printout.caching.jedis.JedisCache;
+import fi.nls.oskari.printout.input.layers.LayerDefinition;
 
 /**
  * 
@@ -153,6 +159,9 @@ public class AsyncDirectTileLayer extends DirectTileLayer {
 
         final URL url = new URL(urlStr);
         final HttpGet request = new HttpGet(urlStr);
+        HttpParams params = request.getParams();
+        params.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, (int)(timeoutInSeconds * 1000));
+        params.setParameter(CoreConnectionPNames.SO_TIMEOUT, (int)(timeoutInSeconds * 1000));
 
         String credentials = (String) f.getProperty("credentials").getValue();
         if (credentials != null) {
