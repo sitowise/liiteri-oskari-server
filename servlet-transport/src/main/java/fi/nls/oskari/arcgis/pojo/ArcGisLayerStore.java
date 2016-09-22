@@ -97,9 +97,11 @@ public class ArcGisLayerStore extends WFSLayerStore {
         if (jsonObj.containsKey(FIELDS)) {
             JSONArray fields = (JSONArray) jsonObj.get(FIELDS);
             List<String> paramNames = new ArrayList<String>();
-            for (int i = 0; i < fields.size(); ++i) {
-                JSONObject field = (JSONObject) fields.get(i);
-                paramNames.add(field.get("name").toString());
+            if(fields != null) {
+                for (int i = 0; i < fields.size(); ++i) {
+                    JSONObject field = (JSONObject) fields.get(i);
+                    paramNames.add(field.get("name").toString());
+                }
             }
             store.addSelectedFeatureParams("default", paramNames);
         }
