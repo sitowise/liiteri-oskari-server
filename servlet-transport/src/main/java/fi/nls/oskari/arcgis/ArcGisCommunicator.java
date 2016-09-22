@@ -286,10 +286,12 @@ public class ArcGisCommunicator {
                     else {
                         for (String dateField : dateFields) {
                             ArcGisProperty property = item.getProperty(dateField);
-                            Timestamp ts = new Timestamp((Long)property.getValue());
-                            Date date = new Date(ts.getTime());
-                            String newstring = new SimpleDateFormat("dd.MM.yyyy").format(date);
-                            property.setValue(newstring);
+                            if(property != null && property.getValue() != null) {
+                                Timestamp ts = new Timestamp((Long)property.getValue());
+                                Date date = new Date(ts.getTime());
+                                String newstring = new SimpleDateFormat("dd.MM.yyyy").format(date);
+                                property.setValue(newstring);
+                            }
                         }
                         result.add(item);
                     }
