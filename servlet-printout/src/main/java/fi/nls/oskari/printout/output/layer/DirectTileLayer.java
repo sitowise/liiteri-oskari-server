@@ -41,15 +41,13 @@ public abstract class DirectTileLayer extends DirectLayer {
         this.transform = transform;
     }
 
-    private BufferedImage doScaleWithFilters(BufferedImage image, int width,
-            int height) throws IOException {
+    private BufferedImage doScaleWithoutFilters(BufferedImage image, int width, int height) throws IOException {
 
-        final ResampleOp resampleOp = new ResampleOp(width, height);
-        resampleOp.setNumberOfThreads(2);
-        ResampleFilter filter = ResampleFilters.getLanczos3Filter();
-        resampleOp.setFilter(filter);
-
-        BufferedImage scaledImage = resampleOp.filter(image, null);
+        BufferedImage scaledImage = new BufferedImage(width, height, image.getType());
+        Graphics2D g = scaledImage.createGraphics();
+        g.drawImage(image, 0, 0, scaledImage.getWidth(), scaledImage.getHeight(), 0, 0, image.getWidth(),
+                image.getHeight(), null);
+        g.dispose();
 
         return scaledImage;
 
@@ -61,7 +59,7 @@ public abstract class DirectTileLayer extends DirectLayer {
     public void drawImage(Graphics2D g2d, BufferedImage imageBuf, int x, int y,
             int w, int h, boolean doScale) throws IOException {
         if (doScale) {
-            g2d.drawImage(doScaleWithFilters(imageBuf, w, h), x, y, null);
+            g2d.drawImage(doScaleWithoutFilters(imageBuf, w, h), x, y, null);
         } else {
             g2d.drawImage(imageBuf, x, y, null);
         }
@@ -71,8 +69,8 @@ public abstract class DirectTileLayer extends DirectLayer {
     public void drawImageFeature(Graphics2D g2d, MapContent mapContent,
             SimpleFeature f, BufferedImage imageBuf) {
 
-        Integer width = (Integer) f.getProperty("width").getValue();
-        Integer height = (Integer) f.getProperty("height").getValue();
+        Integer width = imageBuf.getWidth();
+        Integer height = imageBuf.getHeight();
         Envelope e = (Envelope) f.getProperty("env").getValue();
 
         double[] srcPts = new double[] { e.getMinX(), e.getMaxY(), e.getMaxX(),
