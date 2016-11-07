@@ -352,7 +352,7 @@ public class DirectFeatureLayer extends FeatureLayer {
         Color fontColor = Css.fontColor.get(styleMapDefaultStyle, Color.BLACK);
         String[] fontFamily = Css.fontFamily.getFontFamily(
                 styleMapDefaultStyle, "Lucida Sans", "sans-serif");
-        Float fontSize = Css.fontSize.getPx(styleMapDefaultStyle, 10f);
+        Float fontSize = Css.fontSize.getPx(styleMapDefaultStyle, 10f) * 3;
         String fontWeight = Css.fontWeight.get(styleMapDefaultStyle);
 
         boolean isItalic = fontWeight != null
