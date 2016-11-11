@@ -1,6 +1,6 @@
 package fi.nls.oskari.pojo.style;
 
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 import fi.nls.oskari.pojo.WFSCustomStyleStore;
@@ -20,7 +20,7 @@ public class CustomStyleStoreFactory {
 		}
 		else if (type.equals("uniqueValue")) {
 			UniqueValueCustomStyleStore customStyle = new UniqueValueCustomStyleStore();			
-			Object[] infos = (Object[]) style.get("uniqueValueInfos");
+			ArrayList infos = (ArrayList) style.get("uniqueValueInfos");
 			
 			customStyle.setField(style.get("field").toString());
 			

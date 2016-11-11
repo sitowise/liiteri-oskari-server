@@ -28,6 +28,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.Location;
 import fi.nls.oskari.pojo.SessionStore;
 import fi.nls.oskari.pojo.WFSCustomStyleStore;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.work.JobType;
 
@@ -500,8 +501,8 @@ public class ArcGisCommunicator {
 	public static String createStyleRequestPayload(WFSLayerStore layer,
 			ArcGisLayerStore arcgisLayer,
 			List<ArcGisLayerStore> arcgisLayers,
-			WFSCustomStyleStore customStyle) {
-		HashMap<String, String> data = new HashMap<String, String>();		
+			CustomStyleStore customStyle) {
+		HashMap<String, String> data = new HashMap<String, String>();
 		
 		JSONArray array = new JSONArray();
 		int i = 0;
@@ -514,20 +515,17 @@ public class ArcGisCommunicator {
 			json.put("source", source);
 			
 			JSONObject drawingInfo = new JSONObject();
-			JSONObject renderer = new JSONObject();		
-			renderer.put("type", "simple");
-			renderer.put("label", "yncepynce");
-			renderer.put("description", "");
-			JSONObject symbol = ArcGisStyleMapper.mapStyleToSymbol(customStyle, layerItem.getGeometryType());		
+			JSONObject renderer = ArcGisStyleMapper.mapStyleToRenderer(customStyle, layerItem.getGeometryType(),
+                    layerItem.getName());
 
-			renderer.put("symbol", symbol);
 			drawingInfo.put("renderer", renderer);
 			json.put("drawingInfo", drawingInfo);
 			array.add(json);
 			i++;
-		}	
+		}
 		
 		data.put("dynamicLayers", array.toJSONString());
+        data.put("FORMAT", "png");
 		
 		return mapToString(data);
 	}

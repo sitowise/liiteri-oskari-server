@@ -9,16 +9,24 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
+import fi.nls.oskari.arcgis.ArcGisStyleMapper;
 import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
+import fi.nls.oskari.pojo.style.GroupCustomStyleStore;
+import fi.nls.oskari.transport.TransportService;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 
 public class ArcGisLayerStore extends WFSLayerStore {
     private static final Logger log = LogFactory.getLogger(ArcGisLayerStore.class);
 
     public static final String KEY = "ArcGisLayer_";
+    
+    private static final String GROUP_LAYER_TYPE = "Group Layer";
 
     private static final String ARCGIS_ID = "id";
     private static final String TYPE = "type";
@@ -28,12 +36,16 @@ public class ArcGisLayerStore extends WFSLayerStore {
     private static final String MAXSCALE = "maxScale";
     private static final String GEOMETRY_TYPE = "geometryType";
     private static final String FIELDS = "fields";
+    private static final String NAME = "name";
 
     private String layerId;
     private String arcGisId;
     private String type;
     private ArrayList<String> subLayerIds;
     private List<ArcGisLayerStore> subLayers;
+
+    private CustomStyleStore defaultStyle;
+    private String name;
 
     public List<ArcGisLayerStore> getSubLayers() {
         return subLayers;
@@ -97,13 +109,22 @@ public class ArcGisLayerStore extends WFSLayerStore {
         if (jsonObj.containsKey(FIELDS)) {
             JSONArray fields = (JSONArray) jsonObj.get(FIELDS);
             List<String> paramNames = new ArrayList<String>();
-            if(fields != null) {
+            if (fields != null) {
                 for (int i = 0; i < fields.size(); ++i) {
                     JSONObject field = (JSONObject) fields.get(i);
                     paramNames.add(field.get("name").toString());
                 }
             }
             store.addSelectedFeatureParams("default", paramNames);
+        }
+
+        if (jsonObj.containsKey("drawingInfo") && jsonObj.get("drawingInfo") != null) {
+            JSONObject drawingInfo = (JSONObject) jsonObj.get("drawingInfo");
+            CustomStyleStore style = ArcGisStyleMapper.mapRendererToStyle((JSONObject) drawingInfo.get("renderer"));
+            store.setDefaultStyle(style);
+        } else if (jsonObj.containsKey("defaultStyle") && jsonObj.get("defaultStyle") != null) {
+            CustomStyleStore style = CustomStyleStore.setJSON(jsonObj.get("defaultStyle").toString());
+            store.setDefaultStyle(style);
         }
 
         JSONArray subLayersArray = (JSONArray) jsonObj.get(SUBLAYERS);
@@ -124,6 +145,14 @@ public class ArcGisLayerStore extends WFSLayerStore {
         return store;
     }
 
+    public CustomStyleStore getDefaultStyle() {
+        return defaultStyle;
+    }
+
+    public void setDefaultStyle(CustomStyleStore defaultStyle) {
+        this.defaultStyle = defaultStyle;
+    }
+
     public void save() {
         //JedisManager.setex(KEY + this.layerId, 86400, getAsJSON()); // expire in 1 day
     }
@@ -133,4 +162,55 @@ public class ArcGisLayerStore extends WFSLayerStore {
         return JedisManager.get(KEY + layerId);
     }
     
+    @JsonIgnore
+    public String getAsJSON() {
+        try {
+            return TransportService.mapper.writeValueAsString(this);
+        } catch (JsonGenerationException e) {
+            log.error(e, "JSON Generation failed");
+        } catch (JsonMappingException e) {
+            log.error(e, "Mapping from Object to JSON String failed");
+        } catch (IOException e) {
+            log.error(e, "IO failed");
+        }
+        return null;
+    }
+    
+    @JsonIgnore
+    public boolean hasDefaultStyle() {
+        if (this.defaultStyle != null)
+            return true;
+
+        if (this.getType().equals(GROUP_LAYER_TYPE)) {
+            boolean subLayerHasDefaultStyle = false;
+            for (ArcGisLayerStore subLayer : this.getSubLayers()) {
+                subLayerHasDefaultStyle = subLayerHasDefaultStyle || subLayer.hasDefaultStyle();
+            }
+
+            return subLayerHasDefaultStyle;
+        }
+
+        return false;
+    }
+
+    @JsonIgnore
+    public CustomStyleStore getAggregatedDefaultStyle() {
+        if (!this.getType().equals(GROUP_LAYER_TYPE))
+            return this.getDefaultStyle();
+
+        GroupCustomStyleStore style = new GroupCustomStyleStore();
+        for (ArcGisLayerStore subLayer : this.getSubLayers()) {
+            if (subLayer.getDefaultStyle() != null)
+                style.addSubStyle(subLayer.getName(), subLayer.getDefaultStyle());
+        }
+        return style;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

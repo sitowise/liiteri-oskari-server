@@ -13,12 +13,15 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.Location;
 import fi.nls.oskari.pojo.SessionStore;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
+import fi.nls.oskari.transport.TransportService;
 import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.wfs.WFSParser;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.HttpHelper;
 import fi.nls.oskari.work.*;
 import org.geotools.feature.FeatureCollection;
+import org.json.simple.JSONValue;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.operation.MathTransform;
@@ -208,6 +211,10 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
             output.put(OUTPUT_MESSAGE, ERROR_REST_CONFIGURATION_FAILED);
             this.service.addResults(session.getClient(), ResultProcessor.CHANNEL_ERROR, output);
             return "error";
+        }
+
+        if (this.session.isSendDefaultStyle() && this.arcGisLayer.hasDefaultStyle()) {
+            this.sendStyleConfiguration(this.arcGisLayer.getAggregatedDefaultStyle());
         }
 
         this.arcGisLayers = getArcGisLayersDependingOnScale();
@@ -618,5 +625,18 @@ public class ArcGisMapLayerJob extends OWSMapLayerJob {
     @Override
     public RequestResponse request(JobType type, WFSLayerStore layer, SessionStore session, List<Double> bounds, MathTransform transformService) {
         throw new RuntimeException("Not implemented!");
+    }
+    
+    private void sendStyleConfiguration(CustomStyleStore style) {
+        if(style == null) {
+            log.warn("Failed to style configuration");
+            return;
+        }
+        Map<String, Object> output = new HashMap<String, Object>();
+        output.put(OUTPUT_LAYER_ID, this.layerId);
+        output.put(OUTPUT_STYLE, JSONValue.parse(style.getAsJSON()));
+
+        log.debug("Sending style configuration");
+        this.service.addResults(this.session.getClient(), TransportService.CHANNEL_DEFAULT_STYLE, output);
     }
 }

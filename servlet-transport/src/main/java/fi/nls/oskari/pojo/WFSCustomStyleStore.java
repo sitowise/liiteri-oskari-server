@@ -76,6 +76,7 @@ public class WFSCustomStyleStore extends CustomStyleStore {
     private int dotShape;
     private int dotSize;
 
+    private String name;
 
 	public WFSCustomStyleStore() {
 		setType("simple");
@@ -367,5 +368,13 @@ public class WFSCustomStyleStore extends CustomStyleStore {
     @JsonIgnore
     public static String getCache(String client, String layerId) {
         return JedisManager.get(KEY + client + "_" + layerId);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

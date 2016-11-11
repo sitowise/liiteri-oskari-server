@@ -7,6 +7,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.Location;
 import fi.nls.oskari.pojo.Tile;
 import fi.nls.oskari.pojo.WFSCustomStyleStore;
+import fi.nls.oskari.pojo.style.CustomStyleStore;
 import fi.nls.oskari.wfs.WFSImage;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.HttpHelper;
@@ -34,7 +35,7 @@ public class ArcGisImage extends WFSImage {
     private int bufferedImageWidth = 0;
     private int bufferedImageHeight = 0;
 
-    WFSCustomStyleStore customStyle;
+    CustomStyleStore customStyle;
     private boolean isHighlight = false;
     private boolean isTile = false;
     private WFSLayerStore layer;
@@ -78,9 +79,9 @@ public class ArcGisImage extends WFSImage {
         // TODO: possibility to change the custom style store key to sessionID (it is hard without connection to get client)
         if (styleName.startsWith(PREFIX_CUSTOM_STYLE) && client != null) {
             try {
-                this.customStyle = WFSCustomStyleStore.create(client, layer.getLayerId());
+                this.customStyle = CustomStyleStore.create(client, layer.getLayerId());
                 if (this.customStyle == null) {
-                    log.error("WFSCustomStyleStore not created", client, layer.getLayerId());
+                    log.error("CustomStyleStore not created", client, layer.getLayerId());
                     return;
                 }
                 this.customStyle.setGeometry(layer.getGMLGeometryProperty().replaceAll("^[^_]*:", "")); // set the geometry name
@@ -91,7 +92,7 @@ public class ArcGisImage extends WFSImage {
                     isHighlight = true;
                 }
             } catch (Exception e) {
-                log.error(e, "JSON parsing failed for WFSCustomStyleStore");
+                log.error(e, "JSON parsing failed for CustomStyleStore");
                 return;
             }
         } else if (highlightStyleName == null) {
