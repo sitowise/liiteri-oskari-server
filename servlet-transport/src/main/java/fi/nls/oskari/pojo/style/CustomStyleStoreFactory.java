@@ -35,7 +35,7 @@ public class CustomStyleStoreFactory {
 		}
 		else if (type.equals("group")) {
 			GroupCustomStyleStore customStyle = new GroupCustomStyleStore();
-			Object[] infos = (Object[]) style.get("subStyles");
+			ArrayList infos = (ArrayList) style.get("subStyles");
 			for (Object itemInfo : infos) {
 				Map<String, Object> mapItemInfo = (Map<String, Object>) itemInfo;
 				WFSCustomStyleStore itemStyle = createCustomStyle((Map<String, Object>) mapItemInfo.get("symbol"));

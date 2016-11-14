@@ -201,7 +201,7 @@ public class ArcGisLayerStore extends WFSLayerStore {
         GroupCustomStyleStore style = new GroupCustomStyleStore();
         for (ArcGisLayerStore subLayer : this.getSubLayers()) {
             if (subLayer.getDefaultStyle() != null)
-                style.addSubStyle(subLayer.getName(), subLayer.getDefaultStyle());
+                style.addSubStyle(subLayer.getName() == null ? subLayer.getIdStr() : subLayer.getName(), subLayer.getDefaultStyle());
         }
         return style;
     }

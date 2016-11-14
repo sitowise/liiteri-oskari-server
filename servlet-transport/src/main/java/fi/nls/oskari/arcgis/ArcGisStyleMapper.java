@@ -39,6 +39,7 @@ public class ArcGisStyleMapper {
             renderer.put("description", "");
             JSONObject symbol = ArcGisStyleMapper.mapStyleToSymbol((WFSCustomStyleStore) customStyle, geometryType);
             renderer.put("symbol", symbol);
+            renderer.put("label", layerName);
         } else if (customStyle.getType().equals(RENDERER_TYPE_UNIQUE)) {
             UniqueValueCustomStyleStore uniqueValueStyle = (UniqueValueCustomStyleStore) customStyle;
             renderer.put(RENDERER_TYPE, RENDERER_TYPE_UNIQUE);
@@ -209,6 +210,7 @@ public class ArcGisStyleMapper {
 
         if (rendererType.equals(RENDERER_TYPE_SIMPLE)) {
             WFSCustomStyleStore concreteStyle = mapSymbolToStyle((JSONObject) renderer.get("symbol"));
+            concreteStyle.setName(renderer.get("label").toString());
             style = concreteStyle;
         } else if (rendererType.equals(RENDERER_TYPE_UNIQUE)) {
             UniqueValueCustomStyleStore concreteStyle = new UniqueValueCustomStyleStore();

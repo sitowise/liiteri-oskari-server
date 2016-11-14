@@ -516,7 +516,7 @@ public class ArcGisCommunicator {
 			
 			JSONObject drawingInfo = new JSONObject();
 			JSONObject renderer = ArcGisStyleMapper.mapStyleToRenderer(customStyle, layerItem.getGeometryType(),
-                    layerItem.getName());
+                    layerItem.getIdStr());
 
 			drawingInfo.put("renderer", renderer);
 			json.put("drawingInfo", drawingInfo);
