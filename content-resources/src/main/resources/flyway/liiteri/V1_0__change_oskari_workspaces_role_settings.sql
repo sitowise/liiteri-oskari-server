@@ -1,0 +1,1 @@
+UPDATE oskari_workspaces_role_settings SET workspaceamountlimit = 100 WHERE workspaceamountlimit = 5;
