@@ -59,7 +59,7 @@ public class PostponeWorkSpaceHandler extends ActionHandler {
         WorkSpace workspace = _service.getWorkspace(id, false);
 
         if (workspace == null || workspace.getUserId() != user.getId()) {
-            throw new ActionDeniedException("Ei muokkausoikeutta");
+            throw new ActionDeniedException("Not authorized");
         }
 
         Date dtExpDate;
@@ -77,7 +77,7 @@ public class PostponeWorkSpaceHandler extends ActionHandler {
             _service.updateWorkspace(workspace, true);
         } catch (ServiceException | JSONException e) {
             log.debug(e, "Postpone workspace failed");
-            throw new ActionException("Virhe työtilan tallennuksessa", e);
+            throw new ActionException("Postpone workspace failed", e);
         }
 
         ResponseHelper.writeResponse(params, ret);
