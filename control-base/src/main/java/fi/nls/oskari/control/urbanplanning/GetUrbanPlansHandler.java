@@ -2,9 +2,14 @@ package fi.nls.oskari.control.urbanplanning;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.ActionException;
@@ -49,6 +54,7 @@ public class GetUrbanPlansHandler extends ActionHandler {
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
         List<CommonParameter> parameters = new ArrayList<CommonParameter>();
+        String[] keywords = null;
 
         // FIXME: hack for now
         if (params.getHttpParam("limit") != null) {
@@ -67,8 +73,7 @@ public class GetUrbanPlansHandler extends ActionHandler {
         }
         if (params.getHttpParam(KEYWORD) != null
                 && !params.getHttpParam(KEYWORD).isEmpty()) {
-            parameters.add(new CommonParameter(KEYWORD, params
-                    .getHttpParam(KEYWORD)));
+            keywords = params.getHttpParam(KEYWORD).split(",");
         }
         if (params.getHttpParam(GENERATED_PLAN_ID) != null
                 && !params.getHttpParam(GENERATED_PLAN_ID).isEmpty()) {
@@ -144,7 +149,30 @@ public class GetUrbanPlansHandler extends ActionHandler {
                     .getHttpParam(MUNICIPALITY)));
         }
         try {
-            String main = apiService.getPlans(parameters);
+            String main = null;
+            if (keywords == null || keywords.length == 0) {
+                main = apiService.getPlans(parameters);
+            } else {
+                //Search for each keyword and drop duplicate plans
+                Map<Integer, JSONObject> plans = new HashMap<Integer, JSONObject>();
+                for (String keyword : keywords) {
+                    CommonParameter parameter = new CommonParameter(KEYWORD, keyword);
+                    parameters.add(parameter);
+
+                    JSONArray result = new JSONArray(apiService.getPlans(parameters));
+
+                    for (int i = 0; i < result.length(); ++i) {
+                        plans.put(result.getJSONObject(i).getInt("id"), result.getJSONObject(i));
+                    }
+
+                    parameters.remove(parameter);
+                }
+                JSONArray planArray = new JSONArray();
+                for (Integer id : plans.keySet()) {
+                    planArray.put(plans.get(id));
+                }
+                main = planArray.toString();
+            }
             final HttpServletResponse response = params.getResponse();
             response.addHeader(HEADER_CONTENT_TYPE, VALUE_CONTENT_TYPE_JSON);
             response.setCharacterEncoding(OSKARI_ENCODING);
