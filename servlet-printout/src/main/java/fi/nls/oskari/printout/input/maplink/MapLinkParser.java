@@ -349,7 +349,7 @@ public class MapLinkParser {
 			throw new IOException("Too Large a map requested");
 		}
 
-		if (mapLink.getMapLinkLayers().size() > 8) {
+		if (mapLink.getMapLinkLayers().size() > 15) {
 			throw new IOException("Too Many Layers in Map Link");
 		}
 
