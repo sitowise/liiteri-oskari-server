@@ -273,8 +273,7 @@ public class ArcgisImageService
 		return new Color(
 	            Integer.valueOf(descriptionStr.substring( 0, 2 ), 16 ),
 	            Integer.valueOf(descriptionStr.substring( 2, 4 ), 16 ),
-	            Integer.valueOf(descriptionStr.substring( 4, 6 ), 16 ),
-	            194);
+	            Integer.valueOf(descriptionStr.substring( 4, 6 ), 16 ));
 	}
 
 	private static BufferedImage decodeImage(String base64string)
