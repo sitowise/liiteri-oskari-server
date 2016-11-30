@@ -231,7 +231,7 @@ public class ArcGisImage extends WFSImage {
         result.setStrokeWidth(2);
 
         result.setDotColor("#f5af3c");
-        result.setDotSize(2);
+        result.setDotSize(12);
         result.setDotShape(5);
 
         return result;
