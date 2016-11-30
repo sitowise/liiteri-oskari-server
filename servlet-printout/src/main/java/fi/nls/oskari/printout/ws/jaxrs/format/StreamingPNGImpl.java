@@ -132,7 +132,14 @@ public class StreamingPNGImpl implements StreamingOutput {
 		try {
 
             BufferedImage producedImage = producer.getMap(asyncProc, env, zoom,
-                    width, height, selectedLayers, MapProducer.ImageType.ARGB);
+                    width*3, height*3, selectedLayers, MapProducer.ImageType.ARGB);
+
+            if(producedImage != null) {
+                BufferedImage scaledImage = (new ScaleOps()).doScaleWithFilters(
+                        producedImage, width, height);
+                producedImage.flush();
+                producedImage = scaledImage;
+            }
 
             int x = 0;
 
