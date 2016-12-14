@@ -1,0 +1,1 @@
+UPDATE oskari_maplayer SET opacity = 75 WHERE type = 'statslayer';
