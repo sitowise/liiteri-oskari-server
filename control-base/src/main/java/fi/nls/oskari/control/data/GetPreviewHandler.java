@@ -86,6 +86,7 @@ public class GetPreviewHandler extends ActionHandler {
     // layer config generation needs these (only for debugging)
     private static final long PRINT_VIEW = 2;
     private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String HEADER_CONTENT_DISPOSITION = "Content-Disposition";
 
     private static final List<String> ACCEPTED_FORMATS = new ArrayList<String>();
     private static final List<String> EXTRA_PARAMS = new ArrayList<String>();
@@ -152,7 +153,9 @@ public class GetPreviewHandler extends ActionHandler {
 
             final String contentType = con.getHeaderField(HEADER_CONTENT_TYPE);
             response.addHeader(HEADER_CONTENT_TYPE, contentType);
-
+            if (httpRequest.getMethod().equals("POST") && pformat.equals("image/png")) {
+                response.addHeader(HEADER_CONTENT_DISPOSITION, "attachment; filename=\"Liiteri.png\"");
+            }
             response.getOutputStream().write(presponse, 0, presponse.length);
             response.getOutputStream().flush();
             response.getOutputStream().close();
