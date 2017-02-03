@@ -198,7 +198,9 @@ public class ArcgisImageService
     		switch (visualizationType)
     		{
     		case Square:
-    			g.fillRect(eastingMin, northMin, gridSize, gridSize);  
+    			if (item.getValue() != 0) {
+					g.fillRect(eastingMin, northMin, gridSize, gridSize);
+				}
 //    			g.setColor(borderColor);
 //    			g.drawRect(eastingMin, northMin, gridSize, gridSize);    			
     			break;
