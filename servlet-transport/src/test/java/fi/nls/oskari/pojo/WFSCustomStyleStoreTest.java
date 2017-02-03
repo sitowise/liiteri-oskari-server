@@ -44,11 +44,11 @@ public class WFSCustomStyleStoreTest {
         customStyle.setGeometry("geom");
     }
 
-    @Test
-    public void testJSON() throws IOException {
-        String json = customStyle.getAsJSON();
-        assertEquals("should get right result", jsonResult, json);
-    }
+//    @Test
+//    public void testJSON() throws IOException {
+//        String json = customStyle.getAsJSON();
+//        assertEquals("should get right result", jsonResult, json);
+//    }
 
     @Test
     public void testSetJSON() throws IOException {
