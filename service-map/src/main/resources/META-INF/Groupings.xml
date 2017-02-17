@@ -15,6 +15,7 @@
 	<resultMap id="GroupingResult" class="Grouping">
 		<result property="id" column="id" />
 		<result property="name" column="name" />
+		<result property="label" column="label" />
 		<result property="status" column="status" />
 		<result property="description" column="description" />
 		<result property="userGroup" column="userGroup" />
@@ -25,12 +26,12 @@
 	</resultMap>
 
 	<select id="findAll" resultMap="GroupingResult">
-		select id, name,status,description,userGroup,created,updated,mapState from
+		select id, name,label,status,description,userGroup,created,updated,mapState from
 		oskari_groupings
 	</select>
 	
 	<select id="findByIds" resultMap="GroupingResult" parameterClass="list">
-		select id, name,status,description,userGroup,created,updated,mapState from oskari_groupings
+		select id, name,label,status,description,userGroup,created,updated,mapState from oskari_groupings
 		where id IN
 		<iterate open="(" close=")" conjunction=",">
 			#[]#
@@ -41,6 +42,7 @@
 		parameterClass="Grouping">
 		INSERT INTO oskari_groupings(
 		name,
+		label,
 		status,
 		description,
 		userGroup,
@@ -50,6 +52,7 @@
 		)
 		VALUES (
 		#name#,
+		#label#,
 		#status#,
 		#description#,
 		#userGroup#,
@@ -120,6 +123,7 @@
 		update
 		oskari_groupings set
 		name = #name#,
+		label = #label#,
 		description =#description#,
 		userGroup =#userGroup#,
 		updated =#updated#,

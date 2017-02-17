@@ -1,5 +1,6 @@
 package fi.nls.oskari.control.groupings;
 
+import fi.nls.oskari.util.PropertyUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,11 +30,14 @@ public class JSONGroupingsHelper {
 			HashMap<Long, String> indicatorNames) throws JSONException {
 		final JSONObject main = new JSONObject();
 		JSONArray JSONgroupings = new JSONArray();
+		PropertyUtil.loadProperties("/oskari-ext.properties");
+		String groupingUrl = PropertyUtil.get("grouping.url", "");
 
 		for (Grouping g : groupings) {
 			JSONObject grMain = new JSONObject();
 			JSONHelper.putValue(grMain, "id", g.getId());
 			JSONHelper.putValue(grMain, "name", g.getName());
+			JSONHelper.putValue(grMain, "label", g.getLabel());
 			JSONHelper.putValue(grMain, "state", GroupingStatus
 					.getInstanceFromCodeValue(g.getStatus()).getName());
 			JSONHelper.putValue(grMain, "mainType", "package");
@@ -49,6 +53,9 @@ public class JSONGroupingsHelper {
 			}
 			if(g.getMapState()!= null)
 				JSONHelper.putValue(grMain, "mapState", g.getMapState());
+
+			if ((groupingUrl != null)&&(groupingUrl.length() > 0))
+				JSONHelper.putValue(grMain, "url", groupingUrl);
 
 			List<GroupingTheme> mainThemesForGrouping = GroupingCollectionHelper
 					.findMainThemesForGrouping(g.getId(), groupingThemes);
@@ -215,6 +222,7 @@ public class JSONGroupingsHelper {
 		Grouping grouping = new Grouping();
 		JSONObject mainJSON = JSONHelper.createJSONObject(json);
 		grouping.setName(mainJSON.getString("name"));
+		grouping.setLabel(mainJSON.getString("label"));
 		//grouping.setStatus(GroupingStatus.getInstanceFromName(
 		//		mainJSON.getString("state")).getCode());
 		grouping.setId(mainJSON.optLong("id"));
@@ -247,6 +255,11 @@ public class JSONGroupingsHelper {
 		
 		grouping.setStatus(status);
 
+		PropertyUtil.loadProperties("/oskari-ext.properties");
+		String groupingUrl = PropertyUtil.get("grouping.url", "");
+		if ((groupingUrl != null)&&(groupingUrl.length() > 0)){
+			grouping.setUrl(groupingUrl);
+		}
 
 		for (int i = 0; i < themes.length(); i++) {
 			JSONObject JSONDataObj = themes.getJSONObject(i);
