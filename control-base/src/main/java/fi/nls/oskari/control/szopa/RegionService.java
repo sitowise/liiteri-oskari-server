@@ -43,6 +43,8 @@ public class RegionService {
                 RegionType.ADMINISTRATIVE));
         list.add(new RegionDefinition("ADMINISTRATIVELAWAREA",
                 "administrative_law_area", RegionType.ADMINISTRATIVE));
+        list.add(new RegionDefinition("PALISKUNTA", "reindeer_herding_cooperative",
+                RegionType.ADMINISTRATIVE));
         list.add(new RegionDefinition("FINLAND", "finland",
                 RegionType.ADMINISTRATIVE));
 
