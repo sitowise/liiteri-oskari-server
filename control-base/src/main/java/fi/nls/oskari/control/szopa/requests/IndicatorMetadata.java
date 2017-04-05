@@ -132,6 +132,8 @@ public class IndicatorMetadata extends SzopaRequest {
 
             JSONCopyHelper.Copy(source, "AccessRight", result, "accessRight");
 
+            JSONCopyHelper.Copy(source, "ZeroVisibility", result, "zeroVisibility");
+
             return result.toString(1);
         } catch (JSONException e) {
             log.error("Cannot convert data", e);
