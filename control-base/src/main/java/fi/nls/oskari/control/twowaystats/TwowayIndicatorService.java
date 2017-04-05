@@ -110,8 +110,8 @@ public class TwowayIndicatorService {
                 long resultItemId = Long.parseLong(item.get(ID_KEY).toString()
                         .split(":")[1]);
                 resultItem.setId(resultItemId);
-                
-                if(resultItem.getValue() != 0) {
+
+                if(Math.abs(resultItem.getValue()) > 2 * Double.MIN_VALUE) {
                     result.AddItem(resultItem);
                 }
             }
