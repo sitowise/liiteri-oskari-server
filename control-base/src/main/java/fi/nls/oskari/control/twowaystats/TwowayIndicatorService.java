@@ -111,7 +111,9 @@ public class TwowayIndicatorService {
                         .split(":")[1]);
                 resultItem.setId(resultItemId);
 
-                result.AddItem(resultItem);
+                if(Math.abs(resultItem.getValue()) > 2 * Double.MIN_VALUE) {
+                    result.AddItem(resultItem);
+                }
             }
         }
 

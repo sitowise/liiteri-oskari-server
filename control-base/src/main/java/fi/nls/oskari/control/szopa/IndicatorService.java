@@ -72,6 +72,14 @@ public class IndicatorService {
         req.setUseCache(true);
         req.setUser(user);
 
+        boolean zeroVisibility = false;
+
+        try {
+            zeroVisibility = zeroVisibility(id);
+        } catch (JSONException e) {
+            log.warn(e, "Could not get zero visibility value for indicator " + id);
+        }
+
         long start = System.nanoTime();
         String strResult = req.getData();
         long end = System.nanoTime();
@@ -117,8 +125,9 @@ public class IndicatorService {
                 long resultItemId = Long.parseLong(item.get(ID_KEY).toString()
                         .split(":")[1]);
                 resultItem.setId(resultItemId);
-
-                result.AddItem(resultItem);
+                if(Math.abs(resultItem.getValue()) > 2 * Double.MIN_VALUE || zeroVisibility) {
+                    result.AddItem(resultItem);
+                }
             }
         }
 
@@ -212,5 +221,18 @@ public class IndicatorService {
             }
         }
         return sb.toString();
+    }
+    
+    private boolean zeroVisibility(final String indicatorId) throws ActionException, JSONException {
+        final SzopaRequest req = SzopaRequest.getInstance("indicator_metadata");
+        req.setIndicator(indicatorId);
+        req.setVersion("v1");
+        req.setUseCache(true);
+
+        String response = req.getData();
+
+        org.json.JSONObject result = JSONHelper.createJSONObject(response);
+
+        return result.getBoolean("zeroVisibility");
     }
 }
