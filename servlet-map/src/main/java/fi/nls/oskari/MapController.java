@@ -47,6 +47,8 @@ public class MapController {
 
     private final static String KEY_RESPONSE_HEADER_PREFIX = "oskari.page.header.";
 
+    private final static String BASE_URL_DEFAULT = "";
+
     private final ViewService viewService = new ViewServiceIbatisImpl();
     private boolean isDevelopmentMode = false;
     private String version = null;
@@ -214,6 +216,9 @@ public class MapController {
         model.addAttribute(KEY_AJAX_URL,
                 PropertyUtil.get(params.getLocale(), GetAppSetupHandler.PROPERTY_AJAXURL));
         model.addAttribute("urlPrefix", "");
+
+        PropertyUtil.loadProperties("/oskari-ext.properties");
+        model.addAttribute("baseUrl", PropertyUtil.get("liiteri.logo.url", BASE_URL_DEFAULT));
 
         // in dev-mode app/page can be overridden
         if (isDevelopmentMode) {
