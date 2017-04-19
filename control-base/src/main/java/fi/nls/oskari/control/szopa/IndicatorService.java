@@ -75,7 +75,7 @@ public class IndicatorService {
         boolean zeroVisibility = false;
 
         try {
-            zeroVisibility = zeroVisibility(id);
+            zeroVisibility = zeroVisibility(id, user);
         } catch (JSONException e) {
             log.warn(e, "Could not get zero visibility value for indicator " + id);
         }
@@ -223,11 +223,12 @@ public class IndicatorService {
         return sb.toString();
     }
     
-    private boolean zeroVisibility(final String indicatorId) throws ActionException, JSONException {
+    private boolean zeroVisibility(final String indicatorId, User user) throws ActionException, JSONException {
         final SzopaRequest req = SzopaRequest.getInstance("indicator_metadata");
         req.setIndicator(indicatorId);
         req.setVersion("v1");
         req.setUseCache(true);
+        req.setUser(user);
 
         String response = req.getData();
 
