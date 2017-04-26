@@ -32,6 +32,7 @@ public class TransformWorkSpaceHandler extends ActionHandler {
     private WorkspaceService _service;
     // private static final UserService userService = new DatabaseUserService();
     private static final String WORKSPACE_ID = "id";
+    private static final String UPDATE_SERVICEPACKAGE = "updateServicePackage";
     private static final GroupingsService _groupingService = GroupingsService
             .getInstance();
     private static final GroupingServiceIbatisImpl groupingServiceIbatis = new GroupingServiceIbatisImpl();
@@ -52,20 +53,34 @@ public class TransformWorkSpaceHandler extends ActionHandler {
         if (!user.isAdmin() && !user.hasAnyRoleIn(AUTHORIZED_ROLES))
             throw new ActionDeniedException("Access denied!");
         Long id;
+        Boolean updateServicePackage = false;
         String message = null;
-        long newServicePackageId = 0;
+        long servicePackageId = 0;
         try {
             id = Long.parseLong(params.getHttpParam(WORKSPACE_ID));
         } catch (Exception e) {
             throw new ActionException(
-                    "Error during getting workspace id paramaeter");
+                    "Error during getting workspace id parameter");
         }
+        String updateServicePackageParam = params.getHttpParam(UPDATE_SERVICEPACKAGE);
+        if (updateServicePackageParam != null) {
+            try {
+                updateServicePackage = Boolean.parseBoolean(updateServicePackageParam);
+            } catch (Exception e) {
+                throw new ActionException(
+                        "Error during getting service package update parameter");
+            }
+        }
+
         long userId = user.getId();
         WorkSpace ws = _service.getWorkspace(id);
         Grouping grouping = null;
+        long originalGroupingId;
+        String originalGroupingName = "";
+        String originalGroupingUserGroup = "";
 
         try {
-            long originalGroupingId = JSONWorkSpacesHelper
+            originalGroupingId = JSONWorkSpacesHelper
                     .getServicePackageId(ws.getSettings());
 
             if (originalGroupingId != -1) {
@@ -74,6 +89,9 @@ public class TransformWorkSpaceHandler extends ActionHandler {
 
                 if (groupings != null && groupings.size() > 0) {
                     grouping = groupings.get(0);
+                    originalGroupingName = grouping.getName();
+                    originalGroupingUserGroup = grouping.getUserGroup();
+
                     List<GroupingTheme> themes = groupingThemesService
                             .findAll();
                     List<GroupingThemeData> data = groupingThemeDataService
@@ -92,16 +110,29 @@ public class TransformWorkSpaceHandler extends ActionHandler {
             throw new ActionException(
                     "Error during adding service package to database");
         }
-        try {
-            newServicePackageId = _groupingService.addServicePackage(grouping,
-                    user);
-            message = "New service package has been created";
-        } catch (Exception e) {
-            throw new ActionException(
-                    "Error during adding service package to database");
+        if ((updateServicePackage)&&(originalGroupingId != -1)) {
+            try {
+                grouping.setId(originalGroupingId);
+                grouping.setName(originalGroupingName);
+                grouping.setUserGroup(originalGroupingUserGroup);
+                _groupingService.updateServicePackage(grouping, user);
+                servicePackageId = originalGroupingId;
+                message = "Service package has been updated";
+            } catch (Exception e) {
+                throw new ActionException(
+                        "Error during updating service package to database");
+            }
+        } else {
+            try {
+                servicePackageId = _groupingService.addServicePackage(grouping, user);
+                message = "New service package has been createdt";
+            } catch (Exception e) {
+                throw new ActionException(
+                        "Error during adding service package to database");
+            }
         }
         ResponseHelper.writeResponse(params, JSONWorkSpacesHelper
-                .createJSONMessageObject(newServicePackageId, message));
+                .createJSONMessageObject(servicePackageId, message));
     }
 
     @Override
