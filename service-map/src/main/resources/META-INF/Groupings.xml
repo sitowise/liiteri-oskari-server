@@ -127,7 +127,8 @@
 		description =#description#,
 		userGroup =#userGroup#,
 		updated =#updated#,
-		status =#status#
+		status =#status#,
+		mapState =#mapState#
 		WHERE id =#id#
 	</update>
 
