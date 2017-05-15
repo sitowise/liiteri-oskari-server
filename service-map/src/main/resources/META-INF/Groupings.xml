@@ -37,7 +37,12 @@
 			#[]#
 		</iterate>
 	</select>
-
+	
+	<select id="find" resultMap="GroupingResult" parameterClass="java.lang.Long">
+        select id, name,label,status,description,userGroup,created,updated,mapState from oskari_groupings
+        where id = #id#
+    </select>
+    
 	<statement id="insertGrouping" resultClass="java.lang.Long"
 		parameterClass="Grouping">
 		INSERT INTO oskari_groupings(

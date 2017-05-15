@@ -1,7 +1,5 @@
 package fi.nls.oskari.control.groupings;
 
-
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,6 +12,8 @@ import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.groupings.Grouping;
 import fi.nls.oskari.domain.groupings.GroupingTheme;
+import fi.nls.oskari.groupings.db.GroupingDbService;
+import fi.nls.oskari.groupings.db.GroupingServiceIbatisImpl;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.ServiceException;
@@ -29,6 +29,7 @@ public class SaveGroupingHandler extends ActionHandler {
 	private static final String GROUPING_TYPE = "type";
 	
 	private static final GroupingsService _service = GroupingsService.getInstance();
+	private GroupingDbService groupingService = new GroupingServiceIbatisImpl();
 
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {
@@ -62,7 +63,10 @@ public class SaveGroupingHandler extends ActionHandler {
 
 			} else {
 
-				try {					
+				try {
+					//map state is not sent from UI, but should be preserved here
+					grouping.setMapState(groupingService.find(grouping.getId()).getMapState());
+
 					_service.updateServicePackage(grouping, user);
 					
 					JSONHelper.putValue(result, "status", "updated");
