@@ -76,8 +76,6 @@ public class TransformWorkSpaceHandler extends ActionHandler {
         WorkSpace ws = _service.getWorkspace(id);
         Grouping grouping = null;
         long originalGroupingId;
-        String originalGroupingName = "";
-        String originalGroupingUserGroup = "";
 
         try {
             originalGroupingId = JSONWorkSpacesHelper
@@ -89,8 +87,6 @@ public class TransformWorkSpaceHandler extends ActionHandler {
 
                 if (groupings != null && groupings.size() > 0) {
                     grouping = groupings.get(0);
-                    originalGroupingName = grouping.getName();
-                    originalGroupingUserGroup = grouping.getUserGroup();
 
                     List<GroupingTheme> themes = groupingThemesService
                             .findAll();
@@ -112,10 +108,15 @@ public class TransformWorkSpaceHandler extends ActionHandler {
         }
         if ((updateServicePackage)&&(originalGroupingId != -1)) {
             try {
+                Grouping originalGrouping = groupingServiceIbatis
+                        .findByIds(Arrays.asList(originalGroupingId)).get(0);
+
                 grouping.setId(originalGroupingId);
-                grouping.setName(originalGroupingName);
-                grouping.setUserGroup(originalGroupingUserGroup);
-                _groupingService.updateServicePackage(grouping, user);
+                grouping.setName(originalGrouping.getName());
+                grouping.setUserGroup(originalGrouping.getUserGroup());
+                grouping.setStatus(originalGrouping.getStatus());
+
+                groupingServiceIbatis.updateGrouping(grouping);
                 servicePackageId = originalGroupingId;
                 message = "Service package has been updated";
             } catch (Exception e) {
