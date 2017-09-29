@@ -605,6 +605,19 @@ public class MapProducer {
                     + URLEncoder.encode(epsgCode, "UTF-8")
                     + "&TRANSPARENT=TRUE" + "&BBOX=" + e.getMinX() + ","
                     + e.getMinY() + "," + e.getMaxX() + "," + e.getMaxY();
+        } else if (layerType.equals("analysislayer")) {
+            url = layerUrl
+                    + separator
+                    + "SERVICE=WMS"
+                    + "&VERSION="
+                    + "1.1.1"
+                    + "&REQUEST=GetMap" + "&WIDTH=" + tw + "&HEIGHT=" + th
+                    + "&FORMAT=image/png"
+                    + "&STYLES="
+                    + "&LAYERS=oskari%3Aanalysis_data_style" + "&SRS="
+                    + URLEncoder.encode(epsgCode, "UTF-8")
+                    + "&TRANSPARENT=TRUE" + "&BBOX=" + e.getMinX() + ","
+                    + e.getMinY() + "," + e.getMaxX() + "," + e.getMaxY();
         }
 
         return url;

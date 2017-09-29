@@ -39,6 +39,8 @@ public enum ConfigValue {
     /* */
     LAYER_URLTEMPLATE_STATSLAYER("layer.urltemplate.statslayer"),
 
+    LAYER_URLTEMPLATE_ANALYSISLAYER("layer.urltemplate.analysislayer"),
+
     /* */
     LAYER_CACHE_EXCLUDE("layer.cache.exclude"),
 

@@ -102,6 +102,11 @@ public class MapLayerJSONParser {
                     .getConfigProperty(props) + layerDefinition.getWmsurl(); 
             layersParam = URLEncoder.encode(layerDefinition.getLayerid().replace("userlayer_", ""),
                     "UTF-8");
+        } else if ("analysislayer".equals(type)) {
+            String[] splitter = layerDefinition.getLayerid().split("_");
+            layerURL = String.format(ConfigValue.LAYER_URLTEMPLATE_ANALYSISLAYER
+                    .getConfigProperty(props), splitter[2]);
+            layersParam = URLEncoder.encode(splitter[2], "UTF-8");
         } else if ("wmslayer".equals(type)) {
             layerURL = layerDefinition.getWmsurl();
             layersParam = URLEncoder.encode(layerDefinition.getWmsname(),
@@ -291,7 +296,8 @@ public class MapLayerJSONParser {
                     || "statslayer".equals(type) || "base".equals(type)
                     || "groupMap".equals(type) || "myplaces".equals(type)
                     || "geojson".equals(type) || "wmtslayer".equals(type)
-                    || "arcgislayer".equals(type) || "userlayer".equals(type))) {
+                    || "arcgislayer".equals(type) || "userlayer".equals(type)
+                    || "analysislayer".equals(type))) {
                 System.out.println("Skipping unknown layer type " + type);
                 continue;
             }
