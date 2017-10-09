@@ -41,7 +41,7 @@ public class LayerJSONFormatterWMTS extends LayerJSONFormatter {
         final String urlTemplate = JSONHelper.getStringFromJSON(layer.getOptions(), "urlTemplate", null);
         final boolean needsProxy = useProxy(layer);
         if(urlTemplate != null) {
-            if(needsProxy) {
+        	if(needsProxy || isBeingProxiedViaOskariServer(layerJson.optString("url"))) {
                 // remove requestEncoding so we always get KVP params when proxying
                 JSONObject options = layerJson.optJSONObject("options");
                 options.remove("requestEncoding");
