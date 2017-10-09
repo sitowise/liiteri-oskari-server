@@ -191,14 +191,10 @@ public class LayerJSONFormatter {
 
     protected boolean useProxy(final OskariLayer layer) {
         boolean forceProxy = false;
-        boolean mixedContent = false;
         if (layer.getAttributes() != null) {
             forceProxy = layer.getAttributes().optBoolean("forceProxy", false);
         }
-        if (PropertyUtil.get("oskari.domain", "").startsWith("https://") && layer.getUrl().startsWith("http://")) {
-            mixedContent = true;
-        }
-        return ((layer.getUsername() != null) && (layer.getUsername().length() > 0)) || forceProxy || mixedContent;
+        return ((layer.getUsername() != null) && (layer.getUsername().length() > 0)) || forceProxy;
     }
 
     public String getProxyUrl(final OskariLayer layer) {
@@ -208,12 +204,6 @@ public class LayerJSONFormatter {
         return IOHelper.constructUrl(PropertyUtil.get(PROPERTY_AJAXURL), urlParams);
     }
 
-    protected boolean isBeingProxiedViaOskariServer(String url) {
-        if(url == null || url.isEmpty()) {
-            return false;
-        }
-        return url.startsWith(PropertyUtil.get(PROPERTY_AJAXURL));
-    }
 
     public static JSONObject createStylesJSON(String name, String title, String legend) {
         final JSONObject style = JSONHelper.createJSONObject(STYLE_KEYS[0], name);
