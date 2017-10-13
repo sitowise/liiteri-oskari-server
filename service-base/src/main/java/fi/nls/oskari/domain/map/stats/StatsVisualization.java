@@ -50,7 +50,7 @@ public class StatsVisualization {
 
     private String[] splitGroups(final String grouped) {
         if (grouped != null && !grouped.isEmpty()) {
-            return grouped.split("\\|");
+            return grouped.split("\\|", -1);
         }
         return new String[0];
     }
