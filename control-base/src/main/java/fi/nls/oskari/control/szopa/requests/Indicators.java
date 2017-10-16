@@ -33,6 +33,11 @@ public class Indicators extends SzopaRequest {
     private static final GroupingThemeDataServiceIbatisImpl groupingThemeDataService = new GroupingThemeDataServiceIbatisImpl();
 
     @Override
+    public String getCacheKey() {
+        return this.getUrl() + "|" + this.getFormat() + "|" + this.getRequestBody();
+    }
+
+    @Override
     public String getName() {
         return "indicators";
     }
@@ -68,7 +73,16 @@ public class Indicators extends SzopaRequest {
             List<Long> allowedIndicatorIds = new ArrayList<Long>();
 
             try {
-                JSONArray indicators = new JSONArray(super.getData());
+                final SzopaRequest flatIndicatorRequest = SzopaRequest
+                        .getInstance("indicators");
+
+                flatIndicatorRequest.setVersion("v1");
+
+                if (user != null) {
+                    flatIndicatorRequest.setUser(user);
+                }
+
+                JSONArray indicators = new JSONArray(flatIndicatorRequest.getData());
                 for (int i = 0; i < indicators.length(); ++i) {
                     allowedIndicatorIds.add(indicators.getJSONObject(i)
                             .getLong("id"));
@@ -111,6 +125,8 @@ public class Indicators extends SzopaRequest {
             JSONObject ret = new JSONObject();
 
             JSONHelper.putValue(ret, "themes", new JSONArray(themes));
+
+            CacheDataIfDesired(ret.toString());
 
             return ret.toString();
         }
