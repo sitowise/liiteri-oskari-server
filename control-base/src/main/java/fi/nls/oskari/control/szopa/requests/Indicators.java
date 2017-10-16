@@ -33,6 +33,11 @@ public class Indicators extends SzopaRequest {
     private static final GroupingThemeDataServiceIbatisImpl groupingThemeDataService = new GroupingThemeDataServiceIbatisImpl();
 
     @Override
+    public String getCacheKey() {
+        return this.getUrl() + "|" + this.getFormat() + "|" + this.getRequestBody();
+    }
+
+    @Override
     public String getName() {
         return "indicators";
     }
@@ -111,6 +116,8 @@ public class Indicators extends SzopaRequest {
             JSONObject ret = new JSONObject();
 
             JSONHelper.putValue(ret, "themes", new JSONArray(themes));
+
+            CacheDataIfDesired(ret.toString());
 
             return ret.toString();
         }
