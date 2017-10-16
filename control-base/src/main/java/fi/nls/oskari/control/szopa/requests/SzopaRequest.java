@@ -30,7 +30,7 @@ public class SzopaRequest {
     private String _areaYear = "";
     private String _areaType = "";
     private String _standardFilterParam = "";
-    private boolean _useCache = true;
+    private boolean _useCache = false;
 
     private static Map<String, Class> _requests = new HashMap<String, Class>();
     static {
