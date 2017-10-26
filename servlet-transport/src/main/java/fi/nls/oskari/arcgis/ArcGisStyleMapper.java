@@ -294,7 +294,7 @@ public class ArcGisStyleMapper {
 
         style.setStrokeColor(mapColor((List<Object>) symbol.get("color")));
         style.setStrokeDasharray(mapToLineStyle(symbol.get("style").toString()));
-        style.setStrokeWidth(((Long) symbol.get("width")).intValue());
+        style.setStrokeWidth((int) Double.parseDouble(symbol.get("width").toString()));
 
         return style;
     }
