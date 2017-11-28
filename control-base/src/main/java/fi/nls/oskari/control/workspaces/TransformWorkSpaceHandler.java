@@ -60,7 +60,7 @@ public class TransformWorkSpaceHandler extends ActionHandler {
             id = Long.parseLong(params.getHttpParam(WORKSPACE_ID));
         } catch (Exception e) {
             throw new ActionException(
-                    "Error during getting workspace id parameter");
+                    "Error during getting workspace id parameter", e);
         }
         String updateServicePackageParam = params.getHttpParam(UPDATE_SERVICEPACKAGE);
         if (updateServicePackageParam != null) {
@@ -68,7 +68,7 @@ public class TransformWorkSpaceHandler extends ActionHandler {
                 updateServicePackage = Boolean.parseBoolean(updateServicePackageParam);
             } catch (Exception e) {
                 throw new ActionException(
-                        "Error during getting service package update parameter");
+                        "Error during getting service package update parameter", e);
             }
         }
 
@@ -104,7 +104,7 @@ public class TransformWorkSpaceHandler extends ActionHandler {
 
         } catch (Exception e) {
             throw new ActionException(
-                    "Error during adding service package to database");
+                    "Error during adding service package to database", e);
         }
         if ((updateServicePackage)&&(originalGroupingId != -1)) {
             try {
@@ -121,7 +121,7 @@ public class TransformWorkSpaceHandler extends ActionHandler {
                 message = "Service package has been updated";
             } catch (Exception e) {
                 throw new ActionException(
-                        "Error during updating service package to database");
+                        "Error during updating service package to database", e);
             }
         } else {
             try {
@@ -129,7 +129,7 @@ public class TransformWorkSpaceHandler extends ActionHandler {
                 message = "New service package has been createdt";
             } catch (Exception e) {
                 throw new ActionException(
-                        "Error during adding service package to database");
+                        "Error during adding service package to database", e);
             }
         }
         ResponseHelper.writeResponse(params, JSONWorkSpacesHelper
