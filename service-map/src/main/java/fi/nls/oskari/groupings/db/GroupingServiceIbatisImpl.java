@@ -39,15 +39,7 @@ public class GroupingServiceIbatisImpl extends BaseIbatisService<Grouping>
 			throw new ServiceException(
 					"Tried to insert groupings with <null> param");
 		}
-		if (grouping.getThemes().size() == 0) {
-			throw new ServiceException(
-					"There are no themes defined for the grouping");
-		}
-		/*According to new requirements, it should be possible to save a theme without any content
-		for (GroupingTheme t : grouping.getThemes()) {
-			CheckGroupingData(t);
-		}*/
-
+		
 		final SqlMapSession session = openSession();
 		try {
 			session.startTransaction();
