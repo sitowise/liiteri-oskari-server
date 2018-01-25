@@ -86,6 +86,10 @@ public class RegionService {
                 RegionType.FUNCTIONAL));
         list.add(new RegionDefinition("URBANZONECLASS", "urban_zone_class",
                 RegionType.FUNCTIONAL));
+        list.add(new RegionDefinition("LOCALSIZETYPE", "locality_size_type",
+                RegionType.FUNCTIONAL));
+        list.add(new RegionDefinition("LOCALSIZECLASS", "locality_size_class",
+                RegionType.FUNCTIONAL));
 
         list = lookup.get(RegionType.AREA);
 
