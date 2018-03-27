@@ -9,22 +9,22 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <script type="text/javascript" src="//code.jquery.com/jquery-1.7.2.min.js">
     </script>
+	
     <!-- ############# css ################# -->
 	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
     
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/icons.css"/>
+            href="/Oskari/resources/css/forms.css"/>
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/forms.css"/>
+            href="/Oskari/resources/css/portal.css"/>
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/portal.css"/>
-
+            href="/Oskari${path}/icons.css"/>
     <link
             rel="stylesheet"
             type="text/css"
@@ -102,7 +102,7 @@
             #login input[type="text"], #login input[type="password"] {
                 width: 90%;
                 margin-bottom: 5px;
-                background-image: url("/Oskari${path}/images/forms/input_shadow.png");
+                background-image: url("/Oskari/resources/images/forms/input_shadow.png");
                 background-repeat: no-repeat;
                 padding-left: 5px;
                 padding-right: 5px;
@@ -132,6 +132,12 @@
             #login a {
                 color: #FFF;
                 padding: 5px;
+            }
+            #oskari-system-messages {
+              bottom: 1em;
+              position: fixed;
+              display: table;
+              padding-left: 0.3em;
             }
 
 			.oskari-tile-closed {
@@ -167,7 +173,7 @@
 			<div id="toolbar">
 			</div>
 		</div>
-	</div>
+    <div id="oskari-system-messages"></div>
 </nav>
 <div id="contentMap" class="oskariui container-fluid">
     <div id="menutoolbar" class="container-fluid"></div>
@@ -189,9 +195,6 @@
 
 <script type="text/javascript">
     var ajaxUrl = '${ajaxUrl}';
-    var viewId = '${viewId}';
-    var language = '${language}';
-    var preloaded = ${preloaded};
     var controlParams = ${controlParams};
 </script>
 
@@ -210,9 +213,6 @@
             href="/Oskari${path}/liiteri.css"
             />
     <%--language files 
-    <script type="text/javascript"
-            src="/Oskari${path}/oskari_lang_all.js">
-    </script>
     <script type="text/javascript"
             src="/Oskari${path}/oskari_lang_${language}.js">
     </script>

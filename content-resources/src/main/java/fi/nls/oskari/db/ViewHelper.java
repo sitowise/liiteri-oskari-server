@@ -29,15 +29,58 @@ import java.util.Set;
  */
 public class ViewHelper {
 
-    private static Logger log = LogFactory.getLogger(ViewHelper.class);
     private static final ViewService viewService = new ViewServiceIbatisImpl();
     private static final BundleService bundleService = new BundleServiceIbatisImpl();
+    private static Logger log = LogFactory.getLogger(ViewHelper.class);
 
-    public static long insertView(Connection conn, final String viewfile) throws IOException, SQLException {
+    public static long insertView(Connection conn, final String viewfile)
+            throws IOException, SQLException {
+        try {
+            JSONObject viewJSON = readViewFile(viewfile);
+            final Set<Integer> selectedLayerIds = setupLayers(viewJSON);
+
+            final View view = createView(viewJSON);
+            Bundle bundle = view.getBundleByName("mapfull");
+            replaceSelectedLayers(bundle, selectedLayerIds);
+
+            final long viewId = viewService.addView(view);
+            log.info("Added view from file:", viewfile, "/viewId is:", viewId, "/uuid is:", view.getUuid());
+            return viewId;
+        } catch (Exception ex) {
+            log.error(ex, "Unable to insert view! ");
+        }
+        return -1;
+    }
+
+    public static Set<Integer> setupLayers(JSONObject viewJSON)
+            throws Exception {
+
+        final JSONArray layers = viewJSON.optJSONArray("selectedLayers");
+        final Set<Integer> selectedLayerIds = new HashSet<Integer>();
+        if (layers != null) {
+            for (int i = 0; i < layers.length(); ++i) {
+                final String layerfile = layers.getString(i);
+                try {
+                    selectedLayerIds.add(LayerHelper.setupLayer(layerfile));
+                } catch (Exception ex) {
+                    log.warn("Unable to setup layers from:", layerfile);
+                }
+            }
+        }
+        return selectedLayerIds;
+    }
+
+    public static JSONObject readViewFile(final String viewfile)
+            throws Exception {
         log.info("/ - /json/views/" + viewfile);
         String json = IOHelper.readString(DBHandler.getInputStreamFromResource("/json/views/" + viewfile));
         JSONObject viewJSON = JSONHelper.createJSONObject(json);
         log.debug(viewJSON);
+        return viewJSON;
+    }
+
+    public static View createView(final JSONObject viewJSON)
+            throws Exception {
         try {
             final View view = new View();
             view.setCreator(ConversionHelper.getLong(viewJSON.optString("creator"), -1));
@@ -52,20 +95,13 @@ public class ViewHelper {
             view.setDevelopmentPath(oskari.getString("development_prefix"));
             view.setApplication(oskari.getString("application"));
 
-            final JSONArray layers = viewJSON.optJSONArray("selectedLayers");
-            final Set<Integer> selectedLayerIds = new HashSet<Integer>();
-            if(layers != null) {
-                for (int i = 0; i < layers.length(); ++i) {
-                    final String layerfile = layers.getString(i);
-                    selectedLayerIds.add(LayerHelper.setupLayer(layerfile));
-                }
-            }
+            setupLayers(viewJSON);
 
             final JSONArray bundles = viewJSON.getJSONArray("bundles");
             for (int i = 0; i < bundles.length(); ++i) {
                 final JSONObject bJSON = bundles.getJSONObject(i);
                 final Bundle bundle = bundleService.getBundleTemplateByName(bJSON.getString("id"));
-                if(bundle == null) {
+                if (bundle == null) {
                     throw new Exception("Bundle not registered - id:" + bJSON.getString("id"));
                 }
                 if (bJSON.has("instance")) {
@@ -80,35 +116,30 @@ public class ViewHelper {
                 if (bJSON.has("state")) {
                     bundle.setState(bJSON.getJSONObject("state").toString());
                 }
-                // special handling for mapfull -> links to layers
-                if(bundle.getName().equals("mapfull")) {
-                    replaceSelectedLayers(bundle, selectedLayerIds);
-                }
 
                 // set up seq number
                 view.addBundle(bundle);
             }
-            final long viewId = viewService.addView(view);
-            log.info("Added view from file:", viewfile, "/viewId is:", viewId, "/uuid is:", view.getUuid());
-            return viewId;
+            return view;
         } catch (Exception ex) {
             log.error(ex, "Unable to insert view! ");
         }
-        return -1;
+        return null;
     }
 
     private static void replaceSelectedLayers(final Bundle mapfull, final Set<Integer> idSet) {
-        if(idSet == null || idSet.isEmpty()) {
+        if (idSet == null || idSet.isEmpty()) {
             // nothing to setup
             return;
         }
         JSONArray layers = mapfull.getStateJSON().optJSONArray("selectedLayers");
-        if(layers == null) {
+        if (layers == null) {
             layers = new JSONArray();
             JSONHelper.putValue(mapfull.getStateJSON(), "selectedLayers", layers);
         }
-        for(Integer id : idSet) {
+        for (Integer id : idSet) {
             layers.put(JSONHelper.createJSONObject("id", id));
         }
     }
+
 }

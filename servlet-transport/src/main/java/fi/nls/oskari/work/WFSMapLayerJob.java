@@ -3,13 +3,19 @@ package fi.nls.oskari.work;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
+import fi.nls.oskari.map.geometry.ProjectionHelper;
 import fi.nls.oskari.pojo.SessionStore;
+import fi.nls.oskari.service.ServiceRuntimeException;
+import fi.nls.oskari.transport.TransportJobException;
 import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.wfs.WFSCommunicator;
+import fi.nls.oskari.wfs.WFSExceptionHelper;
 import fi.nls.oskari.wfs.WFSFilter;
 import fi.nls.oskari.wfs.WFSParser;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.HttpHelper;
+import fi.nls.oskari.wfs.extension.UserLayerProcessor;
+import fi.nls.oskari.wfs.LayerProcessor;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.opengis.feature.Property;
@@ -18,12 +24,13 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.operation.MathTransform;
 
-import java.io.BufferedReader;
+import java.io.Reader;
 import java.util.*;
 /**
  * Job for WFS Map Layer
  */
 public class WFSMapLayerJob extends OWSMapLayerJob {
+	LayerProcessor layerProcessor = new UserLayerProcessor ();
 
 	/**
 	 * Creates a new runnable job with own Jedis instance
@@ -60,6 +67,7 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
 
     /**
      * Makes request
+     * Throws TransportJobException, if payload fails or post request response fails
      *
      * @param type
      * @param layer
@@ -71,13 +79,20 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
     public RequestResponse request(JobType type, WFSLayerStore layer,
             SessionStore session, List<Double> bounds,
             MathTransform transformService) {
-        BufferedReader response = null;
+        Reader response = null;
         if (layer.getTemplateType() == null) { // default
             String payload = WFSCommunicator.createRequestPayload(type, layer,
                     session, bounds, transformService);
             log.debug("...WFS / Request data "+ layer.getURL() + "\n" + payload + "\n");
-            response = HttpHelper.postRequestReader(layer.getURL(), "",
-                    payload, layer.getUsername(), layer.getPassword());
+            try {
+                response = HttpHelper.postRequestReader(layer.getURL(), "",
+                        payload, layer.getUsername(), layer.getPassword(), true);
+            }
+            catch (ServiceRuntimeException e){
+                throw new TransportJobException(e.getMessage(),
+                        e.getCause(),
+                        WFSExceptionHelper.ERROR_GETFEATURE_POSTREQUEST_FAILED);
+            }
         } else {
             log.debug(
                     "Failed to make a request because of undefined layer type "+
@@ -98,8 +113,12 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
      */
     public FeatureCollection<SimpleFeatureType, SimpleFeature> response(
             WFSLayerStore layer, RequestResponse requestResponse) {
-        BufferedReader response = ((WFSRequestResponse) requestResponse).getResponse();
+        Reader response = ((WFSRequestResponse) requestResponse).getResponse();
         FeatureCollection<SimpleFeatureType, SimpleFeature> features = WFSCommunicator.parseSimpleFeatures(response, layer);
+
+        if (layerProcessor.isProcessable(layer)) {
+			features = layerProcessor.process(features,layer);
+        }
 
         IOHelper.close(response);
 
@@ -139,8 +158,10 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
         try {
             // request failed
             if(response == null) {
-                log.warn("Request failed for layer", layer.getLayerId());
-                throw new RuntimeException(ResultProcessor.ERROR_WFS_REQUEST_FAILED);
+                log.warn("Request failed for layer: ",layer.getLayerName(), "id: ", layer.getLayerId());
+                throw new TransportJobException("Request failed for layer: " + layer.getLayerName() + "id: " + layer.getLayerId(),
+                        WFSExceptionHelper.ERROR_GETFEATURE_POSTREQUEST_FAILED);
+
             }
 
             // parse response, throws an exception on failure
@@ -148,7 +169,7 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
             final Map<String, Object> output = createCommonResponse();
             if(features == null || features.isEmpty()) {
                 log.debug("Empty result for", this.layerId, "type:", type);
-                output.put(OUTPUT_FEATURES, "empty");
+                output.put(OUTPUT_FEATURE, "empty");
                 log.debug(PROCESS_ENDED, getKey());
                 if(this.type == JobType.MAP_CLICK) {
                     output.put(OUTPUT_KEEP_PREVIOUS, this.session.isKeepPrevious());
@@ -161,6 +182,10 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
                 }
                 this.service.addResults(session.getClient(), ResultProcessor.CHANNEL_FEATURE, output);
                 return true;
+            }
+            // Swap XY in feature geometry, if reverseXY setup in layer attributes
+            if(layer.isReverseXY(session.getLocation().getSrs())){
+                ProjectionHelper.swapGeometryXY(this.features);
             }
 
             if(this.features.size() == layer.getMaxFeatures()) {
@@ -237,7 +262,12 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
         log.debug("features handler - layer:", this.layer.getLayerId());
 
         // create filter of screen area
-        Filter screenBBOXFilter = WFSFilter.initBBOXFilter(this.session.getLocation(), this.layer);
+        Filter screenBBOXFilter = WFSFilter.initBBOXFilter(this.session.getLocation(), this.layer, false);
+        if(screenBBOXFilter == null) {
+            throw new TransportJobException("Failed to create BBOX filter (location or layer is unset)",
+                    WFSExceptionHelper.ERROR_FEATURE_PARSING);
+
+        }
 
         // send feature info
         FeatureIterator<SimpleFeature> featuresIter =  this.features.features();
@@ -246,6 +276,8 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
         this.geomValuesList = new ArrayList<List<Object>>();
 
         final List<String> selectedProperties = getPropertiesToInclude();
+
+        boolean geometryParingFailures = false;
 
         while(goNext(featuresIter.hasNext())) {
             SimpleFeature feature = featuresIter.next();
@@ -280,14 +312,15 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
                 if( geometry != null ) {
                 gvalues.add(geometry.toText()); //feature.getAttribute(this.layer.getGMLGeometryProperty()));
                 } else {
+                    log.debug("Feature geometry parsing failed", fid);
                     gvalues.add(null);
+                    geometryParingFailures = true;
                 }
                 this.geomValuesList.add(gvalues);
             }
 
             // send values
             if(!this.sendFeatures) {
-                log.warn("Didn't request properties - skipping", fid);
                 continue;
             }
             Point centerPoint = WFSParser.getGeometryCenter(geometry);
@@ -314,6 +347,13 @@ public class WFSMapLayerJob extends OWSMapLayerJob {
             } else {
                 this.featureValuesList.add(values);
             }
+        }
+
+        if(geometryParingFailures){
+            Map<String, Object> output = this.createCommonWarningResponse(
+                    "Geometry parsing of some features failed (unknown geometry property or transformation error",
+                    WFSExceptionHelper.WARNING_GEOMETRY_PARSING_FAILED);
+            this.sendCommonErrorResponse(output, true);
         }
 	}
 

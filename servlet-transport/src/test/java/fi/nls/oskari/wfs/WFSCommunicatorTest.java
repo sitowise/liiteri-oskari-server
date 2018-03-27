@@ -3,8 +3,9 @@ package fi.nls.oskari.wfs;
 import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.pojo.SessionStore;
 import fi.nls.oskari.transport.TransportService;
+import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.PropertyUtil;
-import fi.nls.oskari.utils.TestHelper;
+import fi.nls.test.util.TestHelper;
 import fi.nls.oskari.wfs.extension.AnalysisFilter;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.HttpHelper;
@@ -21,10 +22,13 @@ import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -95,7 +99,7 @@ public class WFSCommunicatorTest {
         assertTrue("Should get expected bounds result " + xmlDiff, xmlDiff.similar());
 		
 		// request (maplayer_id 216)
-		BufferedReader response = HttpHelper.postRequestReader(layer.getURL(), "text/xml", payload, layer.getUsername(), layer.getPassword());
+        Reader response = HttpHelper.postRequestReader(layer.getURL(), "text/xml", payload, layer.getUsername(), layer.getPassword());
 		assertTrue("Should get valid response", response != null);
 		
 		// parse
@@ -103,6 +107,22 @@ public class WFSCommunicatorTest {
 		assertTrue("Should get valid features", features != null);
 		assertTrue("Should get features", features.size() > 0);
 	}
+
+    @Test
+    public void testUserlayerParsing() throws Exception {
+        // get userlayer config
+        String layerJSON = IOHelper.readString(getClass().getResourceAsStream("Userlayer.json"));
+        WFSLayerStore userlayer = WFSLayerStore.setJSON(layerJSON);
+
+        // get response xml
+        Reader response = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("Userlayer-GetFeature-response.xml")));
+        assertTrue("Should get valid response", response != null);
+
+        // parse the xml
+        FeatureCollection<SimpleFeatureType, SimpleFeature> features = WFSCommunicator.parseSimpleFeatures(response, userlayer);
+        assertTrue("Should get valid features", features != null);
+        assertEquals("Should parse 177 features", 177, features.size());
+    }
 
     @Test
     public void testFilterConstruct() {

@@ -1,9 +1,16 @@
 package fi.nls.oskari.search.ktjkiiwfs;
 
+import com.vividsolutions.jts.geom.Point;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.search.channel.ConnectionProvider;
 import fi.nls.oskari.util.IOHelper;
+import fi.nls.oskari.util.XmlHelper;
+import org.geotools.GML;
+import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.opengis.feature.simple.SimpleFeature;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -20,12 +27,21 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.*;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import javax.xml.xpath.XPathVariableResolver;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLConnection;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -107,6 +123,8 @@ import java.util.regex.Pattern;
  *         </gml:featureMember> </wfs:FeatureCollection>
  * 
  */
+
+//  parser changed to geotools GML parser for service https://ws.nls.fi/ktjkii/wfs-2015/wfs  5-2016
 
 public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 
@@ -255,7 +273,7 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 		/**
 		 * 1) Read Query Template
 		 */
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilderFactory factory = XmlHelper.newDocumentBuilderFactory();
 		factory.setNamespaceAware(true);
 		DocumentBuilder builder;
 		Document doc = null;
@@ -290,7 +308,7 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 		 * 
 		 */
 		// Use a Transformer for output
-		TransformerFactory tFactory = TransformerFactory.newInstance();
+		TransformerFactory tFactory = XmlHelper.newTransformerFactory();
 		Transformer transformer = tFactory.newTransformer();
 
 		DOMSource source = new DOMSource(doc);
@@ -312,94 +330,60 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 	 * @throws SAXException
 	 * @throws XPathExpressionException
 	 */
-	public List<RegisterUnitParcelSearchResult> processParcelFeatureResponseFromStream(
-			RegisterUnitId registerUnitId, InputStream inp)
-			throws ParserConfigurationException, SAXException, IOException,
-			XPathExpressionException {
-		String requestedRegisterUnitId = registerUnitId.getValue();
+    public List<RegisterUnitParcelSearchResult> processParcelFeatureResponseFromStream(
+            RegisterUnitId registerUnitId, InputStream inp)
+            throws ParserConfigurationException, SAXException, IOException,
+            XPathExpressionException {
+        String requestedRegisterUnitId = registerUnitId.getValue();
 
-		logger.info("processResponseFromStream " + requestedRegisterUnitId);
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setNamespaceAware(true);
-		DocumentBuilder builder;
-		Document doc = null;
-		builder = factory.newDocumentBuilder();
-		doc = builder.parse(inp);
+        logger.info("processResponseFromStream " + requestedRegisterUnitId);
+        ArrayList<RegisterUnitParcelSearchResult> results = new ArrayList<RegisterUnitParcelSearchResult>();
 
-		// Create a XPathFactory
-		XPathFactory xFactory = XPathFactory.newInstance();
+        GML gml = new GML(GML.Version.WFS1_1);
+        try {
+            SimpleFeatureCollection fc = gml.decodeFeatureCollection(inp);
+			if(fc == null) {
+				return results;
+			}
+            // bbox of GetFeature response
+            ReferencedEnvelope env = fc.getBounds();
+            String bbox = Double.toString(env.getMinX()) + " " + Double.toString(env.getMinY()) + " " +
+                    Double.toString(env.getMaxX()) + " " + Double.toString(env.getMaxY());
 
-		// Create a XPath object
-		XPath xpath = xFactory.newXPath();
-		xpath.setNamespaceContext(nscontext);
-
-		KTJkiiWFSVariableResolver varresolver = new KTJkiiWFSVariableResolver();
-		varresolver.add(new QName("registerUnitID"), requestedRegisterUnitId);
-
-		xpath.setXPathVariableResolver(varresolver);
-
-		// Compile the XPath expression
-		XPathExpression expr = xpath
-				.compile("//ktjkiiwfs:PalstanTietoja[ktjkiiwfs:rekisteriyksikonKiinteistotunnus=$registerUnitID]");
-						/*+ "/ktjkiiwfs:tunnuspisteSijainti/gml:Point/gml:pos/text()");*/
-
-		XPathExpression exprTunnuspisteSijaintiPointPosText = xpath
-				.compile("ktjkiiwfs:tunnuspisteSijainti/gml:Point/gml:pos/text()");
-
-
-
-		NodeList nodes = (NodeList) expr.evaluate(doc, XPathConstants.NODESET);
-
-		if (nodes == null)
-			return null;
-
-		// System.out.println();
-		if (nodes.getLength() == 0)
-			return null;
-
-        // bbox of GetFeature response
-        String bbox = getFirstNodeValue(doc, nscontext.getNamespaceURI("gml"), "lowerCorner") + " " + getFirstNodeValue(doc, nscontext.getNamespaceURI("gml"), "upperCorner");
-
-		ArrayList<RegisterUnitParcelSearchResult> results = new ArrayList<RegisterUnitParcelSearchResult>(
-				nodes.getLength());
-
-		for (int n = 0; n < nodes.getLength(); n++) {
-
-			Node ndPt = nodes.item(n);
-			
-			String gmlID = ndPt.getAttributes().getNamedItemNS(nscontext.getNamespaceURI("gml"), "id").getTextContent() ;
-			
-			Node nd = (Node) exprTunnuspisteSijaintiPointPosText.evaluate(ndPt, XPathConstants.NODE);
-			/*Node nd = nodes.item(n);*/
-			
-			if (nd.getNodeType() == Node.TEXT_NODE) {
-
-				String val = nd.getTextContent();
-				String[] EN = val.split(" ");
-				if (EN == null)
-					continue;
-				if (EN.length < 2)
-					continue;
-
-				String E = EN[0];
-				String N = EN[1];
-
-				RegisterUnitParcelSearchResult rupsr = new RegisterUnitParcelSearchResult();
-				rupsr.setGmlID(gmlID);
-				rupsr.setRegisterUnitID(requestedRegisterUnitId);
-				rupsr.setE(E);
-				rupsr.setN(N);
+            SimpleFeatureIterator it = fc.features();
+            while (it.hasNext()) {
+                final SimpleFeature feature = it.next();
+                Object poi = feature.getAttribute("tunnuspisteSijainti");
+                String east = null;
+                String north = null;
+                if (poi instanceof Point) {
+                    Point point = (Point) poi;
+                    east = Double.toString(point.getX());
+                    north = Double.toString(point.getY());
+                } else {
+                    // Use centroid
+                    east = Double.toString((feature.getBounds().getMinX() + feature.getBounds().getMaxX()) / 2.0);
+                    north = Double.toString((feature.getBounds().getMinY() + feature.getBounds().getMaxY()) / 2.0);
+                }
+                RegisterUnitParcelSearchResult rupsr = new RegisterUnitParcelSearchResult();
+                rupsr.setGmlID(feature.getID());
+                rupsr.setRegisterUnitID(requestedRegisterUnitId);
+                rupsr.setE(east);
+                rupsr.setN(north);
                 rupsr.setBBOX(bbox);
 
-				results.add(rupsr);
-			}
-		}
+                results.add(rupsr);
+            }
+        } catch (Exception ex) {
+            throw new IOException(ex);
+        }
 
-		return results;
-	}
-	
 
-	/**
+        return results;
+    }
+
+
+    /**
 	 * Processes Response to a Set of Response Objects
 	 * 
 	 * @param registerUnitId
@@ -415,7 +399,7 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 		String requestedRegisterUnitId = registerUnitId.getValue();
 
 		logger.info("processResponseFromStream " + requestedRegisterUnitId);
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilderFactory factory = XmlHelper.newDocumentBuilderFactory();
 		factory.setNamespaceAware(true);
 		DocumentBuilder builder;
 		Document doc = null;
@@ -501,14 +485,14 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 
 		String requestedRegisterUnitId = registerUnitId.getValue();
 
-		logger.info("searchByRegisterUnitId " + requestedRegisterUnitId);
+		logger.debug("searchByRegisterUnitId " + requestedRegisterUnitId);
 
 		RegisterUnitId registerUnitID = convertRequestStringToRegisterUnitID(requestedRegisterUnitId);
 		if (registerUnitID == null) {
 			return null;
 		}
 
-		logger.info("searchByRegisterUnitId -> " + registerUnitID);
+		logger.debug("searchByRegisterUnitId -> " + registerUnitID);
 
 		List<RegisterUnitParcelSearchResult> results = null;
 
@@ -519,13 +503,13 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 		OutputStream outs = connection.getOutputStream();
 		try {
 			try {
-				logger.info("searchByRegisterUnitId -> " + registerUnitID
+				logger.debug("searchByRegisterUnitId -> " + registerUnitID
 						+ " sending Request");
 				buildParcelFeatureQueryToStream(registerUnitID, outs);
 			} finally {
 				outs.close();
 			}
-			logger.info("searchByRegisterUnitId -> " + registerUnitID
+			logger.debug("searchByRegisterUnitId -> " + registerUnitID
 					+ " reading response");
 			InputStream inp = connection.getInputStream();
 			try {
@@ -534,7 +518,7 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 				inp.close();
 			}
 
-			logger.info("searchByRegisterUnitId -> " + registerUnitID
+			logger.debug("searchByRegisterUnitId -> " + registerUnitID
 					+ " finished");
 
 		} catch (XPathExpressionException e) {
@@ -570,14 +554,14 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 
 		String requestedRegisterUnitId = registerUnitId.getValue();
 
-		logger.info("searchByRegisterUnitId " + requestedRegisterUnitId);
+		logger.debug("searchByRegisterUnitId " + requestedRegisterUnitId);
 
 		RegisterUnitId registerUnitID = convertRequestStringToRegisterUnitID(requestedRegisterUnitId);
 		if (registerUnitID == null) {
 			return null;
 		}
 
-		logger.info("searchByRegisterUnitId -> " + registerUnitID);
+		logger.debug("searchByRegisterUnitId -> " + registerUnitID);
 
 		List<RegisterUnitParcelSearchResult> results = null;
 
@@ -587,13 +571,13 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 		OutputStream outs = connection.getOutputStream();
 		try {
 			try {
-				logger.info("searchByRegisterUnitId -> " + registerUnitID
+				logger.debug("searchByRegisterUnitId -> " + registerUnitID
 						+ " sending Request");
 				buildRegisterUnitFeatureQueryToStream(registerUnitID, outs);
 			} finally {
                 IOHelper.close(outs);
 			}
-			logger.info("searchByRegisterUnitId -> " + registerUnitID
+			logger.debug("searchByRegisterUnitId -> " + registerUnitID
 					+ " reading response");
 			InputStream inp = connection.getInputStream();
 			try {
@@ -602,7 +586,7 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
                 IOHelper.close(inp);
 			}
 
-			logger.info("searchByRegisterUnitId -> " + registerUnitID
+			logger.debug("searchByRegisterUnitId -> " + registerUnitID
 					+ " finished");
 
 		} catch (XPathExpressionException e) {

@@ -1,6 +1,5 @@
 package fi.nls.oskari;
 
-import fi.nls.oskari.control.ActionDeniedException;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.control.view.GetAppSetupHandler;
 import fi.nls.oskari.control.view.modifier.param.ParamControl;
@@ -72,11 +71,15 @@ public class MapController {
             paramHandlers.addAll(ParamControl.getHandlerKeys());
             log.debug("Checking for params", paramHandlers);
         }
-        writeCustomHeaders(params.getResponse());
-        boolean development = PropertyUtil.getOptional("development", false);
-        model.addAttribute("preloaded", !development);
+        // for debugging - Note! changes the setting for the whole instance!!! Use with care
+        if(params.getUser().isAdmin() && params.getHttpParam("reallyseriouslyyes", false)) {
+            isDevelopmentMode = params.getHttpParam("dev", isDevelopmentMode);
+        }
 
-        if (development) {
+        writeCustomHeaders(params.getResponse());
+        model.addAttribute("preloaded", !isDevelopmentMode);
+
+        if (isDevelopmentMode) {
             model.addAttribute("oskariApplication", PropertyUtil.get("oskari.development.prefix"));
         } else {
             model.addAttribute("oskariApplication", PropertyUtil.get("oskari.client.version") +
@@ -116,6 +119,7 @@ public class MapController {
         if(env.isHandleLoginForm()) {
             if(!params.getUser().isGuest()) {
                 model.addAttribute("_logout_uri", env.getLogoutUrl());
+                model.addAttribute("_registration_uri", env.getRegisterUrl());
             }
             else {
                 // move possible "failed" parameter to attribute as JSP checks attribute
@@ -130,6 +134,9 @@ public class MapController {
                     model.addAttribute("_login_uri", env.getLoginUrl());
                     model.addAttribute("_login_field_user", env.getParam_username());
                     model.addAttribute("_login_field_pass", env.getParam_password());
+                }
+                if(PropertyUtil.getOptional("allow.registration", false)) {
+                    model.addAttribute("_registration_uri", env.getRegisterUrl());
                 }
             }
         }
@@ -201,6 +208,7 @@ public class MapController {
 
 
         JSONHelper.putValue(controlParams, PARAM_SECURE, request.getParameter(PARAM_SECURE));
+        JSONHelper.putValue(controlParams, GetAppSetupHandler.PARAM_NO_SAVED_STATE, request.getParameter(GetAppSetupHandler.PARAM_NO_SAVED_STATE));
         model.addAttribute(KEY_CONTROL_PARAMS, controlParams.toString());
 
         model.addAttribute(KEY_PRELOADED, !isDevelopmentMode);
@@ -211,6 +219,7 @@ public class MapController {
         }
         model.addAttribute("application", view.getApplication());
         model.addAttribute("viewName", view.getName());
+        model.addAttribute("user", params.getUser());
         model.addAttribute("language", params.getLocale().getLanguage());
 
         model.addAttribute(KEY_AJAX_URL,

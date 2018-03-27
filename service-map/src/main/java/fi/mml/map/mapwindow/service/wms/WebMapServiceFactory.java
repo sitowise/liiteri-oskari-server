@@ -4,6 +4,8 @@ import fi.mml.map.mapwindow.util.RemoteServiceDownException;
 import fi.nls.oskari.cache.Cache;
 import fi.nls.oskari.cache.CacheManager;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.map.layer.OskariLayerServiceIbatisImpl;
 import fi.nls.oskari.service.OskariComponentManager;
@@ -16,6 +18,8 @@ import fi.nls.oskari.wms.WMSCapabilities;
  * 
  */
 public class WebMapServiceFactory {
+
+    private static final Logger LOG = LogFactory.getLogger(WebMapServiceFactory.class);
 
     private static final CapabilitiesCacheService CAPABILITIES_SERVICE = OskariComponentManager.getComponentOfType(CapabilitiesCacheService.class);
     private static final OskariLayerService LAYER_SERVICE = new OskariLayerServiceIbatisImpl();
@@ -82,6 +86,7 @@ public class WebMapServiceFactory {
                 return new WebMapServiceV1_1_1_Impl("from DataBase", xml, layerName);
             }
         } catch (WebMapServiceParseException ex) {
+            LOG.warn(ex, "Failed to parse Capabilities layerName:", layerName);
         }
         return null;
     }
@@ -109,11 +114,9 @@ public class WebMapServiceFactory {
 	 * @return
 	 */
 	public static boolean isVersion1_1_1(String data) {
-        if (data.contains("version=\"1.1.1\"")) {
-			return true;
-		} else {
-            return data.contains("WMT_MS_Capabilities updateSequence=\"1\" version=\"1.1.1\"");
-        }
+        return data != null &&
+                data.contains("WMT_MS_Capabilities") &&
+                data.contains("version=\"1.1.1\"");
 	}
 
 	/**
@@ -123,9 +126,9 @@ public class WebMapServiceFactory {
 	 * @return
 	 */
 	public static boolean isVersion1_3_0(String data) {
-        return data.contains("version=\"1.3.0\"");
+        return data != null &&
+                data.contains("WMS_Capabilities") &&
+                data.contains("version=\"1.3.0\"");
 	}
-
-
 
 }

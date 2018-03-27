@@ -2,12 +2,14 @@ package fi.nls.oskari.wfs;
 
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.map.geometry.ProjectionHelper;
 import fi.nls.oskari.pojo.SessionStore;
+import fi.nls.oskari.service.ServiceRuntimeException;
+import fi.nls.oskari.transport.TransportJobException;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.XMLHelper;
 import fi.nls.oskari.work.JobType;
-import fi.nls.oskari.work.ResultProcessor;
 import org.apache.axiom.om.*;
 
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
@@ -18,7 +20,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 
 import org.opengis.referencing.operation.MathTransform;
 
-import java.io.BufferedReader;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -70,15 +72,17 @@ public class WFSCommunicator {
                 String[] split = layer.getGMLGeometryProperty().split(":");
                 if (split.length >= 2 && !split[0].equals(layer.getFeatureNamespace())) {
                     if (layer.getGeometryNamespaceURI() == null) {
-                        log.error("No geometry namespace URI defined");
-                        return null;
+                        log.error("No geometry namespace URI defined:" + layer.getLayerName());
+                        throw new TransportJobException("No geometry namespace URI defined:" + layer.getLayerName(),
+                                WFSExceptionHelper.ERROR_INVALID_GEOMETRY_PROPERTY);
                     }
                     OMAttribute geomNs = factory.createOMAttribute("xmlns:" + split[0], null, layer.getGeometryNamespaceURI());
                     root.addAttribute(geomNs);
                 }
             } else {
                 log.error("No geometry property name defined");
-                return null;
+                throw new TransportJobException("No geometry property name defined:" + layer.getLayerName(),
+                        WFSExceptionHelper.ERROR_INVALID_GEOMETRY_PROPERTY);
             }
 
         if (layer.getOutputFormat() != null) {
@@ -94,10 +98,14 @@ public class WFSCommunicator {
 
 		// query
 		//try {
+            // Use layer.getSRSName() for _srsName, if transform must be supported
+            String _srsName = session.getLocation().getSrs();
+            _srsName = layer.isLongSrsName(_srsName) ?
+                    ProjectionHelper.longSyntaxEpsg(_srsName) : _srsName;
             OMElement query = factory.createOMElement("Query", wfs);
             OMAttribute typeName = factory.createOMAttribute("typeName", null,
                     layer.getFeatureNamespace() + ":" + layer.getFeatureElement());
-            OMAttribute srsName = factory.createOMAttribute("srsName", null, layer.getSRSName());
+            OMAttribute srsName = factory.createOMAttribute("srsName", null, _srsName);
             query.addAttribute(typeName);
             query.addAttribute(srsName);
             root.addChild(query);
@@ -134,10 +142,17 @@ public class WFSCommunicator {
                     query.addChild(property);
                 }
             }  -- eliminated because of GetFeature fails when property name is not valid or not for all features */
-
-            // load filter
-            WFSFilter wfsFilter = constructFilter(layer.getLayerId());
-            String filterStr = wfsFilter.create(type, layer, session, bounds, transform);
+            String filterStr = null;
+            try {
+                // load filter
+                WFSFilter wfsFilter = constructFilter(layer.getLayerId());
+                filterStr = wfsFilter.create(type, layer, session, bounds, transform);
+            }
+            catch (ServiceRuntimeException e){
+                throw new ServiceRuntimeException(e.getMessage(),
+                        e.getCause(),
+                        WFSExceptionHelper.ERROR_GETFEATURE_PAYLOAD_FAILED);
+            }
             log.debug(" ++++++++++++++++++++++++++++++ filter xml: ", filterStr);
             if(filterStr != null) {
                 StAXOMBuilder staxOMBuilder = XMLHelper.createBuilder(filterStr);
@@ -145,9 +160,18 @@ public class WFSCommunicator {
                 query.addChild(filter);
             }
 		}
-		catch (Exception e){
+		catch (ServiceRuntimeException e){
 		    log.error(e, "Failed to create payload - root: ", root);
+            throw new TransportJobException(e.getMessage(),
+                    e.getCause(),
+                    e.getMessageKey());
 		}
+        catch (Exception e){
+            log.error(e, "Failed to create payload - root: ", root);
+            throw new TransportJobException("Failed to create GetFeature payload - layer: " + layer.getLayerName() + " request: " + root.toString(),
+                    e.getCause(),
+                    WFSExceptionHelper.ERROR_GETFEATURE_PAYLOAD_FAILED);
+        }
 
 		return root.toString();
 	}
@@ -162,7 +186,9 @@ public class WFSCommunicator {
 	 * @return simple features
 	 */
 	@SuppressWarnings("unchecked")
-	public static FeatureCollection<SimpleFeatureType, SimpleFeature> parseSimpleFeatures(BufferedReader response, final WFSLayerStore layer) {
+	public static FeatureCollection<SimpleFeatureType, SimpleFeature> parseSimpleFeatures(
+	        Reader response,
+            final WFSLayerStore layer) {
 		Parser parser = null;
 		if(Character.getNumericValue(layer.getGMLVersion().charAt(2)) == 2) { // 3.2
 			log.debug("Using GML Parser 3.2");
@@ -176,17 +202,28 @@ public class WFSCommunicator {
 		try {
 			obj = parser.parse(response);
             if(obj instanceof FeatureCollection) {
-                return (FeatureCollection<SimpleFeatureType, SimpleFeature>) obj;
+                FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection = (FeatureCollection<SimpleFeatureType, SimpleFeature>) obj;
+                return featureCollection;
             }
             if(!(obj instanceof Number)) {
                 // obj can be 0 if no hits
-                throw new RuntimeException(ResultProcessor.ERROR_FEATURE_PARSING);
+                final String parseErr = parseErrors(obj);
+                String message = "Failed to parse GetFeature response - " + parseErr;
+                if(parseErr == null) {
+                    message = "Failed to parse GetFeature response - service url: " + layer.getURL();
+                }
+                throw new ServiceRuntimeException(message,
+                        WFSExceptionHelper.ERROR_FEATURE_PARSING);
             }
-		} catch (Exception e) {
-            if(!parseErrors(obj)) {
+		}catch (ServiceRuntimeException e) {
+            throw new TransportJobException(e.getMessage(),
+                    e.getCause(),
+                    e.getMessageKey());
+        }catch (Exception e) {
                 log.error(e, "Features couldn't be parsed: - response: ", response, " obj: ", obj);
-            }
-            throw new RuntimeException(ResultProcessor.ERROR_FEATURE_PARSING);
+            throw new TransportJobException("Failed to parse GetFeature response - service url: " + layer.getURL(),
+                    e.getCause(),
+                    WFSExceptionHelper.ERROR_FEATURE_PARSING);
 		}
         return null;
 	}
@@ -199,25 +236,32 @@ public class WFSCommunicator {
 	 *         otherwise.
 	 */
 	@SuppressWarnings("unchecked")
-	private static boolean parseErrors(Object param) {
+	private static String parseErrors(Object param) {
         if(!(param instanceof Map)) {
-            return false;
+            return null;
         }
         // can't handle these cases
         final Map<Object, Object> error = (Map<Object, Object>) param;
+
+        if(error != null && error.containsKey("body")){
+            // html is not allowed in xml response - body is not an element of gml
+            return "Response is html - must be xml";
+        }
+
+
 		if(error == null
                 || !error.containsKey("Exception")
                 || !error.containsKey("version")
                 || !(error.get("Exception") instanceof Map)) {
             log.error("Layer configuration problem", error);
-            return false;
+            return null;
         }
         // check that we are processing a known version
         final String version = (String) error.get("version");
         final boolean knownVersion = version.equals(VERSION_1_0_0) || version.equals(VERSION_1_1_0);
         if(!knownVersion) {
-            log.error("UNHANDLED Version:", version);
-            return false;
+            log.error("UNHANDLED WFS Version:", version);
+            return "UNHANDLED WFS Version:" + version;
         }
 
         final Map<Object, Object> exception = (Map<Object, Object>) error.get("Exception");
@@ -225,9 +269,11 @@ public class WFSCommunicator {
             log.error("Layer configuration problem [",
                     exception.get("exceptionCode"), "] ",
                     exception.get("ExceptionText"), error);
-            return true;
+            return "Layer configuration problem exceptionCode: " +
+                    exception.get("exceptionCode").toString() + " exceptionText: " +
+                    exception.get("ExceptionText").toString();
         }
-        return false;
+        return null;
 	}
 
     /**
@@ -249,7 +295,8 @@ public class WFSCommunicator {
                 return (WFSFilter) filterClass.newInstance();
             } catch (Exception e) {
                 log.error(e, "Error constructing a filter for layer:", layerId, filterClassName);
-                return null;
+                throw new ServiceRuntimeException("Error constructing a filter for layer: " + layerId +
+                        " filterClassName: " + filterClassName, e.getCause() );
             }
         }
 

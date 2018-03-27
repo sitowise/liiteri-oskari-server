@@ -2,18 +2,19 @@ package fi.nls.oskari.wfs;
 
 import com.vividsolutions.jts.geom.Geometry;
 import fi.nls.oskari.pojo.SessionStore;
-import fi.nls.oskari.utils.TestHelper;
+import fi.nls.test.util.TestHelper;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.HttpHelper;
 import fi.nls.oskari.work.JobType;
 import org.geotools.feature.FeatureCollection;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,29 +52,30 @@ public class WFSParserTest {
 		bounds.add(6697397.0);
     }
 
-// This test does not work, because http://kartta.suomi.fi/geoserver/wfs is not available
-//	@Test
-//	public void testParser() {
-//
-//        // check that we have http connectivity (correct proxy settings etc)
-//        assumeTrue(TestHelper.canDoHttp());
-//
-//        // * in the config marks the default geometry
-//        // should contain whole schema or at least the selectedFeatureParams (+ GEOMETRY)
-//        layer.addFeatureType("default", "fi_nimi:String,fi_osoite:String,postinumero:String,*the_geom:Point");
-//
-//		String payload = WFSCommunicator.createRequestPayload(type, layer, session, bounds, null);
-//
-//		// request (maplayer_id 216)
-//        BufferedReader response = HttpHelper.postRequestReader(this.layer.getURL(), "", payload, this.layer.getUsername(), this.layer.getPassword());
-//		assertTrue("Should get valid response", response != null);
-//
-//		// parse
-//		WFSParser parser = new WFSParser(response, layer);
-//		FeatureCollection<SimpleFeatureType, SimpleFeature> features = parser.parse();
-//		assertTrue("Should get valid features", features != null);
-//		assertTrue("Should get features", features.size() > 0);
-//	}
+	@Test
+	@Ignore("Ignored because service is down and build can't complete with http-request in performed against live site")
+	public void testParser() {
+
+        // check that we have http connectivity (correct proxy settings etc)
+        assumeTrue(TestHelper.canDoHttp());
+
+        // * in the config marks the default geometry
+        // should contain whole schema or at least the selectedFeatureParams (+ GEOMETRY)
+        layer.addFeatureType("default", "fi_nimi:String,fi_osoite:String,postinumero:String,*the_geom:Point");
+
+		String payload = WFSCommunicator.createRequestPayload(type, layer, session, bounds, null);
+
+		// request (maplayer_id 216)
+		// FIXME: instead of making actual http request, record an expected response and parse it.
+		Reader response = HttpHelper.postRequestReader(this.layer.getURL(), "", payload, this.layer.getUsername(), this.layer.getPassword());
+		assertTrue("Should get valid response", response != null);
+
+		// parse
+		WFSParser parser = new WFSParser(response, layer);
+		FeatureCollection<SimpleFeatureType, SimpleFeature> features = parser.parse();
+		assertTrue("Should get valid features", features != null);
+		assertTrue("Should get features", features.size() > 0);
+	}
 
 	@Test
 	public void testParseGeometry() {

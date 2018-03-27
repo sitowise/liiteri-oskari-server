@@ -4,7 +4,7 @@ import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.*;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
-import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceIbatisImpl;
+import fi.nls.oskari.service.OskariComponentManager;
 import fi.nls.oskari.map.userowndata.GisDataDbService;
 import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
 import fi.nls.oskari.permission.domain.Resource;
@@ -35,7 +35,7 @@ public class DeleteUserLayerHandler extends ActionHandler {
     public void init() {
         super.init();
         if(userLayerDbService == null) {
-            setUserLayerDbService(new UserLayerDbServiceIbatisImpl());
+            setUserLayerDbService(OskariComponentManager.getComponentOfType(UserLayerDbService.class));
         }
     }
 

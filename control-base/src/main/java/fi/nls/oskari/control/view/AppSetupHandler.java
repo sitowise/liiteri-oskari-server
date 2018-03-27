@@ -30,6 +30,8 @@ import static fi.nls.oskari.control.ActionConstants.*;
 
 /**
  * This replaces the fi.nls.oskari.control.view.PublishHandler. Usable with publisher2 bundle
+ *
+ * actionhandler.AppSetup.bundles.simple=[bundleid],[another bundleid]
  */
 @OskariActionRoute("AppSetup")
 public class AppSetupHandler extends RestActionHandler {
@@ -49,24 +51,27 @@ public class AppSetupHandler extends RestActionHandler {
     public static final String KEY_LAYERS = "layers";
     public static final String KEY_SELLAYERS = "selectedLayers";
 
+    public static final String KEY_CROSSHAIR = "crosshair";
+
     private static final boolean VIEW_ACCESS_UUID = PropertyUtil.getOptional(PROPERTY_VIEW_UUID, true);
     // Simple bundles don't require extra processing
     private static final Set<String> SIMPLE_BUNDLES = ConversionHelper.asSet(
             ViewModifier.BUNDLE_INFOBOX, ViewModifier.BUNDLE_TOOLBAR,
-            ViewModifier.BUNDLE_PUBLISHEDGRID, ViewModifier.BUNDLE_FEATUREDATA2);
+            ViewModifier.BUNDLE_PUBLISHEDGRID, ViewModifier.BUNDLE_FEATUREDATA2,
+            ViewModifier.BUNDLE_COORDINATETOOL, ViewModifier.BUNDLE_STATSGRID, ViewModifier.BUNDLE_FEEDBACKSERVICE);
+
+    // Bundles that we don't want to remove even if publisher doesn't provide config
+    private static final Set<String> ALWAYSON_BUNDLES = ConversionHelper.asSet(
+            ViewModifier.BUNDLE_INFOBOX, ViewModifier.BUNDLE_TOOLBAR);
 
     // Bundles that require divmanazer to be loaded for them to work
     private static final Set<String> BUNDLE_REQUIRES_DIVMANAZER =
-            ConversionHelper.asSet(ViewModifier.BUNDLE_FEATUREDATA2);
+            ConversionHelper.asSet(ViewModifier.BUNDLE_FEATUREDATA2, ViewModifier.BUNDLE_COORDINATETOOL, ViewModifier.BUNDLE_STATSGRID);
 
     // List of bundles that the user is able to publish
     // mapfull not included since it's assumed to be part of publisher template handled anyways
     private static final Set<String> BUNDLE_WHITELIST = ConversionHelper.asSet(
             ViewModifier.BUNDLE_PUBLISHEDMYPLACES2,ViewModifier.BUNDLE_DIVMANAZER);
-    static {
-        // add all "simple" bundles to the whitelist
-        BUNDLE_WHITELIST.addAll(SIMPLE_BUNDLES);
-    }
 
     private static long PUBLISHED_VIEW_TEMPLATE_ID = -1;
 
@@ -126,6 +131,17 @@ public class AppSetupHandler extends RestActionHandler {
         // setup roles authorized to enable drawing tools on published map
         drawToolsEnabledRoles = PropertyUtil.getCommaSeparatedList(PROPERTY_DRAW_TOOLS_ENABLED);
 
+        final String[] configBundles = PropertyUtil.getCommaSeparatedList("actionhandler.AppSetup.bundles.simple");
+        if(configBundles.length > 0) {
+            LOG.info("Whitelisting more bundles due to configuration configured ", configBundles);
+        }
+        for(String bundleId : configBundles) {
+            SIMPLE_BUNDLES.add(bundleId);
+        }
+
+        // add all "simple" bundles to the whitelist
+        BUNDLE_WHITELIST.addAll(SIMPLE_BUNDLES);
+
         // preload regularly used bundles to cache
         for(String bundleid : BUNDLE_WHITELIST) {
             bundleService.forceBundleTemplateCached(bundleid);
@@ -168,6 +184,18 @@ public class AppSetupHandler extends RestActionHandler {
     }
     public void handlePost(ActionParameters params) throws ActionException {
 
+        final View publishedMap = buildPublishedView(params);
+        try {
+            JSONObject newViewJson = new JSONObject(publishedMap.toString());
+            ResponseHelper.writeResponse(params, newViewJson);
+        } catch (JSONException je) {
+            LOG.error(je, "Could not create JSON response.");
+            ResponseHelper.writeResponse(params, false);
+        }
+    }
+
+    protected View buildPublishedView(ActionParameters params) throws ActionException {
+
         final User user = params.getUser();
 
         final String viewUuid = params.getHttpParam(PARAM_UUID);
@@ -204,9 +232,17 @@ public class AppSetupHandler extends RestActionHandler {
         // setup all the bundles that don't need extra processing
         for(String bundleid : SIMPLE_BUNDLES) {
             if(viewdata.has(bundleid)) {
-                setupBundle(view, viewdata, bundleid);
+                setupBundle(view, viewdata, bundleid, ALWAYSON_BUNDLES.contains(bundleid));
+
+                //toolbar -> add style info from metadata
+                if (bundleid.equals(ViewModifier.BUNDLE_TOOLBAR)) {
+                    setupToolbarStyleInfo(view);
+                }
             }
         }
+
+        // reorder bundles - rpc bundle must have highest segment number
+        view.pushBundleLast(ViewModifier.BUNDLE_RPC);
 
         // Setup publishedmyplaces2 bundle if user has configured it/has permission to do so
         if(!user.hasAnyRoleIn(drawToolsEnabledRoles)) {
@@ -217,18 +253,20 @@ public class AppSetupHandler extends RestActionHandler {
             }
         }
 
-        final Bundle myplaces = setupBundle(view, viewdata, ViewModifier.BUNDLE_PUBLISHEDMYPLACES2);
+        final Bundle myplaces = setupBundle(view, viewdata, ViewModifier.BUNDLE_PUBLISHEDMYPLACES2, false);
         handleMyplacesDrawLayer(myplaces, user);
 
-        final View newView = saveView(view);
+        return saveView(view);
+    }
 
-        try {
-            JSONObject newViewJson = new JSONObject(newView.toString());
-            ResponseHelper.writeResponse(params, newViewJson);
-        } catch (JSONException je) {
-            LOG.error(je, "Could not create JSON response.");
-            ResponseHelper.writeResponse(params, false);
+    private void setupToolbarStyleInfo(final View view) throws ActionParamsException {
+        final Bundle toolbarBundle = view.getBundleByName(ViewModifier.BUNDLE_TOOLBAR);
+        if (toolbarBundle == null) {
+            throw new ActionParamsException("Could not find toolbar bundle from template view: " + view.getId());
         }
+
+        JSONObject toolbarConfig = toolbarBundle.getConfigJSON();
+        JSONHelper.putValue(toolbarConfig, KEY_STYLE, view.getMetadata().optJSONObject(KEY_STYLE));
     }
 
     protected void parseMetadata(final View view, final User user) throws ActionException {
@@ -244,7 +282,7 @@ public class AppSetupHandler extends RestActionHandler {
         final String name = JSONHelper.getStringFromJSON(view.getMetadata(), KEY_NAME, "Published map " + System.currentTimeMillis());
         final String language = JSONHelper.getStringFromJSON(view.getMetadata(), KEY_LANGUAGE, PropertyUtil.getDefaultLanguage());
 
-        view.setPubDomain(domain);
+        view.setPubDomain(domain.trim());
         view.setName(name);
         view.setType(ViewTypes.PUBLISHED);
         view.setCreator(user.getId());
@@ -330,9 +368,28 @@ public class AppSetupHandler extends RestActionHandler {
             mapOptions = new JSONObject();
             JSONHelper.putValue(finalConfig, KEY_MAPOPTIONS, mapOptions);
         }
+
+        JSONHelper.putValue(mapOptions, KEY_CROSSHAIR, crosshairEnabled(input));
+
         JSONHelper.putValue(mapOptions, KEY_STYLE, view.getMetadata().optJSONObject(KEY_STYLE));
     }
 
+    private boolean crosshairEnabled(JSONObject input) {
+        if (input == null) {
+            return false;
+        }
+        JSONObject conf = input.optJSONObject(KEY_CONF);
+        if (conf == null) {
+            return false;
+        }
+
+        JSONObject confMapOptions = conf.optJSONObject(KEY_MAPOPTIONS);
+        if (confMapOptions == null) {
+            return false;
+        }
+
+        return confMapOptions.optBoolean(KEY_CROSSHAIR);
+    }
     private void handleMyplacesDrawLayer(final Bundle myplaces, final User user) throws ActionException {
 
         if(myplaces == null) {
@@ -386,7 +443,7 @@ public class AppSetupHandler extends RestActionHandler {
         return view;
     }
 
-    private Bundle setupBundle(final View view, final JSONObject inputViewData, final String bundleid) {
+    private Bundle setupBundle(final View view, final JSONObject inputViewData, final String bundleid, final boolean alwaysKeep) {
 
         // Note! Assumes value is a JSON object
         final JSONObject bundleData = inputViewData.optJSONObject(bundleid);
@@ -397,7 +454,7 @@ public class AppSetupHandler extends RestActionHandler {
                 PublishBundleHelper.mergeBundleConfiguration(bundle, bundleData.optJSONObject(KEY_CONF), bundleData.optJSONObject(KEY_STATE));
             }
             return bundle;
-        } else {
+        } else if(!alwaysKeep) {
             // Remove bundle since it's not needed
             LOG.warn("Config not found for", bundleid, "- removing bundle.");
             view.removeBundle(bundleid);

@@ -16,7 +16,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.ontology.domain.Keyword;
 import fi.nls.oskari.ontology.service.KeywordService;
-import fi.nls.oskari.ontology.service.KeywordServiceIbatisImpl;
+import fi.nls.oskari.ontology.service.KeywordServiceMybatisImpl;
 import fi.nls.oskari.util.*;
 import fi.nls.oskari.wfs.WFSCapabilitiesParser;
 import org.json.JSONArray;
@@ -36,7 +36,7 @@ public class SearchKeywordsHandler extends ActionHandler {
 
     public void init() {
         if (service == null) {
-            setService(new KeywordServiceIbatisImpl());
+            setService(new KeywordServiceMybatisImpl());
         }
         if (permissionsService == null) {
             setPermissionsService(new PermissionsServiceIbatisImpl());

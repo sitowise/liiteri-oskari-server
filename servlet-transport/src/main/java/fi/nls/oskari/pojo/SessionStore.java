@@ -191,20 +191,11 @@ public class SessionStore {
 	}
 
 	/**
-	 * Gets browser version
-	 * 
-	 * @return browser version
-	 */
-	public long getBrowserVersion() {
-		return browserVersion;
-	}
-
-	/**
 	 * Sets browser version
-	 * 
+	 * @deprecated Information is no longer sent from browser - keeping for compatibility reasons
 	 * @param browserVersion
 	 */
-	public void setBrowserVersion(long browserVersion) {
+	private void setBrowserVersion(long browserVersion) {
 		this.browserVersion = browserVersion;
 	}
 
@@ -708,6 +699,17 @@ public class SessionStore {
 	public static String getCache(String client) {
 		return JedisManager.get(KEY + client);
 	}
+
+    /**
+     * Gets saved session from redis
+     *
+     * @param client
+     * @return layer as JSON String
+     */
+    @JsonIgnore
+    public static String getCacheNecessary(String client) {
+        return JedisManager.getNecessary(KEY + client);
+    }
 	
 
 	/**
@@ -721,7 +723,6 @@ public class SessionStore {
 		if(this.session.length() == 0 || 
 				this.language.equals("null") ||
 				this.browser.equals("null") ||
-				this.browserVersion == 0L ||
 				this.tileSize == null ||
 				this.mapSize == null ||
 				this.mapSize.getWidth() == 0 ||

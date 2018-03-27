@@ -6,13 +6,14 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.pojo.*;
 import fi.nls.oskari.service.OskariComponentManager;
+import fi.nls.oskari.service.ServiceRuntimeException;
 import fi.nls.oskari.pojo.style.CustomStyleStore;
 import fi.nls.oskari.pojo.style.CustomStyleStoreFactory;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.utils.GeometryJSONOutputModule;
 import fi.nls.oskari.wfs.CachingSchemaLocator;
-import fi.nls.oskari.wfs.WFSImage;
+import fi.nls.oskari.wfs.WFSExceptionHelper;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.wfs.util.HttpHelper;
 import fi.nls.oskari.work.*;
@@ -218,6 +219,8 @@ public class TransportService extends AbstractService {
             store = SessionStore.setJSON(json);
         } catch (IOException e) {
             log.error(e, "JSON parsing failed for SessionStore \n" + json);
+            throw new ServiceRuntimeException("JSON parsing failed for SessionStore - json: " + json,
+                    e.getCause(), WFSExceptionHelper.ERROR_SESSIONSTORE_PARSING_FAILED);
         }
         if (store == null) {
             return new SessionStore(client);
@@ -289,16 +292,17 @@ public class TransportService extends AbstractService {
         if(params == null) {
             log.warn("Request failed because parameters were not set");
             output.put("once", false);
-            output.put("message", "parameters_not_set");
+            output.put("message", "Request failed because parameters were not set");
+            output.put("key", WFSExceptionHelper.ERROR_PARAMETERS_NOT_SET);
+            output.put("level", WFSExceptionHelper.ERROR_LEVEL);
             client.deliver(local, ResultProcessor.CHANNEL_ERROR, output, null);
             return;
         }
-
+        String channel = message.getChannel();
+        try {
         // get session
         SessionStore store = getStore(client.getId());
-
         // channel processing
-        String channel = message.getChannel();
         log.debug("Processing request on channel:", channel, "- payload:", json);
         if (channel.equals(CHANNEL_INIT)) {
             processInit(client, store, json);
@@ -325,7 +329,24 @@ public class TransportService extends AbstractService {
         } else if (channel.equals(CHANNEL_SET_MAP_LAYER_VISIBILITY)) {
             setMapLayerVisibility(store, params);
         }
+        } catch (Exception e) {
+            output.put("once", false);
+            output.put("message", e.getMessage());
+            output.put("channel", channel);
+            if (e instanceof ServiceRuntimeException) {
+                output.put("key", ((ServiceRuntimeException) e).getMessageKey());
+                output.put("level", ((ServiceRuntimeException) e).getLevel());
+            } else {
+                output.put("key", WFSExceptionHelper.ERROR_COMMON_PROCESS_REQUEST_FAILURE);
+                output.put("level", WFSExceptionHelper.ERROR_LEVEL);
     }
+            if (e.getCause() != null) {
+                output.put("cause", e.getCause().getMessage());
+            }
+            client.deliver(local, ResultProcessor.CHANNEL_ERROR, output, null);
+        }
+    }
+
 
     private long parseRequestId(final Map<String, Object> params) {
         if(params == null) {
@@ -354,20 +375,37 @@ public class TransportService extends AbstractService {
 			
         try {
             store = SessionStore.setParamsJSON(json);
-        } catch (IOException e) {
-            log.error(e, "Session creation failed");
-        }
+
         store.setClient(client.getId());
         store.setUuid(getOskariUid(store));
+        }
+        catch (IOException e) {
+            log.error(e, "Session creation failed");
+            throw new ServiceRuntimeException(e.getMessage(),
+                    e.getCause(), WFSExceptionHelper.ERROR_SESSION_CREATION_FAILED);
+        }
 			
         this.saveAndSendErrorIfFailed(store);			
 
         // layers
         Map<String, Layer> layers = store.getLayers();
+        int hiddenLayers = 0;
         for (Layer layer : layers.values()) {
+            if(!layer.isVisible()) {
+                hiddenLayers++;
+                continue;
+            }
             layer.setTiles(store.getGrid().getBounds()); // init bounds to tiles (render all)
         	initMapLayerJob(-1, store, layer.getId(), false);
         }
+        if(hiddenLayers == layers.values().size()) {
+            // notify successful init if no layer jobs are started
+            // frontend expexts a started message for requestId -1 to detect successful init
+            ResultProcessor proc = createResultProcessor(-1);
+            Map<String, String> data = new HashMap<>();
+            data.put("message", "started");
+            proc.addResults(client.getId(), ResultProcessor.CHANNEL_STATUS, data);
+    }
     }
 
     /**
@@ -379,15 +417,18 @@ public class TransportService extends AbstractService {
     private void addMapLayer(SessionStore store, Map<String, Object> layer) {
         if (!layer.containsKey(PARAM_LAYER_ID)
                 || !layer.containsKey(PARAM_LAYER_STYLE)) {
-            log.warn("Failed to add a map layer");
-    		return;
+            log.warn("Failed to add a map layer - invalid params");
+            throw new ServiceRuntimeException("Failed to add a map layer - invalid params e.g. " + PARAM_LAYER_STYLE,
+                     WFSExceptionHelper.ERROR_LAYER_ADD_FAILED, WFSExceptionHelper.WARNING_LEVEL);
     	}
 
     	String layerId = layer.get(PARAM_LAYER_ID).toString();
     	String layerStyle = (String)layer.get(PARAM_LAYER_STYLE);
+        boolean layerVisible = (boolean) layer.getOrDefault(PARAM_LAYER_VISIBLE, true);
 
     	if(!store.containsLayer(layerId)) {
             Layer tmpLayer = new Layer(layerId, layerStyle);
+            tmpLayer.setVisible(layerVisible);
     		store.setLayer(layerId, tmpLayer);    		
         	this.save(store);
     	}
@@ -412,13 +453,15 @@ public class TransportService extends AbstractService {
                 store,
                 layerId,
                 refresh);
+        if(job != null){
         jobs.add(job);
+    }
+
     }
 
     private String getOskariUid(SessionStore store) {
         String sessionId = store.getSession();
         String route = store.getRoute();
-        log.warn( JobHelper.getAPIUrl() + UID_API);
         return HttpHelper.getHeaderValue(JobHelper.getAPIUrl() + UID_API,
                 JobHelper.getCookiesValue(sessionId, route), KEY_UID);
     }
@@ -430,8 +473,9 @@ public class TransportService extends AbstractService {
      */
     private void removeMapLayer(SessionStore store, Map<String, Object> params) {
         if (!params.containsKey(PARAM_LAYER_ID)) {
-            log.warn("Failed to remove a map layer");
-            return;
+            log.warn("Failed to remove a map layer - no layer id");
+            throw new ServiceRuntimeException("Failed to remove a map layer - no layerId",
+                    WFSExceptionHelper.ERROR_LAYER_REMOVE_FAILED, WFSExceptionHelper.WARNING_LEVEL);
         }
         // Layer id may have prefix
         String layerId = params.get(PARAM_LAYER_ID).toString(); //(Long) layer.get(PARAM_LAYER_ID);
@@ -443,7 +487,9 @@ public class TransportService extends AbstractService {
                     store,
                     layerId,
                     false);
+            if(job != null){
             jobs.remove(job);
+            }
 
             store.removeLayer(layerId);
             this.save(store);
@@ -466,8 +512,9 @@ public class TransportService extends AbstractService {
     			!params.containsKey(PARAM_LOCATION_ZOOM) ||
     			!params.containsKey(MessageParseHelper.PARAM_GRID) ||
                 !params.containsKey(PARAM_TILES)) {
-            log.warn("Failed to set location");
-    		return;
+            log.warn("Failed to set location - lacking parameters e.g. zoom, bbox, grid, tiles");
+            throw new ServiceRuntimeException("Failed to set location - lacking parameters e.g. zoom, bbox, grid, tiles",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
     	}
 
         List<Double> bbox = MessageParseHelper.parseBbox(params.get(PARAM_LOCATION_BBOX));
@@ -506,8 +553,9 @@ public class TransportService extends AbstractService {
     private void setMapSize(SessionStore store, Map<String, Object> mapSize) {
         if (mapSize == null || !mapSize.containsKey(PARAM_WIDTH)
                 || !mapSize.containsKey(PARAM_HEIGHT)) {
-            log.warn("Failed to set map size");
-            return;
+            log.warn("Failed to set map size - lacking params e.g. width, height");
+            throw new ServiceRuntimeException("Failed to set map size - lacking params e.g. width, height",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
         }
 
         Tile newMapSize = new Tile();
@@ -526,8 +574,9 @@ public class TransportService extends AbstractService {
      */
     private void setMapLayerStyle(SessionStore store, Map<String, Object> params) {
     	if(!params.containsKey(PARAM_LAYER_ID) || !params.containsKey(PARAM_LAYER_STYLE)) {
-            log.warn("Failed to set map layer style");
-    		return;
+            log.warn("Failed to set map layer style - lacking params e.g. styleName");
+            throw new ServiceRuntimeException("Failed to set map layer style - lacking params e.g. styleName",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
     	}
 
     	String layerId = params.get(PARAM_LAYER_ID).toString();
@@ -536,10 +585,9 @@ public class TransportService extends AbstractService {
     	if(store.containsLayer(layerId)) {
             Layer tmpLayer = store.getLayers().get(layerId);
 
-            if(!tmpLayer.getStyleName().equals(layerStyle) || layerStyle.startsWith(WFSImage.PREFIX_CUSTOM_STYLE)) {
                 tmpLayer.setStyleName(layerStyle);
                 this.save(store);
-                if(tmpLayer.isVisible()) {
+            if(tmpLayer.isVisible() && tmpLayer.hasVisibleStyle()) {
                     // init bounds to tiles (render all)
                     tmpLayer.setTiles(store.getGrid().getBounds());
                     // only update normal tiles
@@ -548,7 +596,6 @@ public class TransportService extends AbstractService {
                 }
             }
     	}
-    }
 
     /**
      * Sets layer style into session and starts job for the layer
@@ -574,8 +621,9 @@ public class TransportService extends AbstractService {
                 !style.containsKey(WFSCustomStyleStore.PARAM_DOT_COLOR) ||
                 !style.containsKey(WFSCustomStyleStore.PARAM_DOT_SHAPE) ||
                 !style.containsKey(WFSCustomStyleStore.PARAM_DOT_SIZE)) {
-            log.warn("Failed to set map layer custom style");
-            return;
+            log.warn("Failed to set map layer custom style - lacking style params");
+            throw new ServiceRuntimeException("Failed to set map layer custom style - lacking style params",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
         }*/
 
         String layerId = style.get(PARAM_LAYER_ID).toString();
@@ -595,11 +643,16 @@ public class TransportService extends AbstractService {
     private void setMapClick(SessionStore store, String json, Map<String, Object> params) {
         // functionality change - geojson instead of point coordinate
         GeoJSONFilter filter = GeoJSONFilter.setParamsJSON(json);
+        if (filter == null){
+            throw new ServiceRuntimeException("Failed to set a map click - Reading JSON data failed",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
+        }
 
         if (filter.getFeatures() == null &&
                 (!params.containsKey(PARAM_LONGITUDE) || !params.containsKey(PARAM_LATITUDE))){
             log.warn("Failed to set a map click", params);
-            return;
+            throw new ServiceRuntimeException("Failed to set a map click - invalid params",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
         }
 
         // stores geojson, but doesn't save
@@ -608,6 +661,7 @@ public class TransportService extends AbstractService {
         double longitude;
         double latitude;
         boolean keepPrevious = false;
+        boolean geomRequest;
 
         if (params.get(PARAM_LONGITUDE) instanceof Double) {
             longitude = (Double) params.get(PARAM_LONGITUDE);
@@ -624,6 +678,12 @@ public class TransportService extends AbstractService {
             keepPrevious = (Boolean) params.get(PARAM_KEEP_PREVIOUS);
         }
 
+        if (params.get(PARAM_GEOM_REQUEST) instanceof Object)
+        {
+        	geomRequest = (Boolean) params.get(PARAM_GEOM_REQUEST);
+        	store.setGeomRequest(geomRequest);
+    	}
+        
         // stores click, but doesn't save
         store.setMapClick(new Coordinate(longitude, latitude));
         store.setKeepPrevious(keepPrevious);
@@ -635,9 +695,11 @@ public class TransportService extends AbstractService {
                         JobType.MAP_CLICK,
                         store,
                         e.getValue().getId(), false, true, false, false);
+                if(job != null){
                 jobs.add(job);
             }
         }
+    }
     }
 
     /**
@@ -650,7 +712,10 @@ public class TransportService extends AbstractService {
      */
     private void setFilter(SessionStore store, String json, Map<String, Object> params) {
         GeoJSONFilter filter = GeoJSONFilter.setParamsJSON(json);
-
+        if (filter == null){
+            throw new ServiceRuntimeException("Failed to set GeoJson filter - Reading JSON data failed",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
+        }
         // stores geojson, but doesn't save
         store.setFilter(filter);
 
@@ -662,9 +727,11 @@ public class TransportService extends AbstractService {
             if (e.getValue().isVisible()) {
                 // job without image drawing
                 job = createOWSMapLayerJob(createResultProcessor(parseRequestId(params)), JobType.GEOJSON, store, e.getValue().getId(), false, true, false, false);
+                if(job != null){
                 jobs.add(job);
             }
         }
+    }
     }
     /**
      * Property filter isn't saved in session. Set filter will be request just once.
@@ -676,6 +743,11 @@ public class TransportService extends AbstractService {
      */
     private void setPropertyFilter(SessionStore store, String json, Map<String, Object> params) {
         PropertyFilter propertyFilter = PropertyFilter.setParamsJSON(json);
+        if (propertyFilter == null){
+            throw new ServiceRuntimeException("Failed to set property filter - Reading JSON data failed",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
+        }
+
         // stores property filters, but doesn't save
         store.setPropertyFilter(propertyFilter);
 
@@ -686,10 +758,12 @@ public class TransportService extends AbstractService {
                 // only for requested layer
                 if (e.getValue().getId().equals(propertyFilter.getLayerId())) {
                     job = createOWSMapLayerJob(createResultProcessor(parseRequestId(params)), JobType.PROPERTY_FILTER, store, e.getValue().getId(), false, true, false, false);
+                    if(job != null){
                     jobs.add(job);
                 }
             }
         }
+    }
     }
     /**
      * Sets layer visibility into session and starts/stops job for the layer
@@ -701,8 +775,11 @@ public class TransportService extends AbstractService {
             Map<String, Object> params) {
         if (!params.containsKey(PARAM_LAYER_ID)
                 || !params.containsKey(PARAM_LAYER_VISIBLE)) {
-            log.warn("Layer style not defined");
-    		return;
+            log.warn("Layer visibility-parameter is not defined" );
+
+            throw new ServiceRuntimeException("Layer visibility-parameter is not defined",
+                    WFSExceptionHelper.ERROR_SET_PROCESS_REQUEST_FAILED, WFSExceptionHelper.WARNING_LEVEL);
+
     	}
 
     	String layerId = params.get(PARAM_LAYER_ID).toString();
@@ -735,8 +812,9 @@ public class TransportService extends AbstractService {
                 || !params.containsKey(PARAM_FEATURE_IDS)
                 || !params.containsKey(PARAM_KEEP_PREVIOUS)
                 || !params.containsKey(PARAM_GEOM_REQUEST)) {
-            log.warn("Layer features not defined");
-    		return;
+            log.warn("Layer feature ids are not defined for highlight");
+            throw new ServiceRuntimeException("Layer feature ids are not defined for highlight",
+                    WFSExceptionHelper.ERROR_NO_FEATURES_DEFINED, WFSExceptionHelper.WARNING_LEVEL);
     	}
 
     	String layerId = params.get(PARAM_LAYER_ID).toString();
@@ -762,9 +840,11 @@ public class TransportService extends AbstractService {
                         createResultProcessor(parseRequestId(params)),
                             JobType.HIGHLIGHT,
                             store, layerId, false, false, true, true);
+                if (job != null) {
 	        	jobs.add(job);
     		}
     	}
+    }
     }
 
     /**
@@ -825,7 +905,7 @@ public class TransportService extends AbstractService {
         if(type.equals(JobType.NORMAL) && layer.getAttributes().has(JobHelper.PARAM_MANUAL_REFRESH) && !refresh) {
             //Notify started, because of nop  and front status
             ((OWSMapLayerJob) job).notifyStart();
-            ((OWSMapLayerJob) job).notifyCompleted(true);
+            ((OWSMapLayerJob) job).notifyCompleted(true, true);
             return null;
         }
         return job;

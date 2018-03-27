@@ -72,6 +72,17 @@ public class JSONHelper {
             return null;
         }
     }
+    public static final Object get(final JSONObject content, String key) {
+        if(content == null) {
+            return null;
+        }
+        try {
+            return content.get(key);
+        } catch (Exception e) {
+            log.info("Couldn't get Object from ", content, " with key =", key);
+            return null;
+        }
+    }
     public static final JSONObject getJSONObject(final JSONArray content, int key) {
         if(content == null) {
             return null;
@@ -79,7 +90,7 @@ public class JSONHelper {
         try {
             return content.getJSONObject(key);
         } catch (Exception e) {
-            log.warn("Couldn't get JSONObject from ", content, " with key =", key);
+            log.warn("Couldn't get JSONObject from ", content, " with key =", key, " - error: ", e);
             return null;
         }
     }
@@ -158,6 +169,9 @@ public class JSONHelper {
     }
     
     public static final String getStringFromJSON(final JSONObject data, final String key, final String defaultValue) {
+        if(data == null) {
+            return defaultValue;
+        }
         try {
             final String value = (String) data.get(key);
             if (value != null) {
@@ -169,6 +183,18 @@ public class JSONHelper {
         }   
     }
     public static final String getStringFromJSON(final JSONObject data, final String defaultValue) {
+        try {
+            final String value = data.toString();
+            if (value != null) {
+                return value;
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    public static final String getStringFromJSON(final JSONArray data, final String defaultValue) {
         try {
             final String value = data.toString();
             if (value != null) {
@@ -266,6 +292,24 @@ public class JSONHelper {
         return false;
     }
 
+    /**
+     * Returns an empty array if JSONArray couldn't be created if second parameter is true. For false
+     * returns null if JSONArray couldn't be created.
+     * @param content
+     * @param emptyIfNull
+     * @return
+     */
+    public static JSONArray createJSONArray(final String content, boolean emptyIfNull) {
+        JSONArray array = null;
+        try {
+            array = new JSONArray(content);
+        } catch (Exception ignore) {}
+        if(emptyIfNull) {
+            return getEmptyIfNull(array);
+        }
+        return null;
+    }
+
 	public static JSONArray createJSONArray(final String content) {
         try {
             return new JSONArray(content);
@@ -301,6 +345,7 @@ public class JSONHelper {
             throw new IllegalArgumentException("Couldn't create JSONArray of Json keys" );
         }
     }
+
     /**
      * Compares 2 JSONObjects for equality. Ignores property order and only matches on defined properties and property values.
      * @param jsonObject1
@@ -353,7 +398,14 @@ public class JSONHelper {
                         log.debug("value1 was <null>, but value2 was:" + value2);
                         return false;
                     }
-                }  else if (!value1.equals(value2)) {
+                } else if (value1 instanceof Number && value2 instanceof Number) {
+                    double v1 = ((Number) value1).doubleValue();
+                    double v2 = ((Number) value2).doubleValue();
+                    if (Math.abs(v1-v2) > 1e-6) {
+                        log.debug("Values were not equal:", value1, "!=", value2);
+                        return false;
+                    }
+                } else if (!value1.equals(value2)) {
                     log.debug("Values were not equal:", value1, "!=", value2);
                     return false;
                 }
@@ -443,5 +495,43 @@ public class JSONHelper {
             log.warn(ex, "Error merging objects from:", overrides, "- to:", baseData);
         }
         return result;
+    }
+
+    /**
+     * Returns optional String from obj.key
+     * JSONObject.optString() returns "null" if the thing behind key is JSONObject$Null
+     * @param obj
+     * @param key
+     */
+    public static String optString(JSONObject obj, String key) {
+        return optString(obj, key, "");
+    }
+
+    /**
+     * Returns optional String from obj.key
+     * JSONObject.optString() returns "null" if the thing behind key is JSONObject$Null
+     * @param obj
+     * @param key
+     */
+    public static String optString(JSONObject obj, String key, String defaultValue) {
+        try {
+            Object o = obj.get(key);
+            if (o != null && o != JSONObject.NULL) {
+                return o.toString();
+            }
+        } catch (JSONException ignore) {}
+        return defaultValue;
+    }
+
+    /**
+     * Returns required String from obj.key
+     * JSONObject.optString() returns "null" if the thing behind key is JSONObject$Null
+     * @param obj
+     * @param key
+     * @throws JSONException
+     */
+    public static String getString(JSONObject obj, String key) throws JSONException {
+        Object o = obj.get(key);
+        return o == JSONObject.NULL ? null : o.toString();
     }
 }

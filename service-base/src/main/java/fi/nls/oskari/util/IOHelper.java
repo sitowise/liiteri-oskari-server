@@ -10,9 +10,11 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
@@ -31,9 +33,11 @@ public class IOHelper {
     public static final String HEADER_REFERER = "Referer";
     public static final String HEADER_ACCEPT = "Accept";
 
-    public static final String DEFAULT_CHARSET = "UTF-8";
+    public static final String CHARSET_UTF8 = "UTF-8";
+    public static final String DEFAULT_CHARSET = CHARSET_UTF8;
     public static final String CONTENTTYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
     public static final String CONTENT_TYPE_JSON = "application/json";
+    public static final String CONTENT_TYPE_XML = "application/xml";
     private static final Logger log = LogFactory.getLogger(IOHelper.class);
 
     private static SSLSocketFactory TRUSTED_FACTORY;
@@ -167,6 +171,27 @@ public class IOHelper {
     }
 
     /**
+     * Copies data from InputStream to OutputStream
+     * Does not close either of the streams
+     * Does nothing if either InputStream or OutputStream is null
+     * 
+     * @param in
+     * @param out
+     * @throws IOException
+     */
+    public static void copy(InputStream in, OutputStream out) throws IOException {
+        if (in == null || out == null) {
+            return;
+        }
+
+        final byte[] buffer = new byte[4096];
+        int read = 0;
+        while ((read = in.read(buffer, 0, 4096)) != -1) {
+            out.write(buffer, 0, read);
+        }
+    }
+
+    /**
      * Returns a connection based on properties:
      * - [propertiesPrefix]url=[url to call for this service] (required)
      * - [propertiesPrefix]user=[username for basic auth] (optional)
@@ -237,6 +262,10 @@ public class IOHelper {
         return debug;
     }
 
+    public static String getCharset(final HttpURLConnection con) {
+        return getCharset(con, null);
+    }
+
     public static String getCharset(final HttpURLConnection con, final String defaultCharset) {
         final String contentType = con.getContentType();
         final String[] values = contentType.split(";");
@@ -262,11 +291,21 @@ public class IOHelper {
                                                   final String userName, final String password)
             throws IOException {
         final HttpURLConnection con = getConnection(pUrl);
+        setupBasicAuth(con, userName,password);
+        return con;
+    }
+
+    /**
+     * Sets the authorization header for connection.
+     * @param con
+     * @param userName
+     * @param password
+     */
+    public static void setupBasicAuth(final HttpURLConnection con,final String userName, final String password) {
         if (userName != null && !userName.isEmpty()) {
             final String encoded = encode64(userName + ':' + password);
             con.setRequestProperty(HEADER_AUTHORIZATION, "Basic " + encoded.replaceAll("\r", "").replaceAll("\n", ""));
         }
-        return con;
     }
 
     /**
@@ -306,20 +345,10 @@ public class IOHelper {
             con.setDoInput(true);
             con.connect();
         }
-        BufferedOutputStream proxyToWebBuf = null;
-        try {
-            proxyToWebBuf = new BufferedOutputStream(con.getOutputStream());
-            proxyToWebBuf.write(bytes);
-        } finally {
-            if (proxyToWebBuf != null) {
-                try {
-                    proxyToWebBuf.flush();
-                    proxyToWebBuf.close();
-                } catch (Exception ignored) {
+        try (OutputStream out = con.getOutputStream()) {
+            out.write(bytes);
                 }
             }
-        }
-    }
 
     /**
      * Calls given URL and returns the response as String
@@ -582,6 +611,69 @@ public class IOHelper {
         return null;
     }
 
+    public static HttpURLConnection postForm(String url, Map<String, String> keyValuePairs)
+            throws IOException {
+        String requestBody = getParams(keyValuePairs);
+        return post(url, CONTENTTYPE_FORM_URLENCODED,
+                requestBody.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static HttpURLConnection post(String url, String contentType,
+            byte[] body) throws IOException {
+        return send(getConnection(url), "POST", contentType, body);
+    }
+
+    public static HttpURLConnection post(String url, String contentType,
+            ByteArrayOutputStream baos) throws IOException {
+        return send(getConnection(url), "POST", contentType, baos);
+    }
+
+    public static HttpURLConnection post(HttpURLConnection conn, String contentType,
+            byte[] body) throws IOException {
+        return send(conn, "POST", contentType, body);
+    }
+
+    public static HttpURLConnection post(HttpURLConnection conn, String contentType,
+            ByteArrayOutputStream baos) throws IOException {
+        return send(conn, "POST", contentType, baos);
+    }
+
+    public static HttpURLConnection put(String url, String contentType, byte[] body)
+            throws IOException {
+        return put(getConnection(url), contentType, body);
+    }
+
+    public static HttpURLConnection put(HttpURLConnection conn, String contentType, byte[] body)
+            throws IOException {
+        return send(conn, "PUT", contentType, body);
+    }
+
+    private static HttpURLConnection send(HttpURLConnection conn, String method,
+            String contentType, byte[] body) throws IOException {
+        conn.setRequestMethod(method);
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
+        setContentType(conn, contentType);
+        conn.setRequestProperty("Content-Length", Integer.toString(body.length));
+        try (OutputStream out = conn.getOutputStream()) {
+            out.write(body);
+        }
+        return conn;
+    }
+
+    private static HttpURLConnection send(HttpURLConnection conn, String method,
+            String contentType, ByteArrayOutputStream baos) throws IOException {
+        conn.setRequestMethod(method);
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
+        setContentType(conn, contentType);
+        conn.setRequestProperty("Content-Length", Integer.toString(baos.size()));
+        try (OutputStream out = conn.getOutputStream()) {
+            baos.writeTo(out);
+        }
+        return conn;
+    }
+
     public static String postRequest(String url) {
         return postRequest(url, "", "", "", null, null, null);
     }
@@ -605,14 +697,24 @@ public class IOHelper {
 
             HttpRequest.keepAlive(false);
             if (username != null && !username.isEmpty()) {
-                request = HttpRequest.post(url).basic(username, password)
-                        .contentType(contentType).connectTimeout(CONNECTION_TIMEOUT_MS)
-                        .acceptGzipEncoding().uncompress(true).trustAllCerts().readTimeout(READ_TIMEOUT_MS)
-                        .trustAllHosts().send(data);
+                request = HttpRequest.post(url)
+                        .basic(username, password)
+                        .contentType(contentType)
+                        .connectTimeout(getConnectionTimeoutMs())
+                        .readTimeout(getReadTimeoutMs())
+                        .acceptGzipEncoding()
+                        .uncompress(true)
+                        .trustAllCerts()
+                        .trustAllHosts()
+                        .send(data);
             } else {
-                request = HttpRequest.post(url).contentType(contentType)
-                        .connectTimeout(30).acceptGzipEncoding().uncompress(
-                                true).trustAllCerts().trustAllHosts()
+                request = HttpRequest.post(url)
+                        .contentType(contentType)
+                        .connectTimeout(getConnectionTimeoutMs())
+                        .acceptGzipEncoding()
+                        .uncompress(true)
+                        .trustAllCerts()
+                        .trustAllHosts()
                         .send(data);
             }
             if (host != null && !host.isEmpty()) {
@@ -758,28 +860,103 @@ public class IOHelper {
         return urlBuilder.append(queryString).toString();
     }
 
-    public static String getParams(Map<String, String> params) {
-        if(params == null || params.isEmpty()) {
+    public static String fixPath(String url) {
+        String[] parts = url.split("://");
+        if(parts.length < 2) {
+            return url;
+        }
+
+        return parts[0] + "://" + parts[1].replaceAll("//", "/");
+    }
+
+    /**
+     * Convenience method for just adding one param to an URL.
+     * Using constructUrl(String, Map<String, String>) is more efficent with multiple params.
+     * @param url
+     * @param key
+     * @param value
+     * @return
+     */
+    public static String addUrlParam(final String url, String key, String value) {
+        final Map<String, String> params = new HashMap<>(1);
+        params.put(key, value);
+        return constructUrl(url, params);
+    }
+
+    public static String getParams(Map<String, String> kvps) {
+        if (kvps == null || kvps.isEmpty()) {
             return "";
         }
 
-        final StringBuilder urlBuilder = new StringBuilder();
-        for(Map.Entry<String,String> entry : params.entrySet()) {
+        final StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, String> entry : kvps.entrySet()) {
+            final String key = entry.getKey();
             final String value = entry.getValue();
-            if(entry.getValue() == null) {
+            if (key == null || key.isEmpty() || value == null || value.isEmpty()) {
                 continue;
             }
-            urlBuilder.append(entry.getKey());
-            urlBuilder.append("=");
-            try {
-                urlBuilder.append(URLEncoder.encode(value, DEFAULT_CHARSET));
-            } catch (UnsupportedEncodingException e) {
-                log.error(e, "Couldn't encode value - using raw input", value);
-                urlBuilder.append(value);
+            final String keyEnc = urlEncode(key);
+            final String valueEnc = urlEncode(value);
+            if (!first) {
+                sb.append('&');
             }
-            urlBuilder.append("&");
+            sb.append(keyEnc).append('=').append(valueEnc);
+            first = false;
         }
-        // drop last character ('?' or '&')
-        return urlBuilder.substring(0, urlBuilder.length()-1);
+        return sb.toString();
     }
+
+    /**
+     * Same as {@link #getParams(Map) getParams} but this allows
+     * the map and the generated query string to have multiple instances
+     * with the same key e.g. ?foo=bar&foo=baz
+     */
+    public static String getParamsMultiValue(Map<String, String[]> kvps) {
+        if (kvps == null || kvps.isEmpty()) {
+            return "";
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, String[]> entry : kvps.entrySet()) {
+            final String key = entry.getKey();
+            final String[] values = entry.getValue();
+            if (key == null || key.isEmpty() || values == null || values.length == 0) {
+                continue;
+            }
+            String keyEnc = urlEncode(key);
+            for (String value : values) {
+                if (value == null || value.isEmpty()) {
+                    continue;
+                }
+                String valueEnc = urlEncode(value);
+                if (!first) {
+                    sb.append('&');
+                }
+                sb.append(keyEnc).append('=').append(valueEnc);
+                first = false;
+            }
+        }
+        return sb.toString();
+    }
+
+    public static String urlEncode(String s) {
+            try {
+            return URLEncoder.encode(s, CHARSET_UTF8);
+        } catch (UnsupportedEncodingException ignore) {
+            // Ignore the exception, 'UTF-8' is supported
+            }
+        // return something, this code is unreachable
+        return s;
+        }
+
+    public static InputStream getInputStream(HttpURLConnection conn) {
+        try {
+            return conn.getInputStream();
+        } catch (IOException e) {
+            return conn.getErrorStream();
+    }
+}
+
 }

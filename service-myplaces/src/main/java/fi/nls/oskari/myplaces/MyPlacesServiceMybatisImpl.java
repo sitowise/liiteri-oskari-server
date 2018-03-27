@@ -237,6 +237,19 @@ public class MyPlacesServiceMybatisImpl extends MyPlacesService {
         return Collections.emptyList();
     }
 
+
+    public void deleteByUid(final String uid) {
+        final SqlSession session = factory.openSession();
+        try {
+            final MyPlaceMapper mapper = session.getMapper(MyPlaceMapper.class);
+            mapper.deleteByUid(uid);
+        } catch (Exception e) {
+            LOG.error(e, "Failed delete by uid ", uid);
+        } finally {
+            session.close();
+        }
+    }
+
 	@Override
 	public List<UserGisData> getSharedMyPlaceLayers(long userId) {
 		List<UserGisData> resultList = Collections.emptyList();

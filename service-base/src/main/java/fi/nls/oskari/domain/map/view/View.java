@@ -178,6 +178,34 @@ public class View implements Serializable {
         return this.bundles;
     }
 
+    public void setBundles(List<Bundle> bundles) {
+        if (!checkSeqNumbers(bundles)) {
+            resetSeqNumbers(bundles);
+        }
+        this.bundles = bundles;
+    }
+
+    private boolean checkSeqNumbers(List<Bundle> bundles) {
+        if (bundles != null) {
+            int expected = 1;
+            for (Bundle bundle : bundles) {
+                if (expected++ != bundle.getSeqNo()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void resetSeqNumbers(List<Bundle> bundles) {
+        if (bundles != null) {
+            int seqNo = 1;
+            for (Bundle bundle : bundles) {
+                bundle.setSeqNo(seqNo++);
+            }
+        }
+    }
+
     public void addBundle(final Bundle bundle) {
         if(bundle.getSeqNo() == -1) {
             // fix sequence number if not set
@@ -202,6 +230,19 @@ public class View implements Serializable {
         for (Bundle b : this.bundles) {
             b.setSeqNo(seqNo);
             seqNo++;
+        }
+    }
+
+    /**
+     * Reset bundle's segment number to be highest values (last bundle in loading)
+      * @param bundleName  bundle, which segment number must be highest
+     */
+    public void pushBundleLast(String bundleName) {
+        final int lastIndex = this.bundles.get(bundles.size() -1).getSeqNo();
+        for (Bundle bundle : this.bundles) {
+            if (bundle.getName().equals(bundleName)) {
+                bundle.setSeqNo(lastIndex + 1);
+            }
         }
     }
 

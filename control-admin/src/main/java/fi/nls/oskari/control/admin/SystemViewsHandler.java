@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static fi.nls.oskari.control.ActionConstants.PARAM_ID;
+import static fi.nls.oskari.control.ActionConstants.*;
 
 @OskariActionRoute("SystemViews")
 public class SystemViewsHandler extends RestActionHandler {
@@ -43,6 +43,8 @@ public class SystemViewsHandler extends RestActionHandler {
     private PermissionsService permissionsService;
 
     private static final String ERROR_CODE_GUEST_NOT_AVAILABLE = "guest_not_available";
+    // is the default in frontend code
+    private final static String DEFAULT_SRS = "EPSG:3067";
 
     public void init() {
         viewService = new ViewServiceIbatisImpl();
@@ -111,6 +113,13 @@ public class SystemViewsHandler extends RestActionHandler {
             throw new ActionParamsException("View (" + id + ") doesn't include bundle: " + ViewModifier.BUNDLE_MAPFULL);
         }
 
+        // validate SRS
+        final String viewSrs = getViewSRS(mapfull.getConfigJSON());
+        if(!params.getRequiredParam(PARAM_SRS).equalsIgnoreCase(viewSrs)) {
+            // TODO: projection conversion if SRS is different
+            throw new ActionParamsException("Views have different projections, not implemented yet");
+        }
+
         final JSONObject state = mapfull.getStateJSON();
         setupLocation(params, state);
 
@@ -127,7 +136,7 @@ public class SystemViewsHandler extends RestActionHandler {
                 layerIdList.add(layer.optString(PARAM_ID));
             }
 
-            final List<OskariLayer> notAvailableForGuest = getLayersNotAvailableForGuest(layerIdList);
+            final List<OskariLayer> notAvailableForGuest = getLayersNotAvailableForGuest(layerIdList, state);
             if(!notAvailableForGuest.isEmpty()) {
                 final JSONArray list = new JSONArray();
                 for (OskariLayer layer :notAvailableForGuest) {
@@ -149,13 +158,21 @@ public class SystemViewsHandler extends RestActionHandler {
 
         ResponseHelper.writeResponse(params, JSONHelper.createJSONObject("success", "true"));
     }
+    private String getViewSRS(final JSONObject config)  {
+        // config = {"mapOptions":{"srsName":"EPSG:3067", ...}, ...}
+        JSONObject mapOptions = config.optJSONObject("mapOptions");
+
+        if(mapOptions == null) {
+            return DEFAULT_SRS;
+        }
+        String optSrs = mapOptions.optString("srsName");
+        if(optSrs == null) {
+            return DEFAULT_SRS;
+        }
+        return optSrs;
+    }
 
     private void setupLocation(final ActionParameters params, final JSONObject state) throws ActionException {
-        final String srs = params.getRequiredParam("srs");
-        if(state.optString("srs").equalsIgnoreCase(srs)) {
-            // TODO: projection conversion if SRS is different
-            throw new ActionParamsException("Views have different projections, not implemented yet");
-        }
 
         final double north = ConversionHelper.getDouble(params.getRequiredParam(ViewModifier.KEY_NORTH), -1);
         if(north != -1) {
@@ -168,8 +185,8 @@ public class SystemViewsHandler extends RestActionHandler {
         JSONHelper.putValue(state, ViewModifier.KEY_ZOOM, params.getRequiredParamInt(ViewModifier.KEY_ZOOM));
     }
 
-    private List<OskariLayer> getLayersNotAvailableForGuest(final List<String> layerIdList) throws ActionException {
-        final List<OskariLayer> layers = layerService.find(layerIdList);
+    private List<OskariLayer> getLayersNotAvailableForGuest(final List<String> layerIdList, final JSONObject state) throws ActionException {
+        final List<OskariLayer> layers = layerService.find(layerIdList, state.optString(PARAM_SRS));
         final List<OskariLayer> notAvailable = new ArrayList<OskariLayer>();
         try {
             User guest = UserService.getInstance().getGuestUser();

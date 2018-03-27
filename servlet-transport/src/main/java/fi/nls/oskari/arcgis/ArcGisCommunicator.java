@@ -32,6 +32,14 @@ import fi.nls.oskari.pojo.style.CustomStyleStore;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
 import fi.nls.oskari.work.JobType;
 
+import java.awt.*;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 /**
  * WFS request creators and response parsers
  */
@@ -223,11 +231,11 @@ public class ArcGisCommunicator {
 		return mapToString(data);		        		
 	}
 	
-	public static ArrayList<ArcGisFeature> parseFeatures(List<BufferedReader> responses, final WFSLayerStore layer) {
+	public static ArrayList<ArcGisFeature> parseFeatures(List<Reader> responses, final WFSLayerStore layer) {
 		ArrayList<ArcGisFeature> result = new ArrayList<ArcGisFeature>();
 		int count = responses.size();
 		
-		for (BufferedReader response : responses) {
+		for (Reader response : responses) {
 			ArrayList<ArcGisFeature> features = parseFeatures(response, layer);
 			if (features == null) {
 				if (count == 1) {
@@ -251,7 +259,7 @@ public class ArcGisCommunicator {
 	 * @return simple features
 	 */
 	@SuppressWarnings("unchecked")
-	public static ArrayList<ArcGisFeature> parseFeatures(BufferedReader response, final WFSLayerStore layer) {
+	public static ArrayList<ArcGisFeature> parseFeatures(Reader response, final WFSLayerStore layer) {
 		ArrayList<ArcGisFeature> result = new ArrayList<ArcGisFeature>();
 		
 		JSONParser parser = new JSONParser();

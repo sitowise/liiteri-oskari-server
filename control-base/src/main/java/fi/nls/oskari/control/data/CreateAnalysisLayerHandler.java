@@ -81,16 +81,18 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     private static final String JSON_KEY_FUNCTIONS = "functions";
     private static final String JSON_KEY_AGGREGATE_RESULT = "aggregate";
     private static final String JSON_KEY_GEOJSON = "geojson";
-    private static final String JSON_KEY_FIELDS = "fields";
 
     private static final String AGGREGATE_STDDEV_WPS_IN = "StdDev";
     private static final String AGGREGATE_STDDEV_WPS_OUT = "StandardDeviation";
+
+    private static final String COUNT_FUNCTION = "Count";
 
     private static final String ERROR_ANALYSE_PARAMETER_MISSING = "Analyse_parameter_missing";
     private static final String ERROR_UNABLE_TO_PARSE_ANALYSE = "Unable_to_parse_analysis";
     private static final String ERROR_UNABLE_TO_GET_WPS_FEATURES = "Unable_to_get_WPS_features";
     private static final String ERROR_WPS_EXECUTE_RETURNS_EXCEPTION = "WPS_execute_returns_Exception";
     private static final String ERROR_WPS_EXECUTE_RETURNS_NO_FEATURES = "WPS_execute_returns_no_features";
+    private static final String ERROR_UNABLE_TO_MERGE_ANALYSIS_DATA = "Unable_to_merge_analysis_data";
     private static final String ERROR_UNABLE_TO_PROCESS_AGGREGATE_UNION = "Unable_to_process_aggregate_union";
     private static final String ERROR_UNABLE_TO_GET_FEATURES_FOR_UNION = "Unable_to_get_features_for_union";
     private static final String ERROR_UNABLE_TO_STORE_ANALYSIS_DATA = "Unable_to_store_analysis_data";
@@ -108,10 +110,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
      *               **********************************************************************
      */
     public void handleAction(ActionParameters params) throws ActionException {
-
-        if (params.getUser().isGuest()) {
-            throw new ActionDeniedException("Session expired");
-        }
+        params.requireLoggedInUser();
 
         // filter conf data
         final String filter1 = params.getHttpParam(PARAM_FILTER1);
@@ -146,8 +145,12 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
 
         if (analysisLayer.getMethod().equals(AnalysisParser.LAYER_UNION)) {
             // no WPS for merge analysis
-            analysis = analysisDataService.mergeAnalysisData(
+            try {
+                analysis = analysisDataService.mergeAnalysisData(
                     analysisLayer, analyse, params.getUser());
+            } catch (ServiceException e) {
+                throw new ActionException(ERROR_UNABLE_TO_MERGE_ANALYSIS_DATA, e);
+            }
         } else {
         	
         	//check limitations
@@ -177,7 +180,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
                 analysisLayer.setWpsLayerId(-1);
                 final String aggregateResult = this.localiseAggregateResult(
                         analysisParser.parseAggregateResults(featureSet, analysisLayer), analyseJson);
-                log.debug("\nAggregate results:\n", aggregateResult, "\n");
+                log.debug("Aggregate results:", aggregateResult);
 
                 analysisLayer.setResult(aggregateResult);
 
@@ -194,7 +197,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
                         JSONObject geojson = JSONHelper.createJSONObject(featureSet);
                         JSONObject jsaggregate = JSONHelper.createJSONObject(aggregateResult);
                         //reorder resultset columns and row accoding to input params order
-                        JSONArray jsaggreOrdered = analysisParser.reorderAggregateResult(jsaggregate,this.getRowOrder(analyseJson, analysisLayer.getInputAnalysisId()),
+                        JSONArray jsaggreOrdered = analysisParser.reorderAggregateResult(jsaggregate,this.getRowOrder(analysisLayer),
                                 this.getColumnOrder(analyseJson));
                         JSONObject results = new JSONObject();
                         JSONHelper.putValue(results, JSON_KEY_GEOJSON, geojson);
@@ -207,7 +210,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
                     featureSet = wpsService.requestFeatureSet(analysisLayer);
                     // Harmonize namespaces and element names
                     featureSet = analysisParser.harmonizeElementNames(featureSet, analysisLayer);
-                    featureSet = analysisParser.mergeAggregateResults2FeatureSet(featureSet, analysisLayer, this.getRowOrder(analyseJson,analysisLayer.getInputAnalysisId()),
+                    featureSet = analysisParser.mergeAggregateResults2FeatureSet(featureSet, analysisLayer, this.getRowOrder(analysisLayer),
                             this.getColumnOrder(analyseJson));
                     // Redefine column types
                     analysisLayer.setFieldtypeMap(this.getAggregateFieldTypes(this.getColumnOrder(analyseJson)));
@@ -217,13 +220,17 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
 
             }
             // Add extra TypeNames (depends on wps method)
-            analysisParser.fixTypeNames(analysisLayer);
+            analysisParser.fixTypeNames(analysisLayer, analyseJson);
 
-            // Fix geometry property name for WFST (could be any, depends on Wps method )
-            fixGeometryPropertyName(analysisLayer);
+            // Fix property names for WFST (property names might be renamed in Wps method )
+            featureSet = fixPropertyNames(featureSet, analysisLayer);
 
-            analysis = analysisDataService.storeAnalysisData(
-                    featureSet, analysisLayer, analyse, params.getUser());
+            try {
+                analysis = analysisDataService.storeAnalysisData(
+                        featureSet, analysisLayer, analyse, params.getUser());
+            } catch (ServiceException e) {
+                throw new ActionException(ERROR_UNABLE_TO_STORE_ANALYSIS_DATA, e);
+            }
         }
 
         if (analysis == null) {
@@ -382,7 +389,10 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
         if (baseurl == null) {
             try {
                 final URL url = new URL(params.getRequest().getRequestURL().toString());
-                baseurl = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort();
+                baseurl = url.getProtocol() + "://" + url.getHost();
+                if(url.getPort() != -1) {
+                    baseurl = baseurl + ":" + url.getPort();
+                }
             } catch (Exception ignored) {
             }
         }
@@ -423,22 +433,26 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
             // Temp save  aggregate function setup
             List<String> aggre_funcs = ((AggregateMethodParams) analysisLayer.getAnalysisMethodParams()).getAggreFunctions();
             List<String> aggre_text_funcs = new ArrayList<String>();
-            aggre_text_funcs.add("Count");
+            aggre_text_funcs.add(COUNT_FUNCTION);
             for (String field : analysisLayer.getFields()) {
                 ((AggregateMethodParams) analysisLayer.getAnalysisMethodParams()).setAggreField1(field);
                 if (analysisLayer.getFieldtypeMap().containsKey(field)) {
                     if (analysisLayer.getFieldtypeMap().get(field).equals("numeric")) {
                         ((AggregateMethodParams) analysisLayer.getAnalysisMethodParams()).setAggreFunctions(aggre_funcs);
-                        if (aggre_funcs.size() == 0) doRequest = false;
+                        if (aggre_funcs.size() == 0) {
+                            doRequest = false;
+                        }
                     } else {
+
                         ((AggregateMethodParams) analysisLayer.getAnalysisMethodParams()).setAggreFunctions(aggre_text_funcs);
                         doRequest = true;
+
                     }
                 }
                 sb.append("<fieldResult>");
                 sb.append("<field>" + field + "</field>");
                 if (doRequest) sb.append(wpsService.requestFeatureSet(analysisLayer));
-                if (analysisLayer.isNodataCount()) {
+                if (analysisLayer.isNodataCount() && analysisLayer.getFieldtypeMap().get(field).equals("numeric")) {
                     // Special aggregate process for NoDataCount - use count method with specific filter
                     ((AggregateMethodParams) analysisLayer.getAnalysisMethodParams()).setAggreFunctions(aggre_text_funcs);
                     ((AggregateMethodParams) analysisLayer.getAnalysisMethodParams()).setDoNoDataCount(true);
@@ -531,18 +545,17 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     }
     /**
      * Get property row order of aggregate result (
-     * @param analysejs  analysis params
-     * @param analysisId input is analysis layer, if not null or not empty
+     * @param analysisLayer  analysis params
      * @return List of row names
      */
-    private List<String> getRowOrder( JSONObject analysejs, String analysisId) {
+    private List<String> getRowOrder( AnalysisLayer analysisLayer) {
         List<String> list = new ArrayList<String>();
+        String analysisId = analysisLayer.getInputAnalysisId();
         try {
-            JSONArray fields = analysejs.getJSONArray(JSON_KEY_FIELDS);
 
-            if (fields != null) {
-                for (int i = 0; i < fields.length(); i++) {
-                    String field = fields.getString(i);
+            if (analysisLayer.getFields() != null) {
+                for (int i = 0; i < analysisLayer.getFields().size(); i++) {
+                    String field = analysisLayer.getFields().get(i);
                     if(analysisId != null && !analysisId.isEmpty()){
                         // Switch locale field name
                       field =  analysisDataService.SwitchField2OriginalField(field,  analysisId);
@@ -561,22 +574,27 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     /**
      * Fix the geometry property name for WFST transform
      * Geometry property name in WPS method result is not the same as in input featurecollections
+     * @param featureSet  xml featureCollection
      * @param analysisLayer
      */
-    private void fixGeometryPropertyName(AnalysisLayer analysisLayer) {
+    private String fixPropertyNames(String featureSet, AnalysisLayer analysisLayer) {
 
         try {
 
             AnalysisMethodParams params = analysisLayer.getAnalysisMethodParams();
             if (params.getMethod().equals(AnalysisParser.SPATIAL_JOIN_STATISTICS)){
-                params.setGeom("z_"+ ((SpatialJoinStatisticsMethodParams) params).getGeom2());
+                featureSet = featureSet.replace("feature:z_", "feature:");
+                params.setGeom(((SpatialJoinStatisticsMethodParams) params).getGeom2());
+
             }
 
 
         } catch (Exception e) {
-            log.warn("WPS geometry property name fix failed ", e);
+            log.warn("FeatureCollection property rename  failed ", e);
 
         }
+
+        return featureSet;
 
     }
 

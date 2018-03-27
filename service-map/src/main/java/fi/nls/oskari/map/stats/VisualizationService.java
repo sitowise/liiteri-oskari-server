@@ -5,6 +5,7 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.db.BaseIbatisService;
 import fi.nls.oskari.util.IOHelper;
+import fi.nls.oskari.util.XmlHelper;
 import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
@@ -20,9 +21,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
-public abstract class VisualizationService extends BaseIbatisService<StatsVisualization> {
+public class VisualizationService extends BaseIbatisService<StatsVisualization> {
     
     private static final Logger log = LogFactory.getLogger(VisualizationService.class);
 
@@ -37,8 +39,16 @@ public abstract class VisualizationService extends BaseIbatisService<StatsVisual
 
     final private static OMFactory OM_FACTORY = OMAbstractFactory.getOMFactory();
 
+    @Override
+    protected String getNameSpace() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-    public abstract List<StatsVisualization> findForLayerId(final int layerId);
+    public List<StatsVisualization> findForLayerId(final int layerId) {
+        // FIXME/TODO: Parse this information from oskari_maplayer attributes field.
+        return new ArrayList<>();
+    };
 
     public StatsVisualization getVisualization(
             final int visId,
@@ -137,13 +147,13 @@ public abstract class VisualizationService extends BaseIbatisService<StatsVisual
      */
     public String transform(final OMElement xml, final OMElement xslt) throws Exception {
 
-        TransformerFactory factory = TransformerFactory.newInstance();
-        final Source xsltsource = xslt.getSAXSource(false);
-        final Transformer transformer = factory.newTransformer(xsltsource);
+        final TransformerFactory factory = XmlHelper.newTransformerFactory();
+        final Source xsltSource = xslt.getSAXSource(false);
+        final Transformer transformer = factory.newTransformer(xsltSource);
         
-        final Source xmlsource = xml.getSAXSource(false);
+        final Source xmlSource = xml.getSAXSource(false);
         StreamResult result = new StreamResult(new ByteArrayOutputStream());
-        transformer.transform(xmlsource, result);
+        transformer.transform(xmlSource, result);
         return result.getOutputStream().toString();
     }
 
@@ -182,5 +192,4 @@ public abstract class VisualizationService extends BaseIbatisService<StatsVisual
             IOHelper.close(inputStream);
         }
     }
-
 }
