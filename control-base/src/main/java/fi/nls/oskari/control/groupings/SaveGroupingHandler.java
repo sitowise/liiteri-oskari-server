@@ -65,7 +65,7 @@ public class SaveGroupingHandler extends ActionHandler {
 
 				try {
 					//map state is not sent from UI, but should be preserved here
-					grouping.setMapState(groupingService.find(grouping.getId()).getMapState());
+					grouping.setMapState(groupingService.find((int)grouping.getId()).getMapState());
 
 					_service.updateServicePackage(grouping, user);
 					

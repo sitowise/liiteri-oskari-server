@@ -10,13 +10,13 @@ import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.Role;
-import fi.nls.oskari.user.IbatisRoleService;
+import fi.nls.oskari.user.MybatisRoleService;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.ResponseHelper;
 
 @OskariActionRoute("GetRoles")
 public class GetRolesHandler extends ActionHandler {
-	private static final IbatisRoleService roleService = new IbatisRoleService();
+	private static final MybatisRoleService roleService = new MybatisRoleService();
 
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {

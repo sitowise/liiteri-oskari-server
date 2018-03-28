@@ -1,12 +1,11 @@
 package fi.nls.oskari.control.layer;
 
-import fi.mml.map.mapwindow.service.db.OskariMapLayerGroupService;
-import fi.nls.oskari.service.capabilities.OskariLayerCapabilities;
-import fi.mml.map.mapwindow.service.db.MaplayerProjectionService;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
@@ -21,23 +20,21 @@ import javax.servlet.http.HttpServletRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import pl.sito.liiteri.groupings.service.GroupingsService;
-import fi.mml.map.mapwindow.service.db.InspireThemeService;
+import fi.mml.map.mapwindow.service.db.MaplayerProjectionService;
+import fi.mml.map.mapwindow.service.db.OskariMapLayerGroupService;
 import fi.mml.map.mapwindow.service.wms.WebMapService;
 import fi.mml.map.mapwindow.util.OskariLayerWorker;
 import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.service.db.permissions.PermissionsService;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.cache.JedisManager;
-import fi.nls.oskari.control.*;
-import fi.nls.oskari.domain.User;
 import fi.nls.oskari.control.ActionDeniedException;
 import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.control.ActionParamsException;
-import fi.nls.oskari.domain.map.MaplayerGroup;
 import fi.nls.oskari.domain.map.DataProvider;
+import fi.nls.oskari.domain.map.MaplayerGroup;
 import fi.nls.oskari.domain.map.OskariLayer;
 import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
@@ -51,6 +48,7 @@ import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
 import fi.nls.oskari.permission.domain.Permission;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.service.capabilities.CapabilitiesCacheService;
+import fi.nls.oskari.service.capabilities.OskariLayerCapabilities;
 import fi.nls.oskari.service.capabilities.OskariLayerCapabilitiesHelper;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.GetLayerKeywords;
@@ -63,6 +61,7 @@ import fi.nls.oskari.wfs.WFSLayerConfigurationService;
 import fi.nls.oskari.wfs.util.WFSParserConfigs;
 import fi.nls.oskari.wmts.WMTSCapabilitiesParser;
 import fi.nls.oskari.wmts.domain.WMTSCapabilities;
+import pl.sito.liiteri.groupings.service.GroupingsService;
 /**
  * Admin insert/update of WMS map layer
  */

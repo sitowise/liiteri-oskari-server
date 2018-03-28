@@ -1,10 +1,15 @@
 package fi.nls.oskari.map.analysis.service;
 
-import fi.nls.oskari.db.DatasourceHelper;
-import fi.nls.oskari.domain.map.analysis.Analysis;
-import fi.nls.oskari.log.LogFactory;
-import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.service.ServiceException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.sql.DataSource;
 
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
@@ -14,11 +19,12 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 
-import javax.sql.DataSource;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import fi.nls.oskari.db.DatasourceHelper;
+import fi.nls.oskari.domain.map.UserGisData;
+import fi.nls.oskari.domain.map.analysis.Analysis;
+import fi.nls.oskari.log.LogFactory;
+import fi.nls.oskari.log.Logger;
+import fi.nls.oskari.service.ServiceException;
 
 public class AnalysisDbServiceMybatisImpl implements AnalysisDbService {
 
@@ -285,4 +291,58 @@ public class AnalysisDbServiceMybatisImpl implements AnalysisDbService {
         }
         return id;
     }
+
+    @Override
+    public List<Long> getSharedAnalysisIds(long userId) {
+        final SqlSession session = factory.openSession();
+        final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
+        List<Long> ids = mapper.findSharedAnalysisIds(userId);
+		return ids;
+	}
+
+	@Override
+	public List<UserGisData> getSharedAnalysis(long userId) {
+        final SqlSession session = factory.openSession();
+        final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
+		List<UserGisData> resultList = mapper.findSharedAnalysis(userId);
+    	
+    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
+
+	@Override
+	public List<UserGisData> getUnexpiredAnalysis(long userId) {
+        final SqlSession session = factory.openSession();
+        final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
+		List<UserGisData> resultList = mapper.findUnexpiredAnalysis(userId);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	Date expirationDate = null;
+		try {
+			expirationDate = sdf.parse(sdf.format(new Date()));
+		} catch (ParseException e) {
+			log.error(e, "Error during date parsing"); 
+		}
+    	
+		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+		for (UserGisData u : resultList) {
+			if (expirationDate.before(u.getExpirationDate())) {
+				listToReturn.add(u);
+			}
+		}
+		return listToReturn;
+	}
 }

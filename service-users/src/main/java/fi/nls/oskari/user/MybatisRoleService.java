@@ -1,19 +1,24 @@
 package fi.nls.oskari.user;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.sql.DataSource;
+
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+
 import fi.nls.oskari.db.DatasourceHelper;
 import fi.nls.oskari.domain.Role;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.mybatis.MyBatisHelper;
 import fi.nls.oskari.service.ServiceRuntimeException;
-import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
-import javax.sql.DataSource;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class MybatisRoleService {
 
@@ -233,5 +238,34 @@ public class MybatisRoleService {
         }
 
         return mapping;
+    }
+
+    public Set<Role> ensureRolesInDB(final Set<Role> userRoles) {
+        List<Role> roleList = this.findAll();
+        final Role[] systemRoles =  roleList.toArray(new Role[roleList.size()]);
+        final Set<Role> rolesToInsert = new HashSet<Role>(userRoles.size());
+        for(Role userRole : userRoles) {
+            boolean found = false;
+            for(Role role : systemRoles) {
+                if(role.getName().equals(userRole.getName())) {
+                    // assign ID from role with same name in db
+                    userRole.setId(role.getId());
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) {
+                rolesToInsert.add(userRole);
+            }
+        }
+        // insert missing roles to DB and assign ID
+        for(Role role : rolesToInsert) {
+            Role dbRole = new Role();
+            dbRole.setName(role.getName());
+            long id = this.insert(dbRole);
+            dbRole.setId(id);
+            role.setId(dbRole.getId());
+        }
+        return userRoles;
     }
 }

@@ -18,7 +18,7 @@ import fi.nls.oskari.domain.User;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.UserService;
-import fi.nls.oskari.user.IbatisRoleService;
+import fi.nls.oskari.user.MybatisRoleService;
 import fi.nls.oskari.util.PropertyUtil;
 import fin.nls.oskari.map.servlet.service.IdaValidatorService;
 
@@ -28,7 +28,7 @@ public class IdaExternalAuthenticationFilter implements Filter {
 
     private final String KEY_USER = User.class.getName();
 
-    private IbatisRoleService roleService = null;
+    private MybatisRoleService roleService = null;
     private IdaValidatorService validatorService = null;
 
     private boolean addMissingUsers = true;
@@ -53,7 +53,7 @@ public class IdaExternalAuthenticationFilter implements Filter {
             idaAuthentication = true;
 
         validatorService = new IdaValidatorService();
-        roleService = new IbatisRoleService();
+        roleService = new MybatisRoleService();
     }
 
     @Override

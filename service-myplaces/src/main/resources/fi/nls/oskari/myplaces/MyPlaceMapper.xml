@@ -30,7 +30,7 @@
         <result property="attentionText" column="attention_text" />
     </resultMap>
     
-    <resultMap id="UserGisDataResult" type="UserGisData">
+    <resultMap id="UserGisDataResult" type="fi.nls.oskari.domain.map.UserGisData">
 		<result property="dataId" column="data_id" />
 		<result property="expirationDate" column="expirationdate" />
 	</resultMap>
@@ -154,7 +154,7 @@
     </select>
    
     <select id="findSharedCategories" 
-        resultMap="UserGisDataResult">
+        resultMap="UserGisDataResult" parameterType="java.lang.Long">
         select 
             oskari_user_gis_data.data_id,
             oskari_user_gis_data.expirationdate
@@ -168,7 +168,7 @@
     </select>
     
     <select id="findUnexpiredCategories" 
-    resultMap="UserGisDataResult">
+        resultMap="UserGisDataResult" parameterType="java.lang.Long">
         select 
             oskari_user_gis_data.data_id,
             oskari_user_gis_data.expirationdate

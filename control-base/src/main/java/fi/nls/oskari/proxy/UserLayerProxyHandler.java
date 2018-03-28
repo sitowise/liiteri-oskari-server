@@ -4,7 +4,7 @@ import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
-import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceIbatisImpl;
+import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceMybatisImpl;
 import fi.nls.oskari.service.ProxyServiceConfig;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.List;
  */
 public class UserLayerProxyHandler extends ProxyServiceConfig {
     private static final Logger log = LogFactory.getLogger(UserLayerProxyHandler.class);
-    private static final UserLayerDbService userLayerService = new UserLayerDbServiceIbatisImpl();
+    private static final UserLayerDbService userLayerService = new UserLayerDbServiceMybatisImpl();
     private static final String PARAM_USERLAYER_ID = "id";
 
     /**

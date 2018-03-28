@@ -47,7 +47,13 @@ public class VisualizationService extends BaseIbatisService<StatsVisualization> 
 
     public List<StatsVisualization> findForLayerId(final int layerId) {
         // FIXME/TODO: Parse this information from oskari_maplayer attributes field.
-        return new ArrayList<>();
+        List<StatsVisualization> ret = new ArrayList<StatsVisualization>();
+        StatsVisualization vis = new StatsVisualization();
+        vis.setId(1);
+        vis.setNameJSON("{\"fi\": \"rajaukset:kunta100k\"}");
+        vis.setFilterproperty("koodi");
+        ret.add(vis);
+        return ret;
     };
 
     public StatsVisualization getVisualization(

@@ -11,21 +11,20 @@
 	
 
     <!-- ############# css ################# -->
-	<link href='//fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
     
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/icons.css"/>
+            href="/Oskari/resources/css/forms.css"/>
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/forms.css"/>
+            href="/Oskari/resources/css/portal.css"/>
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/portal.css"/>
-
+            href="/Oskari${path}/icons.css"/>
     <link
             rel="stylesheet"
             type="text/css"
@@ -34,14 +33,14 @@
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/bootstrap/bootstrap.css"/>			
+            href="/Oskari${path}/css/bootstrap/bootstrap.css"/>
 
 	<link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/bootstrap/bootstrap-theme.css"/>					
+            href="/Oskari${path}/css/bootstrap/bootstrap-theme.css"/>
 			
-	<script src="/Oskari/libraries/bootstrap/bootstrap.min.js"></script>			
+	<script src="/Oskari/libraries/bootstrap/bootstrap.min.js"></script>
 	
     <style type="text/css">
         @media screen {

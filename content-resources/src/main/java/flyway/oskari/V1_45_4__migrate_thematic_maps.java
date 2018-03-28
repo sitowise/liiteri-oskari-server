@@ -58,32 +58,33 @@ public class V1_45_4__migrate_thematic_maps implements JdbcMigration {
     private long userIndicatorsId;
 
     public void migrate(Connection conn) throws SQLException, JSONException {
-        sotkanetId = PropertyUtil.getOptional(PROP_DS_SOTKA, -1);
-        userIndicatorsId = PropertyUtil.getOptional(PROP_DS_USER, -1);
-        final boolean oldAutoCommit = conn.getAutoCommit();
-        try {
-            conn.setAutoCommit(false);
-            // migrate statsgrid to new one in portti_bundle
-            // sending bundlePath to only migrate the ones with old statsgrid startup!!
-            // update state and config from old to new model
-            migrateBundle(conn, BUNDLE_NAME_STATSGRID, "/packages/statistics/bundle/");
+        return;
+        // sotkanetId = PropertyUtil.getOptional(PROP_DS_SOTKA, -1);
+        // userIndicatorsId = PropertyUtil.getOptional(PROP_DS_USER, -1);
+        // final boolean oldAutoCommit = conn.getAutoCommit();
+        // try {
+        //     conn.setAutoCommit(false);
+        //     // migrate statsgrid to new one in portti_bundle
+        //     // sending bundlePath to only migrate the ones with old statsgrid startup!!
+        //     // update state and config from old to new model
+        //     migrateBundle(conn, BUNDLE_NAME_STATSGRID, "/packages/statistics/bundle/");
 
-            // update state and config from old to new model
-            migrateBundle(conn, BUNDLE_NAME_PUBLISHEDGRID, null);
+        //     // update state and config from old to new model
+        //     migrateBundle(conn, BUNDLE_NAME_PUBLISHEDGRID, null);
 
-            ConfigNState divmanazer = ThematicMapsViewHelper.getBundle(conn, ThematicMapsViewHelper.getBundleId(conn, "divmanazer"));
-            final long mapfullId = ThematicMapsViewHelper.getBundleId(conn, "mapfull");
-            final long statsgridId = ThematicMapsViewHelper.getBundleId(conn, BUNDLE_NAME_STATSGRID);
-            for(long viewId: ThematicMapsViewHelper.findAppsetupsHavingBundleButNoDivmanazer(conn, statsgridId)){
-                ThematicMapsViewHelper.injectDivmanazerAfterMapfull(conn, viewId, divmanazer, mapfullId);
-            }
-            conn.commit();
-        } catch (SQLException e) {
-            conn.rollback();
-            throw e;
-        } finally {
-            conn.setAutoCommit(oldAutoCommit);
-        }
+        //     ConfigNState divmanazer = ThematicMapsViewHelper.getBundle(conn, ThematicMapsViewHelper.getBundleId(conn, "divmanazer"));
+        //     final long mapfullId = ThematicMapsViewHelper.getBundleId(conn, "mapfull");
+        //     final long statsgridId = ThematicMapsViewHelper.getBundleId(conn, BUNDLE_NAME_STATSGRID);
+        //     for(long viewId: ThematicMapsViewHelper.findAppsetupsHavingBundleButNoDivmanazer(conn, statsgridId)){
+        //         ThematicMapsViewHelper.injectDivmanazerAfterMapfull(conn, viewId, divmanazer, mapfullId);
+        //     }
+        //     conn.commit();
+        // } catch (SQLException e) {
+        //     conn.rollback();
+        //     throw e;
+        // } finally {
+        //     conn.setAutoCommit(oldAutoCommit);
+        // }
     }
 
     private void migrateBundle(Connection conn, String bundleName, String bundlePath)

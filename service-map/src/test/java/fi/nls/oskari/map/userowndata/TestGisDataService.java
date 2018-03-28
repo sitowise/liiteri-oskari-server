@@ -137,12 +137,12 @@ public class TestGisDataService
     	
     	UserGisDataMatcher matcher = new UserGisDataMatcher(user, dataId, dataType, sharings);
     	
-    	doReturn(oldData).when(_domainService).find(id);
+    	doReturn(oldData).when(_domainService).find((int)id);
     	doReturn(oldSharings).when(_sharingService).GetSharings(ResourceType.LAYER, id);
     	
     	service.updateUserGisData(id, user, dataId, dataType, sharings);    
     	
-    	verify(_domainService).find(id);
+    	verify(_domainService).find((int)id);
     	verify(_sharingService).GetSharings(ResourceType.LAYER, id);
     	verify(_domainService).update(argThat(matcher));    
     	

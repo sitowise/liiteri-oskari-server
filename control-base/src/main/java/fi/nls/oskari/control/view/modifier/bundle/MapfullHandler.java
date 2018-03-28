@@ -1,5 +1,16 @@
 package fi.nls.oskari.control.view.modifier.bundle;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import fi.mml.map.mapwindow.util.OskariLayerWorker;
 import fi.mml.portti.domain.permissions.Permissions;
 import fi.mml.portti.service.db.permissions.PermissionsService;
@@ -9,6 +20,7 @@ import fi.nls.oskari.annotation.OskariViewModifier;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.MyPlaceCategory;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserWmsLayer;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.domain.map.view.ViewTypes;
@@ -17,28 +29,17 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.analysis.domain.AnalysisLayer;
 import fi.nls.oskari.map.analysis.service.AnalysisDbService;
 import fi.nls.oskari.map.analysis.service.AnalysisDbServiceMybatisImpl;
+import fi.nls.oskari.map.layer.UserWmsLayerService;
+import fi.nls.oskari.map.layer.UserWmsLayerServiceIbatisImpl;
+import fi.nls.oskari.map.layer.formatters.LayerJSONFormatter;
 import fi.nls.oskari.map.userlayer.service.UserLayerDataService;
 import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
 import fi.nls.oskari.myplaces.MyPlacesService;
 import fi.nls.oskari.service.OskariComponentManager;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.JSONHelper;
-import fi.nls.oskari.map.layer.UserWmsLayerService;
-import fi.nls.oskari.map.layer.UserWmsLayerServiceIbatisImpl;
-import fi.nls.oskari.map.layer.formatters.LayerJSONFormatter;
 import fi.nls.oskari.view.modifier.ModifierException;
 import fi.nls.oskari.view.modifier.ModifierParams;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONTokener;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import fi.nls.oskari.domain.map.UserWmsLayer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 @OskariViewModifier("mapfull")
 public class MapfullHandler extends BundleHandler {
@@ -168,7 +169,7 @@ public class MapfullHandler extends BundleHandler {
                 config.put("gridDataAllowed", gridDataAllowed);
 			}
 		} catch (JSONException e) {
-			log.error(e, "Adding extra permissions failed");
+			LOGGER.error(e, "Adding extra permissions failed");
 		}
         
         return false;
@@ -308,7 +309,7 @@ public class MapfullHandler extends BundleHandler {
                     if (categoryId != -1) {
                         publishedUserWms.add(categoryId);
                     } else {
-                        log.warn("Found analysis layer in selected. Error parsing id with category id: ", layerId);
+                        LOGGER.warn("Found analysis layer in selected. Error parsing id with category id: ", layerId);
                     }
                 } else {
                     // these should all be pointing at a layer in oskari_maplayer
@@ -351,9 +352,9 @@ public class MapfullHandler extends BundleHandler {
         }
         
         for(Long id : publishedUserWms) {
-            final UserWmsLayer userwms = userWmsLayerService.find(id);
+            final UserWmsLayer userwms = userWmsLayerService.find(id.toString());
             if (userwms.getUserId() != user.getId()) {
-                log.info("Found user wms layer in selected that is no longer published. ViewID:",
+                LOGGER.info("Found user wms layer in selected that is no longer published. ViewID:",
                         viewID, "User wms id:", id);
                 continue;
             }
@@ -364,7 +365,7 @@ public class MapfullHandler extends BundleHandler {
                 json.remove("id");
                 json.put("id", "userwms_" + layerId);
             } catch (JSONException e) {
-                log.info(e, "Can't modify user wms layer id, User wms id:", id);
+                LOGGER.info(e, "Can't modify user wms layer id, User wms id:", id);
                 continue;
             }
             if(json != null) {

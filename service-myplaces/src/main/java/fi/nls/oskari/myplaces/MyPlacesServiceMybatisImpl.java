@@ -250,7 +250,6 @@ public class MyPlacesServiceMybatisImpl extends MyPlacesService {
         }
     }
 
-	@Override
 	public List<UserGisData> getSharedMyPlaceLayers(long userId) {
 		List<UserGisData> resultList = Collections.emptyList();
 		
@@ -280,8 +279,8 @@ public class MyPlacesServiceMybatisImpl extends MyPlacesService {
 		}
 		return listToReturn;
 	}
-	@Override
-	public List<UserGisData> getUnexpiredMyPlaceLayers(long userId) {		
+
+	public List<UserGisData> getUnexpiredMyPlaceLayers(long userId) {
 		List<UserGisData> resultList = Collections.emptyList();
 		
         final SqlSession session = factory.openSession();

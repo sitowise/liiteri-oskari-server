@@ -1,37 +1,20 @@
 package fi.nls.oskari.control.layer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.cache.JedisManager;
 import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.control.ActionParamsException;
-import fi.nls.oskari.control.view.GetAppSetupHandler;
-import fi.nls.oskari.domain.map.stats.StatsVisualization;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.map.stats.VisualizationService;
-import fi.nls.oskari.map.stats.VisualizationServiceIbatisImpl;
-import fi.nls.oskari.util.ConversionHelper;
-import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.util.ResponseHelper;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.axiom.om.OMElement;
-import org.apache.logging.log4j.util.PropertiesUtil;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import pl.sito.liiteri.arcgis.domain.ArcgisLayer;
 import pl.sito.liiteri.map.arcgislayer.service.ArcgisLayerService;
-
-import java.net.HttpURLConnection;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
 
 @OskariActionRoute("GetStatsFeatures")
 public class GetStatsFeaturesHandler extends ActionHandler {

@@ -1,10 +1,11 @@
 package fi.nls.oskari.map.analysis.service;
 
-import fi.nls.oskari.domain.map.analysis.Analysis;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import fi.nls.oskari.domain.map.UserGisData;
+import fi.nls.oskari.domain.map.analysis.Analysis;
 
 public interface AnalysisMapper {
 
@@ -19,4 +20,7 @@ public interface AnalysisMapper {
     void deleteAnalysisStyleById(final long id);
     void updatePublisherName(final Map<String, Object> params);
     void mergeAnalysisData(final Analysis analysis);
+    List<Long> findSharedAnalysisIds(final long id);
+    List<UserGisData> findSharedAnalysis(final long userId);
+    List<UserGisData> findUnexpiredAnalysis(final long userId);
 }

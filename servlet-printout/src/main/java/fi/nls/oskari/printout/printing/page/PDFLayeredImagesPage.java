@@ -18,7 +18,6 @@ import org.apache.pdfbox.pdmodel.graphics.optionalcontent.PDOptionalContentPrope
 import org.apache.pdfbox.pdmodel.graphics.xobject.PDPixelMap;
 import org.apache.pdfbox.pdmodel.graphics.xobject.PDXObjectImage;
 import org.apache.pdfbox.pdmodel.markedcontent.PDPropertyList;
-import org.apache.poi.util.StringUtil;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.renderer.lite.RendererUtilities;
 import org.jsoup.Jsoup;

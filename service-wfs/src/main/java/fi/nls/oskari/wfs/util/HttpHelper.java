@@ -282,13 +282,13 @@ public class HttpHelper {
 			if(request.ok() || request.code() == 304)
 				return request;
 			else {
-				handleHTTPError("GET", url, request.code());
+				handleHTTPError("GET", url, request.code(), false);
 			}
 			
 		} catch (HttpRequestException e) {
-			handleHTTPRequestFail(url, e);
+			handleHTTPRequestFail(url, e, false);
 		} catch (Exception e) {
-			handleHTTPRequestFail(url, e);
+			handleHTTPRequestFail(url, e, false);
 		}
 		return null;
     }

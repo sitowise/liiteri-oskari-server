@@ -1,8 +1,26 @@
 package fi.nls.oskari.map.userlayer.service;
 
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.sql.DataSource;
+
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.ExecutorType;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.apache.ibatis.transaction.TransactionFactory;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+
 import fi.nls.oskari.annotation.Oskari;
 import fi.nls.oskari.db.DatasourceHelper;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.domain.map.userlayer.UserLayerData;
 import fi.nls.oskari.domain.map.userlayer.UserLayerStyle;
@@ -10,13 +28,6 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.PropertyUtil;
-import org.apache.ibatis.mapping.Environment;
-import org.apache.ibatis.session.*;
-import org.apache.ibatis.transaction.TransactionFactory;
-import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
-
-import javax.sql.DataSource;
-import java.util.List;
 
 @Oskari
 public class UserLayerDbServiceMybatisImpl extends UserLayerDbService {
@@ -275,5 +286,60 @@ public class UserLayerDbServiceMybatisImpl extends UserLayerDbService {
          }
          return "";
      }
+
+    @Override
+    public List<UserGisData> getSharedUserLayers(long userId) {
+        final SqlSession session = factory.openSession();
+        final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
+        List<UserGisData> resultList = mapper.findSharedUserLayers(userId);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date expirationDate = null;
+        try {
+            expirationDate = sdf.parse(sdf.format(new Date()));
+        } catch (ParseException e) {
+            log.error(e, "Error during date parsing");
+        }
+
+        List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+        for (UserGisData u : resultList) {
+            if (expirationDate.before(u.getExpirationDate())) {
+                listToReturn.add(u);
+            }
+        }
+        return listToReturn;
+    }
+
+    @Override
+    public List<UserGisData> getUnexpiredUserLayers(long userId) {
+        final SqlSession session = factory.openSession();
+        final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
+        List<UserGisData> resultList = mapper.findUnexpiredUserLayers(userId);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date expirationDate = null;
+        try {
+            expirationDate = sdf.parse(sdf.format(new Date()));
+        } catch (ParseException e) {
+            log.error(e, "Error during date parsing");
+        }
+
+        List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+        for (UserGisData u : resultList) {
+            if (expirationDate.before(u.getExpirationDate())) {
+                listToReturn.add(u);
+            }
+        }
+        return listToReturn;
+    }
+
+    @Override
+    public List<Long> getSharedUserLayerIds(long userId) {
+        final SqlSession session = factory.openSession();
+        final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
+        List<Long> resultList = mapper.findSharedUserLayerIds(userId);
+
+        return resultList;
+    }
 
 }

@@ -10,13 +10,13 @@ import fi.nls.oskari.control.ActionException;
 import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.User;
-import fi.nls.oskari.user.IbatisUserService;
+import fi.nls.oskari.user.MybatisUserService;
 import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.ResponseHelper;
 
 @OskariActionRoute("GetUsers")
 public class GetUsersHandler extends ActionHandler {
-	   private static final IbatisUserService userService = new IbatisUserService();
+	   private static final MybatisUserService userService = new MybatisUserService();
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {
 

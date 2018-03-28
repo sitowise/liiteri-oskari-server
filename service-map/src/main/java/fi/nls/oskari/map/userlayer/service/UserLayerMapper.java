@@ -1,12 +1,14 @@
 package fi.nls.oskari.map.userlayer.service;
 
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
+
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.domain.map.userlayer.UserLayerData;
 import fi.nls.oskari.domain.map.userlayer.UserLayerStyle;
 import fi.nls.oskari.service.ServiceException;
-import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 public interface UserLayerMapper {
         //UserLayer related
@@ -29,4 +31,8 @@ public interface UserLayerMapper {
         public int updateUserLayerDataCols(final UserLayerData userLayerData);        
         public void deleteUserLayerDataByLayerId (final long userLayerId);
         public void deleteUserLayerDataRow (final long id);
+
+        public List<UserGisData> findSharedUserLayers(long userId);
+        public List<UserGisData> findUnexpiredUserLayers(long userId);
+        public List<Long> findSharedUserLayerIds(long userId);
 }

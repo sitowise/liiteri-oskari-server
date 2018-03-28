@@ -1,15 +1,15 @@
 package fi.nls.oskari.myplaces;
 
-import fi.nls.oskari.domain.map.MyPlace;
-import fi.nls.oskari.domain.map.MyPlaceCategory;
-import org.apache.ibatis.annotations.Delete;
-import fi.nls.oskari.domain.map.UserGisData;
+import java.util.List;
+import java.util.Map;
 
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
-import java.util.List;
-import java.util.Map;
+import fi.nls.oskari.domain.map.MyPlace;
+import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
 
 /**
  * Created by SMAKINEN on 8.7.2015.

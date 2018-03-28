@@ -384,17 +384,4 @@ public class OskariLayerServiceIbatisImpl extends OskariLayerService {
         }
         return Collections.emptyList();
     }
-
-        }
-
-
-	@Override
-	public OskariLayer find(long id)
-	{
-		return this.find((int)id);
-	}
-	@Override
-    public void delete(long id) {
-    	this.delete((int)id);
-    }
 }

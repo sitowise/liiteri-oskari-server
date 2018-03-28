@@ -13,6 +13,7 @@
         <result property="uuid" column="uuid" />
         <result property="screenname" column="user_name" />
         <result property="attributes" column="attributes" />
+        <result property="tosAccepted" column="tos_accepted" />
     </resultMap>
 
     <insert id="addUser" parameterType="User" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
@@ -22,7 +23,8 @@
             user_name,
             email,
             uuid,
-            attributes
+            attributes,
+            tos_accepted
         )
         VALUES (
             #{firstname},
@@ -30,7 +32,8 @@
             #{screenname},
             #{email},
             #{uuid},
-            #{attributes}
+            #{attributes},
+            #tosAccepted#
         )
     </insert>
 
@@ -41,24 +44,25 @@
         last_name = #{lastname},
         user_name = #{screenname},
         email = #{email},
-        attributes = #{attributes}
+        attributes = #{attributes},
+        tos_accepted = #tosAccepted#
         where id = #{id}
     </update>
 
     <select id="findAll" resultMap="UsersResult">
-        select id, first_name, last_name, user_name, email, uuid, attributes from oskari_users order by user_name
+        select id, first_name, last_name, user_name, email, uuid, attributes, tos_accepted from oskari_users order by user_name
     </select>
 
     <select id="find" parameterType="Long" resultMap="UsersResult">
-        select id, first_name, last_name, user_name, email, uuid, attributes from oskari_users where id = #{id}
+        select id, first_name, last_name, user_name, email, uuid, attributes, tos_accepted from oskari_users where id = #{id}
     </select>
 
     <select id="findByUserName" parameterType="String" resultMap="UsersResult">
-        select id, user_name, first_name, last_name, email, uuid, attributes from oskari_users where user_name = #{id}
+        select id, user_name, first_name, last_name, email, uuid, attributes, tos_accepted from oskari_users where user_name = #{id}
     </select>
 
     <select id="findByEmail" parameterType="String" resultMap="UsersResult">
-        select id, user_name, first_name, last_name, email, uuid, attributes from oskari_users where LOWER(email) = #{email}
+        select id, user_name, first_name, last_name, email, uuid, attributes, tos_accepted from oskari_users where LOWER(email) = #{email}
     </select>
 
     <select id="login" parameterType="java.util.HashMap" resultType="String">
