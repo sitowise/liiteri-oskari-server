@@ -33,7 +33,7 @@
             #{email},
             #{uuid},
             #{attributes},
-            #tosAccepted#
+            #{tosAccepted}
         )
     </insert>
 
@@ -45,7 +45,7 @@
         user_name = #{screenname},
         email = #{email},
         attributes = #{attributes},
-        tos_accepted = #tosAccepted#
+        tos_accepted = #{tosAccepted}
         where id = #{id}
     </update>
 
