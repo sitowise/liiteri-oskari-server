@@ -289,57 +289,60 @@ public class UserLayerDbServiceMybatisImpl extends UserLayerDbService {
 
     @Override
     public List<UserGisData> getSharedUserLayers(long userId) {
-        final SqlSession session = factory.openSession();
-        final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
-        List<UserGisData> resultList = mapper.findSharedUserLayers(userId);
+        try (SqlSession session = factory.openSession()) {
+            final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
+            List<UserGisData> resultList = mapper.findSharedUserLayers(userId);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Date expirationDate = null;
-        try {
-            expirationDate = sdf.parse(sdf.format(new Date()));
-        } catch (ParseException e) {
-            log.error(e, "Error during date parsing");
-        }
-
-        List<UserGisData> listToReturn = new ArrayList<UserGisData>();
-        for (UserGisData u : resultList) {
-            if (expirationDate.before(u.getExpirationDate())) {
-                listToReturn.add(u);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date expirationDate = null;
+            try {
+                expirationDate = sdf.parse(sdf.format(new Date()));
+            } catch (ParseException e) {
+                log.error(e, "Error during date parsing");
             }
+
+            List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+            for (UserGisData u : resultList) {
+                if (expirationDate.before(u.getExpirationDate())) {
+                    listToReturn.add(u);
+                }
+            }
+            return listToReturn;
         }
-        return listToReturn;
     }
 
     @Override
     public List<UserGisData> getUnexpiredUserLayers(long userId) {
-        final SqlSession session = factory.openSession();
-        final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
-        List<UserGisData> resultList = mapper.findUnexpiredUserLayers(userId);
+        try (SqlSession session = factory.openSession()) {
+            final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
+            List<UserGisData> resultList = mapper.findUnexpiredUserLayers(userId);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Date expirationDate = null;
-        try {
-            expirationDate = sdf.parse(sdf.format(new Date()));
-        } catch (ParseException e) {
-            log.error(e, "Error during date parsing");
-        }
-
-        List<UserGisData> listToReturn = new ArrayList<UserGisData>();
-        for (UserGisData u : resultList) {
-            if (expirationDate.before(u.getExpirationDate())) {
-                listToReturn.add(u);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date expirationDate = null;
+            try {
+                expirationDate = sdf.parse(sdf.format(new Date()));
+            } catch (ParseException e) {
+                log.error(e, "Error during date parsing");
             }
+
+            List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+            for (UserGisData u : resultList) {
+                if (expirationDate.before(u.getExpirationDate())) {
+                    listToReturn.add(u);
+                }
+            }
+            return listToReturn;
         }
-        return listToReturn;
     }
 
     @Override
     public List<Long> getSharedUserLayerIds(long userId) {
-        final SqlSession session = factory.openSession();
-        final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
-        List<Long> resultList = mapper.findSharedUserLayerIds(userId);
+        try (SqlSession session = factory.openSession()) {
+            final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
+            List<Long> resultList = mapper.findSharedUserLayerIds(userId);
 
-        return resultList;
+            return resultList;
+        }
     }
 
 }

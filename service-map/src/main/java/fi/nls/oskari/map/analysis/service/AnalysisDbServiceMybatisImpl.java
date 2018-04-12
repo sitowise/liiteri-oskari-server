@@ -294,55 +294,58 @@ public class AnalysisDbServiceMybatisImpl implements AnalysisDbService {
 
     @Override
     public List<Long> getSharedAnalysisIds(long userId) {
-        final SqlSession session = factory.openSession();
-        final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
-        List<Long> ids = mapper.findSharedAnalysisIds(userId);
-		return ids;
-	}
+        try (SqlSession session = factory.openSession()) {
+            final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
+            List<Long> ids = mapper.findSharedAnalysisIds(userId);
+            return ids;
+        }
+    }
 
-	@Override
-	public List<UserGisData> getSharedAnalysis(long userId) {
-        final SqlSession session = factory.openSession();
-        final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
-		List<UserGisData> resultList = mapper.findSharedAnalysis(userId);
-    	
-    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    	Date expirationDate = null;
-		try {
-			expirationDate = sdf.parse(sdf.format(new Date()));
-		} catch (ParseException e) {
-			log.error(e, "Error during date parsing"); 
-		}
-    	
-		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
-		for (UserGisData u : resultList) {
-			if (expirationDate.before(u.getExpirationDate())) {
-				listToReturn.add(u);
-			}
-		}
-		return listToReturn;
-	}
+    @Override
+    public List<UserGisData> getSharedAnalysis(long userId) {
+        try (SqlSession session = factory.openSession()) {
+            final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
+            List<UserGisData> resultList = mapper.findSharedAnalysis(userId);
 
-	@Override
-	public List<UserGisData> getUnexpiredAnalysis(long userId) {
-        final SqlSession session = factory.openSession();
-        final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
-		List<UserGisData> resultList = mapper.findUnexpiredAnalysis(userId);
-		
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    	Date expirationDate = null;
-		try {
-			expirationDate = sdf.parse(sdf.format(new Date()));
-		} catch (ParseException e) {
-			log.error(e, "Error during date parsing"); 
-		}
-    	
-		List<UserGisData> listToReturn = new ArrayList<UserGisData>();
-		for (UserGisData u : resultList) {
-			if (expirationDate.before(u.getExpirationDate())) {
-				listToReturn.add(u);
-			}
-		}
-		return listToReturn;
-	}
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date expirationDate = null;
+            try {
+                expirationDate = sdf.parse(sdf.format(new Date()));
+            } catch (ParseException e) {
+                log.error(e, "Error during date parsing");
+            }
+
+            List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+            for (UserGisData u : resultList) {
+                if (expirationDate.before(u.getExpirationDate())) {
+                    listToReturn.add(u);
+                }
+            }
+            return listToReturn;
+        }
+    }
+
+    @Override
+    public List<UserGisData> getUnexpiredAnalysis(long userId) {
+        try (SqlSession session = factory.openSession()) {
+            final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
+            List<UserGisData> resultList = mapper.findUnexpiredAnalysis(userId);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date expirationDate = null;
+            try {
+                expirationDate = sdf.parse(sdf.format(new Date()));
+            } catch (ParseException e) {
+                log.error(e, "Error during date parsing");
+            }
+
+            List<UserGisData> listToReturn = new ArrayList<UserGisData>();
+            for (UserGisData u : resultList) {
+                if (expirationDate.before(u.getExpirationDate())) {
+                    listToReturn.add(u);
+                }
+            }
+            return listToReturn;
+        }
+    }
 }
