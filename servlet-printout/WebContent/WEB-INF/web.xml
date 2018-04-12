@@ -10,6 +10,10 @@
 			<param-name>fi.nls.oskari.printout.ws</param-name>
 			<param-value>managed</param-value>
 		</init-param>
+		<init-param>
+			<param-name>com.sun.jersey.config.property.packages</param-name>
+			<param-value>fi.nls.oskari.printout.ws.jaxrs.resource</param-value>
+		</init-param>
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>Jersey Web Application</servlet-name>
