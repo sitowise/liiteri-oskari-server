@@ -228,7 +228,7 @@
             oskari_user_gis_data
         INNER JOIN liiteri_sharing ON liiteri_sharing.resourceid = oskari_user_gis_data.id
         WHERE liiteri_sharing.credentialtype = 'USER' 
-        	AND liiteri_sharing.credentialid = #userId#
+        	AND liiteri_sharing.credentialid = #{userId}
 			AND liiteri_sharing.resourcetype = 'LAYER'
         	AND oskari_user_gis_data.data_type = 'IMPORTED_PLACES'
     </select>
@@ -242,7 +242,7 @@
             oskari_user_gis_data.expirationdate
         from 
             oskari_user_gis_data
-        WHERE oskari_user_gis_data.userId = #userId#
+        WHERE oskari_user_gis_data.userId = #{userId}
         	AND oskari_user_gis_data.data_type = 'IMPORTED_PLACES'
     </select>
     
@@ -254,7 +254,7 @@
             oskari_user_gis_data
         INNER JOIN liiteri_sharing ON liiteri_sharing.resourceid = oskari_user_gis_data.id
         WHERE liiteri_sharing.credentialtype = 'USER' 
-        	AND liiteri_sharing.credentialid = #userId#
+        	AND liiteri_sharing.credentialid = #{userId}
 			AND liiteri_sharing.resourcetype = 'LAYER'
         	AND oskari_user_gis_data.data_type = 'IMPORTED_PLACES'
     </select>
