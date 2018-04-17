@@ -202,21 +202,18 @@
 <c:if test="${preloaded}">
 
     <script type="text/javascript"
-            src="/Oskari${path}/liiteri.js">
+            src="/Oskari${path}/oskari.min.js">
     </script>
+    <!-- Minified CSS for preload -->
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/liiteri.css"
+            href="/Oskari${path}/oskari.min.css"
             />
-    <%--language files 
-    <script type="text/javascript"
-            src="/Oskari${path}/oskari_lang_all.js">
-    </script>
+    <%--language files --%>
     <script type="text/javascript"
             src="/Oskari${path}/oskari_lang_${language}.js">
     </script>
-    --%>
 </c:if>
 
 <script type="text/javascript"
