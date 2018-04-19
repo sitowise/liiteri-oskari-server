@@ -11,7 +11,7 @@
 	
 
     <!-- ############# css ################# -->
-	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
+	<link href='//fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
     
     <link
             rel="stylesheet"
