@@ -123,7 +123,7 @@ public class WFSOsoitenimiFilterMaker {
             
 
         } catch (Exception e) {
-            throw new RuntimeException("Problem on WFSOsoitenimiFilter class :" +e.toString());
+            throw new RuntimeException("Problem on WFSOsoitenimiFilter class :" +e.toString(), e);
         }
 
 	}

@@ -227,8 +227,17 @@ public class XmlHelper {
             log.warn("Unable to enable feature for secure processing for TransformerFactory", ex.getMessage());
         }
         // Empty protocol String to disable access to external resources
-        transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-        transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+        try {
+            transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        } catch (IllegalArgumentException e) {
+            log.warn("jaxp 1.5 feature ACCESS_EXTERNAL_DTD not supported", e.getMessage());
+        }
+        
+        try {
+            transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+        } catch (IllegalArgumentException e) {
+            log.warn("jaxp 1.5 feature ACCESS_EXTERNAL_STYLESHEET not supported", e.getMessage());
+        }
         // Disable resolving of any kind of URIs, not sure if this is actually necessary
         transformerFactory.setURIResolver((String href, String base) -> null);
         return transformerFactory;
