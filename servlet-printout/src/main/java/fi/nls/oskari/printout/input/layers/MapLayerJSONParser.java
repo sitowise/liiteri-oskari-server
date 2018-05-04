@@ -134,11 +134,6 @@ public class MapLayerJSONParser {
             layerURL = layerDefinition.getWmsurl();
             layersParam = URLEncoder.encode(layerDefinition.getWmsname(),
                     "UTF-8");
-            if (layerURL != null) {
-                if (layerURL.indexOf('?') != -1) {
-                    layerURL = layerURL.substring(0, layerURL.indexOf('?'));
-                }
-            }
         } else {
             throw new IOException("Unknown layertype " + type);
         }

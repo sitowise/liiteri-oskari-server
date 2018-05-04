@@ -533,6 +533,10 @@ public class MapProducer {
             if (urlTemplate == null) {
                 log.debug("WMTS no urlTemplate assuming KVP");
 
+                if (isLocalUrl(layerUrl)) {
+                    layerUrl = fixLocalUrl(layerUrl);
+                }
+
                 String format = layerDefinition.getFormat();
                 if (format == null) {
                     format = "image/png";
