@@ -7,12 +7,12 @@
 <head>
     <title>Oskari - ${viewName}</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <script type="text/javascript" src="//code.jquery.com/jquery-1.7.2.min.js">
+    <script type="text/javascript" src="/Oskari/libraries/jquery/jquery-1.10.2.min.js">
     </script>
-	
+
     <!-- ############# css ################# -->
 	<link href='//fonts.googleapis.com/css?family=Open+Sans:400,300,700,600,400italic,600italic' rel='stylesheet' type='text/css' />
-    
+
     <link
             rel="stylesheet"
             type="text/css"
@@ -29,19 +29,19 @@
             rel="stylesheet"
             type="text/css"
             href="/Oskari${path}/css/overwritten.css"/>
-			
+
     <link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/bootstrap/bootstrap.css"/>			
+            href="/Oskari${path}/css/bootstrap/bootstrap.css"/>
 
 	<link
             rel="stylesheet"
             type="text/css"
-            href="/Oskari${path}/css/bootstrap/bootstrap-theme.css"/>					
-			
-	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>			
-	
+            href="/Oskari${path}/css/bootstrap/bootstrap-theme.css"/>
+
+	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
     <style type="text/css">
         @media screen {
             body {
@@ -61,7 +61,7 @@
                 width: 180px;
                 z-index: 2;
             }
-            
+
             #minimized_maptools {
 				display: none;
 				background-color: #00bce9;
@@ -71,7 +71,7 @@
                 width: 16px;
                 z-index: 2;
 			}
-			
+
 			#access_nav_show {
 				margin-top: 5px;
 				width: 15px;
@@ -79,7 +79,7 @@
 				background-image: url("/Oskari/resources/show_view.png");
 				display: block;
 			}
-			
+
 			#access_nav_hide {
 				margin-top: 5px;
 				margin-right: 5px;

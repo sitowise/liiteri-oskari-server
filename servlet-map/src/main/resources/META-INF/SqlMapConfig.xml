@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<!DOCTYPE sqlMapConfig      
-PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"      
+<!DOCTYPE sqlMapConfig
+PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
 "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
 
 <sqlMapConfig>
@@ -10,7 +10,7 @@ PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
 
   <typeHandler javaType="org.json.JSONObject" jdbcType="VARCHAR" callback="fi.nls.oskari.domain.utils.JSONTypeHandler"/>
   <typeHandler javaType="java.lang.String" jdbcType="OTHER" callback="fi.nls.oskari.domain.utils.UuIdTypeHandler"/>
-  
+
   <!-- Use common oskari-map datasource -->
   <transactionManager type="JDBC" commitRequired="true">
     <dataSource type="JNDI">
@@ -29,14 +29,14 @@ PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
   <sqlMap resource="META-INF/OskariLayer.xml" />
   <sqlMap resource="META-INF/DataProvider.xml" />
   <sqlMap resource="META-INF/MaplayerProjections.xml" />
-<sqlMap resource="META-INF/Groupings.xml" />
-<sqlMap resource="META-INF/GroupingThemes.xml" />
-<sqlMap resource="META-INF/GroupingThemeData.xml" />
-<sqlMap resource="META-INF/WorkSpaces.xml" />
-<sqlMap resource="META-INF/WorkSpaceRoleSettings.xml" />
-<sqlMap resource="META-INF/Announcements.xml" />
-<sqlMap resource="META-INF/UserGisData.xml" />
-<sqlMap resource="META-INF/UserGisDataRoleSettings.xml" />
-<sqlMap resource="META-INF/Sharing.xml" />
-<sqlMap resource="META-INF/UserWmsLayer.xml" />
+  <sqlMap resource="META-INF/Groupings.xml" />
+  <sqlMap resource="META-INF/GroupingThemes.xml" />
+  <sqlMap resource="META-INF/GroupingThemeData.xml" />
+  <sqlMap resource="META-INF/WorkSpaces.xml" />
+  <sqlMap resource="META-INF/WorkSpaceRoleSettings.xml" />
+  <sqlMap resource="META-INF/Announcements.xml" />
+  <sqlMap resource="META-INF/UserGisData.xml" />
+  <sqlMap resource="META-INF/UserGisDataRoleSettings.xml" />
+  <sqlMap resource="META-INF/Sharing.xml" />
+  <sqlMap resource="META-INF/UserWmsLayer.xml" />
 </sqlMapConfig>

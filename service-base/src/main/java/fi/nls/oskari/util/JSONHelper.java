@@ -95,6 +95,9 @@ public class JSONHelper {
         }
     }
     public static final JSONArray getJSONArray(final JSONObject content, String key) {
+        if (content == null) {
+            return null;
+        }
         try {
             return content.getJSONArray(key);
         } catch (JSONException e) {
@@ -534,4 +537,5 @@ public class JSONHelper {
         Object o = obj.get(key);
         return o == JSONObject.NULL ? null : o.toString();
     }
+
 }
