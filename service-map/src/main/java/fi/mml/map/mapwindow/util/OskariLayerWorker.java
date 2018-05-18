@@ -326,17 +326,17 @@ public class OskariLayerWorker {
                     JSONHelper.putValue(permission, "download", DOWNLOAD_PERMISSION_OK);
                 }
             }
-        Map<String, Set<String>> dynamicPermissions = permissionCollection.getDynamicPermissions();
-        if (dynamicPermissions != null) {
-            for (Map.Entry<String, Set<String>> entry : dynamicPermissions.entrySet()) {
-                String permissionType = entry.getKey();
-                Set<String> permissionList = entry.getValue();
-                if (permissionList != null && permissionList.contains(layerPermissionKey)) {
-                    JSONHelper.putValue(permission, permissionType, true);
+            Map<String, Set<String>> dynamicPermissions = permissionCollection.getDynamicPermissions();
+            if (dynamicPermissions != null) {
+                for (Map.Entry<String, Set<String>> entry : dynamicPermissions.entrySet()) {
+                    String permissionType = entry.getKey();
+                    Set<String> permissionList = entry.getValue();
+                    if (permissionList != null && permissionList.contains(layerPermissionKey)) {
+                        JSONHelper.putValue(permission, permissionType, true);
+                    }
                 }
             }
         }
-
         return permission;
     }
 
