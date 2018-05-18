@@ -63,6 +63,8 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     private String version = "";
     private String srs_name;
 
+    private Set<String> supportedCRSs = null;
+
     private Date created = null;
     private Date updated = null;
 
