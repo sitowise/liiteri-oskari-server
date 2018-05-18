@@ -44,6 +44,8 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
     private String legendImage;
     private String metadataId;
 
+    private String tileMatrixSetId;
+
     private JSONObject params = new JSONObject();
     private JSONObject options = new JSONObject();
     private JSONObject attributes = new JSONObject();
@@ -217,6 +219,14 @@ public class OskariLayer extends JSONLocalizedNameAndTitle implements Comparable
 	public void setLegendImage(String legendImage) {
 		this.legendImage = legendImage;
 	}
+
+    public String getTileMatrixSetId() {
+        return tileMatrixSetId;
+    }
+
+    public void setTileMatrixSetId(String value) {
+        tileMatrixSetId = value;
+    }
 
     public int getParentId() {
         return parentId;
