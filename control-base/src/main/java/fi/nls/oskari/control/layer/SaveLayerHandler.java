@@ -13,12 +13,15 @@ import fi.nls.oskari.control.*;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.DataProvider;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.data.domain.OskariLayerResource;
 import fi.nls.oskari.map.layer.DataProviderService;
 import fi.nls.oskari.map.layer.OskariLayerService;
+import fi.nls.oskari.map.userowndata.GisDataDbService;
+import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
 import fi.nls.oskari.map.layer.group.link.OskariLayerGroupLink;
 import fi.nls.oskari.map.layer.group.link.OskariLayerGroupLinkService;
 import fi.nls.oskari.map.view.ViewService;
@@ -42,6 +45,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
 
 import static fi.nls.oskari.control.ActionConstants.PARAM_SRS;
 /**
@@ -63,6 +68,7 @@ public class SaveLayerHandler extends ActionHandler {
     private OskariLayerGroupLinkService layerGroupLinkService = ServiceFactory.getOskariLayerGroupLinkService();
     private CapabilitiesCacheService capabilitiesService = ServiceFactory.getCapabilitiesCacheService();
     private WFSParserConfigs wfsParserConfigs = new WFSParserConfigs();
+    private final GisDataDbService gisDataService = new GisDataDbServiceImpl();
     private static final Logger LOG = LogFactory.getLogger(SaveLayerHandler.class);
 
     private static final String PARAM_LAYER_ID = "layer_id";

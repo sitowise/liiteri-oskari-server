@@ -75,6 +75,17 @@ public class LayerJSONFormatter {
         return getBaseJSON(layer, lang, isSecure, crs);
     }
 
+    public JSONObject getJSON(final OskariLayer layer,
+                                     final String lang,
+                                     final boolean isSecure) {
+        LayerJSONFormatter formatter = getFormatter(layer.getType());
+        // to prevent nullpointer and infinite loop
+        if(formatter != null && !formatter.getClass().equals(LayerJSONFormatter.class)) {
+            return formatter.getJSON(layer, lang, isSecure);
+        }
+        return getBaseJSON(layer, lang, isSecure);
+    }
+
     public JSONObject getBaseJSON(final OskariLayer layer,
                                      final String lang,
                                      final boolean isSecure,
@@ -138,7 +149,7 @@ public class LayerJSONFormatter {
 
         JSONHelper.putValue(layerJson, "created", layer.getCreated());
         JSONHelper.putValue(layerJson, "updated", layer.getUpdated());
-        
+
         JSONHelper.putValue(layerJson, "downloadServiceUrl", layer.getDownloadServiceUrl());
         JSONHelper.putValue(layerJson, "copyrightInfo", layer.getCopyrightInfo());
 
@@ -149,6 +160,92 @@ public class LayerJSONFormatter {
             JSONArray sublayers = new JSONArray();
             for(OskariLayer sub : layer.getSublayers()) {
                 JSONObject subJSON = getJSON(sub, lang, isSecure, crs);
+                sublayers.put(subJSON);
+            }
+            JSONHelper.putValue(layerJson, "subLayer", sublayers);
+        }
+        return layerJson;
+    }
+
+    public JSONObject getBaseJSON(final OskariLayer layer,
+                                     final String lang,
+                                     final boolean isSecure) {
+        JSONObject layerJson = new JSONObject();
+
+        final String externalId = layer.getExternalId();
+        if(externalId != null && !externalId.isEmpty()) {
+            JSONHelper.putValue(layerJson, KEY_ID, externalId);
+        }
+        else {
+            JSONHelper.putValue(layerJson, KEY_ID, layer.getId());
+        }
+
+        //log.debug("Type", layer.getType());
+        if(layer.isCollection()) {
+            // fixing frontend type for collection layers
+            if(layer.isBaseMap()) {
+                JSONHelper.putValue(layerJson, KEY_TYPE, "base");
+            }
+            else {
+                JSONHelper.putValue(layerJson, KEY_TYPE, "groupMap");
+            }
+        }
+        else {
+            JSONHelper.putValue(layerJson, KEY_TYPE, layer.getType());
+            //log.debug("wmsName", layer.getName());
+            // for easier proxy routing on ssl hosts, maps all urls with prefix and a simplified url
+            // so tiles can be fetched from same host from browsers p.o.v. and the actual url
+            // is proxied with a proxy for example: /proxythis/<actual wmsurl>
+            JSONHelper.putValue(layerJson, "url", layer.getUrl(isSecure));
+            JSONHelper.putValue(layerJson, "layerName", layer.getName());
+            if (useProxy(layer)) {
+                JSONHelper.putValue(layerJson, "url", getProxyUrl(layer));
+            }
+        }
+
+        JSONHelper.putValue(layerJson, "name", layer.getName(lang));
+        JSONHelper.putValue(layerJson, "subtitle", layer.getTitle(lang));
+        if(layer.getGroup() != null) {
+            JSONHelper.putValue(layerJson, "orgName", layer.getGroup().getName(lang));
+        }
+
+        if(layer.getOpacity() != null && layer.getOpacity() > -1 && layer.getOpacity() <= 100) {
+            JSONHelper.putValue(layerJson, "opacity", layer.getOpacity());
+        }
+        if(layer.getMinScale() != null && layer.getMinScale() != -1) {
+            JSONHelper.putValue(layerJson, "minScale", layer.getMinScale());
+        }
+        if(layer.getMaxScale() != null && layer.getMaxScale() != -1) {
+            JSONHelper.putValue(layerJson, "maxScale", layer.getMaxScale());
+        }
+        JSONHelper.putValue(layerJson, "geom", layer.getGeometry());
+
+        JSONHelper.putValue(layerJson, "params", layer.getParams());
+        JSONHelper.putValue(layerJson, "options", layer.getOptions());
+        JSONHelper.putValue(layerJson, "attributes", layer.getAttributes());
+
+        JSONHelper.putValue(layerJson, "realtime", layer.getRealtime());
+        JSONHelper.putValue(layerJson, "refreshRate", layer.getRefreshRate());
+
+        JSONHelper.putValue(layerJson, "srs_name", layer.getSrs_name());
+        JSONHelper.putValue(layerJson, "version", layer.getVersion());
+
+        JSONHelper.putValue(layerJson, "legendImage", layer.getLegendImage());
+        JSONHelper.putValue(layerJson, "baseLayerId", layer.getParentId());
+
+        JSONHelper.putValue(layerJson, "created", layer.getCreated());
+        JSONHelper.putValue(layerJson, "updated", layer.getUpdated());
+
+        JSONHelper.putValue(layerJson, "downloadServiceUrl", layer.getDownloadServiceUrl());
+        JSONHelper.putValue(layerJson, "copyrightInfo", layer.getCopyrightInfo());
+
+        JSONHelper.putValue(layerJson, "dataUrl_uuid", getFixedDataUrl(layer));
+
+        // sublayer handling
+        if(layer.getSublayers() != null && !layer.getSublayers().isEmpty()) {
+            JSONArray sublayers = new JSONArray();
+            for(OskariLayer sub : layer.getSublayers()) {
+                JSONObject subJSON = getJSON(sub, lang, isSecure);
                 sublayers.put(subJSON);
             }
             JSONHelper.putValue(layerJson, "subLayer", sublayers);
@@ -214,8 +311,8 @@ public class LayerJSONFormatter {
         final String metadataId = layer.getMetadataId();
         if(metadataId == null || metadataId.isEmpty()) {
             return null;
-        }       
-        
+        }
+
 /*        if(metadataId.toLowerCase().startsWith("http")) {
             try {
                 URL url = new URL(metadataId);

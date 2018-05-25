@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(value = {UserService.class})
 public class AppSetupHandlerTest extends JSONActionRouteTest {
-	
+
     private AppSetupHandler handler = null;
     private ViewService viewService = null;
     private MyPlacesService myPlaceService = null;
@@ -111,7 +111,7 @@ public class AppSetupHandlerTest extends JSONActionRouteTest {
         doReturn(role).when(userService).getRoleByName(role.getName());
         Whitebox.setInternalState(UserService.class, "instance", userService);
     }
-    
+
     @Test
     public void testPublishFromTemplateSimpleInput() throws Exception {
 
@@ -173,5 +173,5 @@ public class AppSetupHandlerTest extends JSONActionRouteTest {
 
         assertNotNull("View should have bundle that has been whitelisted", view.getBundleByName(BUNDLE_WHITELISTED));
     }
-	
+
 }

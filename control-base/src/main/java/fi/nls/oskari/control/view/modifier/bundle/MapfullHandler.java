@@ -153,11 +153,18 @@ public class MapfullHandler extends BundleHandler {
         //Add statsgrid permissions here
         //Ugly, but we can't make BundleHandler for it because there already is a ParamHandler with same name
 
-		final List<String> permissionsList = permissionsService.getResourcesWithGrantedPermissions(
+		final Set<String> permissionsList = permissionsService.getResourcesWithGrantedPermissions(
                 "operation", params.getUser(), Permissions.PERMISSION_TYPE_EXECUTE);
 
-		boolean functionalIntersectionAllowed = permissionsList.contains("statistics+functional_intersection");
-		boolean gridDataAllowed = permissionsList.contains("statistics+grid");
+		boolean functionalIntersectionAllowed = false;
+        boolean gridDataAllowed = false;
+        for(String permission : permissionsList) {
+            if("statistics+functional_intersection".equals(permission)) {
+                functionalIntersectionAllowed = true;
+            } else if("statistics+grid".equals(permission)) {
+                gridDataAllowed = true;
+            }
+        }
 
 		try {
 			if(params.getConfig().has(BUNDLE_STATSGRID)) {

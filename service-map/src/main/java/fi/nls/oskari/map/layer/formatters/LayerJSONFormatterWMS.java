@@ -45,6 +45,30 @@ public class LayerJSONFormatterWMS extends LayerJSONFormatter {
             "application/vnd.ogc.gml", "application/vnd.ogc.wms_xml",
             "text/xml" };
 
+    public JSONObject getJSON(OskariLayer layer,
+                              final String lang,
+                              final boolean isSecure) {
+
+        final JSONObject layerJson = getBaseJSON(layer, lang, isSecure);
+        JSONHelper.putValue(layerJson, KEY_STYLE, layer.getStyle());
+        JSONHelper.putValue(layerJson, KEY_GFICONTENT, layer.getGfiContent());
+
+        if (layer.getGfiType() != null && !layer.getGfiType().isEmpty()) {
+            // setup default if saved
+            JSONObject formats = layerJson.optJSONObject(KEY_FORMATS);
+            if(formats == null) {
+                // create formats node if not found
+                formats = JSONHelper.createJSONObject(KEY_VALUE, layer.getGfiType());
+                JSONHelper.putValue(layerJson, KEY_FORMATS, formats);
+            }
+            else {
+                JSONHelper.putValue(formats, KEY_VALUE, layer.getGfiType());
+            }
+        }
+        includeCapabilitiesInfo(layerJson, layer, layer.getCapabilities());
+        return layerJson;
+    }
+
 
     public JSONObject getJSON(OskariLayer layer,
                               final String lang,

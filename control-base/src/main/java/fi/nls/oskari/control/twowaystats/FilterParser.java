@@ -2,6 +2,7 @@ package fi.nls.oskari.control.twowaystats;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.json.simple.JSONArray;
@@ -98,18 +99,27 @@ public class FilterParser {
                 throw new ActionException("No permissions");
             }
             PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-            final List<String> permissionsList = permissionsService
+            final Set<String> permissionsList = permissionsService
                     .getResourcesWithGrantedPermissions("operation", user,
                             Permissions.PERMISSION_TYPE_EXECUTE);
 
+            boolean functionalIntersectionAllowed = false;
+            boolean gridDataAllowed = false;
+            for(String permission : permissionsList) {
+                if("statistics+functional_intersection".equals(permission)) {
+                    functionalIntersectionAllowed = true;
+                } else if("statistics+grid".equals(permission)) {
+                    gridDataAllowed = true;
+                }
+            }
+
             if (rulesWithFunctionalAreas > 1
-                    && !permissionsList
-                            .contains("statistics+functional_intersection")) {
+                    && !functionalIntersectionAllowed) {
                 throw new ActionException("No permissions");
             }
 
             if (rulesWithGrid > 0
-                    && !permissionsList.contains("statistics+grid")) {
+                    && !gridDataAllowed) {
                 throw new ActionException("No permissions");
             }
         }
@@ -133,11 +143,18 @@ public class FilterParser {
             throw new ActionException("No permissions");
         }
         PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-        final List<String> permissionsList = permissionsService
+        final Set<String> permissionsList = permissionsService
                 .getResourcesWithGrantedPermissions("operation", user,
                         Permissions.PERMISSION_TYPE_EXECUTE);
 
-        if (!permissionsList.contains("statistics+grid")) {
+        boolean gridDataAllowed = false;
+        for(String permission : permissionsList) {
+            if("statistics+grid".equals(permission)) {
+                gridDataAllowed = true;
+            }
+        }
+
+        if (!gridDataAllowed) {
             throw new ActionException("No permissions");
         }
 

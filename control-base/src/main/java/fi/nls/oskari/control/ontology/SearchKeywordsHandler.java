@@ -264,7 +264,7 @@ public class SearchKeywordsHandler extends ActionHandler {
         try {
             if(OskariLayer.TYPE_WMS.equals(layer.getType())) {
                 boolean isUserWmsLayer = (layer instanceof UserWmsLayer);
-                WebMapService wms = WebMapServiceFactory.buildWebMapService(layer.getId(), isUserWmsLayer);
+                WebMapService wms = WebMapServiceFactory.buildWebMapService(layer.getId());
                 if (wms == null || wms.getKeywords() == null) {
                     log.warn("Error parsing keywords for layer", layer);
                     return EMPTY_RESULT;
