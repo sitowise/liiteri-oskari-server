@@ -6,7 +6,7 @@
 <head>
     <title>Liiteri-tietopalvelu</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <script type="text/javascript" src="/Oskari/libraries/jquery/jquery-1.7.2.min.js">
+    <script type="text/javascript" src="/Oskari/libraries/jquery/jquery-1.10.2.min.js">
     </script>
 	
 
