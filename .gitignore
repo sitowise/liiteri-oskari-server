@@ -11,6 +11,7 @@ target/
 .project
 /data/
 /test-output/
+servlet-printout/test-output/
 /servlet-map/data/
 transport.log
 *pom.xml.versionsBackup
