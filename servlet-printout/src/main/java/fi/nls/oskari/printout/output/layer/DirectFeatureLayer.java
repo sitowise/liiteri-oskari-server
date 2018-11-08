@@ -473,6 +473,7 @@ public class DirectFeatureLayer extends FeatureLayer {
                     pointPlacement, null);
             // polygon labels are always display
             symbolizer.getOptions().put(symbolizer.GOODNESS_OF_FIT_KEY, "0.00");
+            symbolizer.getOptions().put(symbolizer.CONFLICT_RESOLUTION_KEY, "false");
 
             symbolizer
                     .setGeometry(createGeometryAccessor(styleMapDefaultStyle));
