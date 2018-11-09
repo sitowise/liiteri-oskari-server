@@ -42,21 +42,16 @@
     </statement>	
 
     <select id="findAll" resultMap="GroupingThemeDataResult">
-        SELECT Id, Name,DataId,DataType,OskariGroupingThemeId,status 
-        FROM oskari_groupings_data WHERE DataType = 1
+        select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1 
         UNION ALL
-        SELECT gl.groupid AS Id, l.locale AS Name, l.id AS DataId, 0 AS DataType, g.oskarigroupingid AS OskariGroupingThemeId, NULL AS status
-        FROM oskari_maplayer l
-        LEFT JOIN oskari_maplayer_group_link gl ON (l.id = gl.maplayerid)
-        LEFT JOIN oskari_maplayer_group g ON (gl.groupid = g.id)
-        LEFT JOIN oskari_groupings og ON (og.id = g.oskarigroupingid)
+        select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid
     </select>   
 
 	<select id="getDataForThemeId" resultMap="GroupingThemeDataResult"
 		parameterClass="java.lang.Long">
 		select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1 and OskariGroupingThemeId = #id#
-		UNION ALL
-		select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid and g.OskariGroupingThemeId = #id#
+        UNION ALL
+        select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid and g.OskariGroupingThemeId = #id#
 	</select>
 	
 	<select id="getAllIndicatorsForStatisticsThemes" resultMap="GroupingThemeDataResult">
