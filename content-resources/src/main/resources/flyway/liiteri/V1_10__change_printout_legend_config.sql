@@ -19,9 +19,8 @@ UPDATE public.portti_view_bundle_seq
 "strokeOpacity": 1
 },
 "colorBoxDefault": {
-"fillColor": "${color}",
+"fillColor": "#FFFFFF",
 "labelXOffset": 20,
-"label": "${name}",
 "labelAlign": "l",
 "fontSize": "10px",
 "strokeColor": "#000000",
@@ -34,7 +33,6 @@ UPDATE public.portti_view_bundle_seq
 "fontWeight": "bold",
 "fontColor": "#000000",
 "fillColor": "#FFFFFF",
-"label": "${name}",
 "labelAlign": "l",
 "fontSize": "12px",
 "strokeColor": "#00FF00",
