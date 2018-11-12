@@ -47,5 +47,4 @@ UPDATE public.portti_view_bundle_seq
 }
 }
 }'
-	
 	WHERE bundle_id = (SELECT id FROM public.portti_bundle WHERE name = 'printout')
