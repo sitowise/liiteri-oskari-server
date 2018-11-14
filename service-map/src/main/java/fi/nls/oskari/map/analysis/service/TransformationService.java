@@ -6,6 +6,7 @@ import fi.nls.oskari.service.ServiceException;
 import fi.nls.oskari.util.XmlHelper;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.XML;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -418,7 +419,7 @@ public class TransformationService {
     for (int j = 0; j < textFeatures.size(); j++) {
         sb
                 .append("         <feature:t" + (j + 1) + ">"
-                        + textFeatures.get(j) + "</feature:t" + (j + 1)
+                        + XML.escape(textFeatures.get(j)) + "</feature:t" + (j + 1)
                         + ">\n");
     }
     // add numeric feature nodes (1-based)

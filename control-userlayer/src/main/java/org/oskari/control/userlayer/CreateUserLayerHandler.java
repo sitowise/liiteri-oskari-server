@@ -89,7 +89,7 @@ public class CreateUserLayerHandler extends ActionHandler {
 
     private final DiskFileItemFactory diskFileItemFactory = new DiskFileItemFactory(MAX_SIZE_MEMORY, null);
     private final String targetEPSG = PropertyUtil.get(PROPERTY_TARGET_EPSG, "EPSG:4326");
-    private final int userlayerMaxFileSize = PropertyUtil.getOptional(PROPERTY_USERLAYER_MAX_FILE_SIZE_MB, 10) * MB;
+    private final long userlayerMaxFileSize = PropertyUtil.getOptional(PROPERTY_USERLAYER_MAX_FILE_SIZE_MB, 10) * MB;
 
     private UserLayerDbService userLayerService;
 
@@ -267,6 +267,10 @@ public class CreateUserLayerHandler extends ActionHandler {
                     continue;
                 }
                 File file = new File(dir, name);
+                if (! file.exists()){
+                    File parent = file.getParentFile();
+                    parent.mkdirs();
+                }
                 Files.copy(zis, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 if (mainFile == null) {
                     String ext = getFileExt(name);
