@@ -1,2 +1,0 @@
-CREATE TRIGGER trigger_user_layer BEFORE INSERT OR UPDATE ON user_layer FOR EACH ROW EXECUTE PROCEDURE procedure_user_layer_update();
-CREATE TRIGGER trigger_user_layer_update BEFORE INSERT OR UPDATE ON user_layer_data FOR EACH ROW EXECUTE PROCEDURE procedure_user_layer_data_update();
