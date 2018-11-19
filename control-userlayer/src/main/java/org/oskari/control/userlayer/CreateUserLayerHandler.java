@@ -18,6 +18,8 @@ import java.util.zip.ZipInputStream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import fi.nls.oskari.domain.User;
+import fi.nls.oskari.map.userowndata.GisDataService;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
@@ -88,7 +90,7 @@ public class CreateUserLayerHandler extends ActionHandler {
     private static final int MAX_SIZE_MEMORY = 128 * KB;
 
     private final DiskFileItemFactory diskFileItemFactory = new DiskFileItemFactory(MAX_SIZE_MEMORY, null);
-    private final String targetEPSG = PropertyUtil.get(PROPERTY_TARGET_EPSG, "EPSG:4326");
+    private final String targetEPSG = PropertyUtil.get(PROPERTY_TARGET_EPSG, "EPSG:3067");
     private final long userlayerMaxFileSize = PropertyUtil.getOptional(PROPERTY_USERLAYER_MAX_FILE_SIZE_MB, 10) * MB;
 
     private UserLayerDbService userLayerService;
@@ -96,6 +98,8 @@ public class CreateUserLayerHandler extends ActionHandler {
     public void setUserLayerService(UserLayerDbService userLayerService) {
         this.userLayerService = userLayerService;
     }
+
+    private final GisDataService gisService = GisDataService.getInstance();
 
     @Override
     public void init() {
@@ -129,7 +133,7 @@ public class CreateUserLayerHandler extends ActionHandler {
             fileItems.forEach(FileItem::delete);
         }
 
-        UserLayer userLayer = store(fc, params.getUser().getUuid(), formParams);
+        UserLayer userLayer = store(fc, params.getUser(), formParams);
         writeResponse(params, userLayer);
     }
 
@@ -308,15 +312,20 @@ public class CreateUserLayerHandler extends ActionHandler {
         return FeatureCollectionParsers.getByFileExt(ext);
     }
 
-    private UserLayer store(SimpleFeatureCollection fc, String uuid, Map<String, String> formParams)
+    private UserLayer store(SimpleFeatureCollection fc, User user, Map<String, String> formParams)
             throws ActionException {
         try {
-            UserLayer userLayer = createUserLayer(fc, uuid, formParams);
+            UserLayer userLayer = createUserLayer(fc, user.getUuid(), formParams);
             UserLayerStyle userLayerStyle = createUserLayerStyle(formParams);
-            List<UserLayerData> userLayerDataList = UserLayerDataService.createUserLayerData(fc, uuid);
+            List<UserLayerData> userLayerDataList = UserLayerDataService.createUserLayerData(fc, user.getUuid());
             userLayer.setFeatures_count(fc.size());
             userLayer.setFeatures_skipped(fc.size() - userLayerDataList.size());
             userLayerService.insertUserLayer(userLayer, userLayerStyle, userLayerDataList);
+
+            //create reference to user layer in oskari_user_gis_data table
+            String dataId = "userlayer_" + userLayer.getId();
+            gisService.insertUserGisData(user, dataId, "IMPORTED_PLACES", null);
+
             return userLayer;
         } catch (JSONException e) {
             throw new ActionException("Failed to encode feature as GeoJSON");
