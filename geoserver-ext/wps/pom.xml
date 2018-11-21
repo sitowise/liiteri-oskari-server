@@ -16,6 +16,7 @@
         <module>IntersectionFeatureCollection2</module>
         <module>oskari_point_stacker</module>
         <module>ZoneSectorFeatureCollection</module>
+		<module>BufferFeatureCollection2</module>
     </modules>
 
 </project>
