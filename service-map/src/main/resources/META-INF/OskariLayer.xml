@@ -325,7 +325,10 @@
         l.updated,
 
         l.capabilities_last_updated,
-        l.capabilities_update_rate_sec
+        l.capabilities_update_rate_sec,
+
+        l.download_service_url,
+        l.copyright_info
 
         FROM
         oskari_maplayer l
@@ -381,7 +384,10 @@
         l.updated,
 
         l.capabilities_last_updated,
-        l.capabilities_update_rate_sec
+        l.capabilities_update_rate_sec,
+
+        l.download_service_url,
+        l.copyright_info
 
         FROM
         oskari_maplayer l
@@ -507,7 +513,10 @@
         l.updated,
 
         l.capabilities_last_updated,
-        l.capabilities_update_rate_sec
+        l.capabilities_update_rate_sec,
+
+        l.download_service_url,
+        l.copyright_info
 
         FROM
         oskari_maplayer l
@@ -580,7 +589,10 @@
     l.updated,
 
     l.capabilities_last_updated,
-    l.capabilities_update_rate_sec
+    l.capabilities_update_rate_sec,
+
+    l.download_service_url,
+    l.copyright_info
 
     FROM
     oskari_maplayer l
