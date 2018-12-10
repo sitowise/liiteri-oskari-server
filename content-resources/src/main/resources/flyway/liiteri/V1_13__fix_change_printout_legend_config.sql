@@ -1,4 +1,4 @@
-/* Flyway showed error: No value provided for placeholder expressions: ${color}, ${name}.  Check your configuration!
+/* Flyway showed error: No value provided for placeholder expressions: {color}, {name}.  Check your configuration!
 To avoid this error here is done work-around to replacing '#{' to '${' during execution of this script.
 
 Fix for V1_10_change_printout_legend_config.sql
