@@ -41,7 +41,7 @@
     <scm>
         <url>https://github.com/nls-oskari/oskari-server</url>
     </scm>
-
+  
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jdk.version>1.7</jdk.version>
@@ -943,3 +943,4 @@
     </modules>
 
 </project>
+
