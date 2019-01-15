@@ -51,6 +51,7 @@ CREATE OR REPLACE VIEW my_places_categories AS
     mp.created,
     mp.updated,
     mp.geometry,
+    mp.only_label,
     c.category_name,
     c."default",
     c.stroke_width,
