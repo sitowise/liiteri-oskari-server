@@ -231,7 +231,7 @@ public abstract class CapabilitiesCacheService extends OskariComponent {
 
         switch (type) {
         case OskariLayer.TYPE_WMS:
-            if (version == null) {
+            if (version == null || version.isEmpty()) {
                 // Layer didn't specify a version - response could be of any WMS version
                 if (ns != null) {
                     // Can only be 1.3.0
