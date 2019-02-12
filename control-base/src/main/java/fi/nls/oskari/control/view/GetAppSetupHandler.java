@@ -37,6 +37,7 @@ public class GetAppSetupHandler extends ActionHandler {
     private static final Logger log = LogFactory.getLogger(GetAppSetupHandler.class);
 
     public static final String PROPERTY_AJAXURL = "oskari.ajax.url.prefix";
+    public static final String PROPERTY_OSKARI_DOMAIN = "oskari.domain";
 
     public static final String PARAM_OLD_ID = "oldId";
     public static final String PARAM_NO_SAVED_STATE = "noSavedState";
@@ -176,7 +177,11 @@ public class GetAppSetupHandler extends ActionHandler {
         if (view.getType().equals(ViewTypes.PUBLISHED)) {
             // Check referrer
             final String pubDomain = view.getPubDomain();
-            if(ViewHelper.isRefererDomain(referer, pubDomain)) {
+            final String oskariDomainProperty = PropertyUtil.get(PROPERTY_OSKARI_DOMAIN);
+            final String oskariDomain = RequestHelper.getDomainFromReferer(oskariDomainProperty);
+
+            //Referer might vary when using iframe for published map, depending on the browser
+            if(ViewHelper.isRefererDomain(referer, pubDomain) || ViewHelper.isRefererDomain(referer, oskariDomain)) {
                 log.info("Granted access to published view in domain:",
                         pubDomain, "for referer", referer);
             } else {
