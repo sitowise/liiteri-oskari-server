@@ -101,6 +101,9 @@ public class UserLayerProcessor implements LayerProcessor {
         typeBuilder.setName(type.getName());
         typeBuilder.setNamespaceURI(layer.getFeatureNamespaceURI());
         typeBuilder.setSRS(layer.getSRSName());
+        if (type.getGeometryDescriptor() != null) {
+            typeBuilder.setDefaultGeometry(type.getGeometryDescriptor().getLocalName());
+        }
 
         //copy feature's attributes to new feature type builder
         //do not add excludedProperties
