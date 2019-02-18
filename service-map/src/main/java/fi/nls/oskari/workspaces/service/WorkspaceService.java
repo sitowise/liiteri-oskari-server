@@ -111,7 +111,7 @@ public class WorkspaceService
 	}
 	
 	public WorkSpace getWorkspace(long id, boolean includeSharings) {		
-		WorkSpace result = _domainService.find(id);
+		WorkSpace result = _domainService.find((int)id);
 		if (includeSharings) {
 			List<SharingItem> items = _sharingService.GetSharings(ResourceType.WORKSPACE, id);		
 			List<WorkSpaceSharing> sharing = new Vector<WorkSpaceSharing>();		
@@ -133,7 +133,7 @@ public class WorkspaceService
 	}
 	
 	public void deleteWorkspace(long id) {
-		_domainService.delete(id);
+		_domainService.delete((int)id);
 		_sharingService.DeleteSharings(ResourceType.WORKSPACE, id);
 	}
 	

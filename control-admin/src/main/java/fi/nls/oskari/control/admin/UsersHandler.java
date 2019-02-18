@@ -27,6 +27,7 @@ public class UsersHandler extends RestActionHandler {
     private static final String PARAM_LASTNAME = "lastName";
     private static final String PARAM_SCREENNAME = "user";
     private static final String PARAM_PASSWORD = "pass";
+    private static final String PARAM_EMAIL = "email";
 
     @Override
     public void init() {
@@ -170,14 +171,17 @@ public class UsersHandler extends RestActionHandler {
         user.setFirstname(params.getRequiredParam(PARAM_FIRSTNAME));
         user.setLastname(params.getRequiredParam(PARAM_LASTNAME));
         user.setScreenname(params.getRequiredParam(PARAM_SCREENNAME));
+        user.setEmail(params.getRequiredParam(PARAM_EMAIL));
     }
 
     private JSONObject user2Json(User user) throws JSONException {
+        // TODO: User.toJSON() should be used
         JSONObject uo = new JSONObject();
         uo.put("id", user.getId());
         uo.put("firstName", user.getFirstname());
         uo.put("lastName", user.getLastname());
         uo.put("user", user.getScreenname());
+        uo.put("email", user.getEmail());
         
         JSONArray rolesArray = new JSONArray();
         for(Role role : user.getRoles()){

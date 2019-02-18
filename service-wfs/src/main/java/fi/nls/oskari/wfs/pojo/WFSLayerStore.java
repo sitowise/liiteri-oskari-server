@@ -166,7 +166,8 @@ public class WFSLayerStore extends WFSLayerConfiguration {
     public CoordinateReferenceSystem getCrs() {
         if (this.crs == null) {
             try {
-                this.crs = CRS.decode(this.getSRSName());
+                //TODO set Crs according to axis orientation
+                this.crs = CRS.decode(this.getSRSName(),true);
             } catch (FactoryException e) {
                 log.error(e, "CRS decoding failed");
             }
@@ -419,6 +420,17 @@ public class WFSLayerStore extends WFSLayerConfiguration {
      */
     @JsonIgnore
     public static String getCache(String layerId) {
-        return JedisManager.get(KEY + layerId);
+        return JedisManager.get(KEY + layerId, false);
+    }
+    /**
+     * Gets saved layer from redis
+     * throws new runtime exception, if any exception found
+     *
+     * @param layerId
+     * @return string
+     */
+    @JsonIgnore
+    public static String getCacheNecessary(String layerId) {
+        return JedisManager.getNecessary(KEY + layerId);
     }
 }

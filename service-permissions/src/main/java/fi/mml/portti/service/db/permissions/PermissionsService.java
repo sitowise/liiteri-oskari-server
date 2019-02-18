@@ -11,7 +11,20 @@ import java.util.Map;
 import java.util.Set;
 
 public interface PermissionsService extends BaseService<Permissions> {
-	
+
+	/**
+	 * Returns a set of permission keys that are configured as additional permissions
+	 * @return
+     */
+	Set<String> getAdditionalPermissions();
+
+	/**
+	 * Returns an UI name for the permission
+	 * @param permissionId
+	 * @param lang
+     * @return
+     */
+	String getPermissionName(String permissionId, String lang);
 	/**
 	 * Insert permissions.
 	 * @param uniqueResourceName
@@ -33,9 +46,9 @@ public interface PermissionsService extends BaseService<Permissions> {
 	 * @param resourceType resource type such as map layer
 	 * @param user current user
 	 * @param permissionsType permissions type such as VIEW or PUBLISH
-	 * @return list of String objects of format namespace+resourceName
+	 * @return Set of String objects of format namespace+resourceName
 	 */
-	public List<String> getResourcesWithGrantedPermissions(
+	public Set<String> getResourcesWithGrantedPermissions(
 			String resourceType, 
 			User user,
 			String permissionsType);
@@ -54,9 +67,9 @@ public interface PermissionsService extends BaseService<Permissions> {
 	 * @param externalId
 	 * @param externalIdType
 	 * @param permissionsType permissions type such as VIEW or PUBLISH
-	 * @return list of String objects of format namespace+resourceName
+	 * @return Set of String objects of format namespace+resourceName
 	 */
-	public List<String> getResourcesWithGrantedPermissions(
+	public Set<String> getResourcesWithGrantedPermissions(
 			String resourceType, 
 			String externalId,
 			String externalIdType,

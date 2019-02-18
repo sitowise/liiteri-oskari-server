@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>fi.nls.oskari</groupId>
 		<artifactId>oskari-parent</artifactId>
-        <version>1.34.1</version>
+        <version>1.46.2</version>
 	</parent>
 	<groupId>fi.nls.oskari.service</groupId>
 	<artifactId>oskari-search-nls</artifactId>
@@ -16,6 +16,15 @@
 		<dependency>
 			<groupId>fi.nls.oskari.service</groupId>
 			<artifactId>oskari-base</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>fi.nls.karttalehtijako</groupId>
+			<artifactId>java-karttalehdet</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>fi.nls.oskari.service</groupId>
+			<artifactId>service-csw</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>fi.nls.oskari.service</groupId>
@@ -39,7 +48,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>java3d</groupId>
+			<groupId>javax.vecmath</groupId>
 			<artifactId>vecmath</artifactId>
 		</dependency>
 
@@ -49,15 +58,15 @@
 		</dependency>
 
         <dependency>
-            <groupId>org.deegree</groupId>
-            <artifactId>deegree</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>fi.nls.oskari</groupId>
             <artifactId>shared-test-resources</artifactId>
             <scope>test</scope>
         </dependency>
+		<dependency>
+			<groupId>xmlunit</groupId>
+			<artifactId>xmlunit</artifactId>
+			<scope>test</scope>
+		</dependency>
 
         <dependency>
             <groupId>xml-apis</groupId>

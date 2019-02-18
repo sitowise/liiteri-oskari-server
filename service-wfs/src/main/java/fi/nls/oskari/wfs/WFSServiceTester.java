@@ -1,5 +1,6 @@
 package fi.nls.oskari.wfs;
 
+import fi.nls.oskari.domain.map.wfs.WFS2FeatureType;
 import fi.nls.oskari.domain.map.wfs.WFSLayerConfiguration;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
@@ -105,7 +106,8 @@ public class WFSServiceTester {
      * @param pw
      * @param epsg  spatial referenece system code - default epsg is used, if null
      */
-    public static void TestWfs(String serviceUrl, String version, String user, String pw, String epsg) {
+    public static void TestWfs(String serviceUrl, String version, String user, String pw,
+                               String epsg) {
 
         info("WFS version test  (GetCapabilities http request) <<<< HTTP GETCAPABILITIES -------");
 
@@ -114,7 +116,7 @@ public class WFSServiceTester {
 
         info("WFS version test  (GetCapabilities GeoTools ) <<<< GEOTOOLS GETCAPABILITIES AND DESCRIBEFEATURE ----------");
 
-        Map<String, Object> capa = TestWfsVersionGT(serviceUrl, version, user, pw);
+        Map<String, Object> capa = TestWfsVersionGT(serviceUrl, version, user, pw, epsg);
         info("----------------------------------------------------------------------------- >>>>");
 
         if (capa.get("status").toString().equals("OK"))
@@ -165,10 +167,12 @@ public class WFSServiceTester {
      * @param serviceUrl  Wfs service url
      * @return capabilites  if Map<"status"><"OK">, then there is Map<"WFSDataStore"><WFSDataStore>
      */
-    public static Map<String, Object> TestWfsVersionGT(String serviceUrl, String version, String user, String pw) {
+    public static Map<String, Object> TestWfsVersionGT(String serviceUrl, String version, String user,
+                                                       String pw, String currentCrs) {
 
 
-        Map<String, Object> capabilities = GetGtWFSCapabilities.getGtDataStoreCapabilities(serviceUrl, version, user, pw);
+        Map<String, Object> capabilities = GetGtWFSCapabilities.getGtDataStoreCapabilities(serviceUrl, version, user,
+                                                                                           pw, currentCrs);
         try {
 
             if ( capabilities == null) {
@@ -217,17 +221,24 @@ public class WFSServiceTester {
 
             try {
                 // Feature types
-                Map<String,Object> typeNames = (HashMap<String,Object>) capa.get("FeatureTypeList");
+                Map<String,ArrayList<WFS2FeatureType>> typeNames = (HashMap<String,ArrayList<WFS2FeatureType>>) capa.get("FeatureTypeList");
 
                 int count = 0;
 
-                // Loop feature types
-                for(Map.Entry<String, Object> entry : typeNames.entrySet()) {
-                    String typeName = entry.getKey();
-                    GetGtWFSCapabilities._FeatureType featype = ( GetGtWFSCapabilities._FeatureType) entry.getValue();
-                    count++;
-                    WFSLayerConfiguration lc = GetGtWFSCapabilities.layerToWfs20LayerConfiguration(featype, serviceUrl, user, pw);
-                    TestWfsDescribeFeatureType(lc, version, count);
+                Iterator it = typeNames.keySet().iterator();
+                ArrayList<WFS2FeatureType> feaList = null;
+
+                while (it.hasNext()) {
+                    String key = it.next().toString();
+                    feaList = typeNames.get(key);
+                    if (feaList != null) {
+                        for (WFS2FeatureType featype: feaList) {
+                            String typeName = featype.getName();
+                            count++;
+                            WFSLayerConfiguration lc = GetGtWFSCapabilities.layerToWfs20LayerConfiguration(featype, serviceUrl, user, pw);
+                            TestWfsDescribeFeatureType(lc, version, count);
+                        }
+                    }
                 }
 
             } catch (Exception ex) {

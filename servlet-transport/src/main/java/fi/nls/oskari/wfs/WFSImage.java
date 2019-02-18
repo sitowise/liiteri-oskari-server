@@ -318,7 +318,9 @@ public class WFSImage {
         this.imageHeight = tile.getHeight();
 
         if(bounds == null) {
-            this.location = location;
+            this.location = location;  //<--  axis order doesn't work correct
+           // this.location = new Location(location.getSrs());
+           // this.location.setBbox(location.getBbox());
         } else {
             this.location = new Location(location.getSrs());
             this.location.setBbox(bounds);
@@ -366,6 +368,7 @@ public class WFSImage {
         if(isTile && bufferSize != 0.0d) {
             double width = (location.getRight() - location.getLeft())/2 * bufferSize;
             double height = (location.getTop() - location.getBottom())/2 * bufferSize;
+            // trick: bounds must be without crs (.crs=null)
             bounds = location.createEnlargedEnvelope(width, height);
             screenArea = new Rectangle(0, 0, bufferedImageWidth, bufferedImageHeight);
             
@@ -374,7 +377,8 @@ public class WFSImage {
             
         } else {
             screenArea = new Rectangle(0, 0, imageWidth, imageHeight); // image size
-            
+            // trick: bounds must be without crs (.crs=null)
+            bounds = location.getEnvelopeForMapNoCrs();
             log.debug(" Normal "+bounds+" "+screenArea+ " in "+crs);
         }
 
@@ -576,5 +580,9 @@ public class WFSImage {
             log.error(resource);
         }
         return null;
+    }
+
+    public Style getStyle() {
+        return style;
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -55,12 +56,14 @@ public class IndicatorMetadata extends SzopaRequest {
             boolean hasPermission = false;
             if (user != null) {
                 PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-                final List<String> permissionsList = permissionsService
+                final Set<String> permissionsList = permissionsService
                         .getResourcesWithGrantedPermissions("operation", user,
                                 Permissions.PERMISSION_TYPE_EXECUTE);
-
-                hasPermission = permissionsList
-                        .contains("statistics+restricted");
+                for(String permission : permissionsList) {
+                    if("statistics+restricted".equals(permission)) {
+                        hasPermission = true;
+                    }
+                }
             }
             if (!hasPermission) {
                 if (source.getJSONObject("AccessRight").getInt("Id") != 1) {

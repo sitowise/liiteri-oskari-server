@@ -20,6 +20,7 @@ public class RouteParams {
     private String mode;
     private long maxWalkDistance;
     private Boolean isWheelChair;
+    private Boolean showIntermediateStops;
 
 
     private Point createPoint(Double x, Double y) {
@@ -39,16 +40,16 @@ public class RouteParams {
         return from;
     }
 
-    public void setFrom(Double lat, Double lon) {
-        this.from = createPoint(lat,lon);
+    public void setFrom(Double lon, Double lat) {
+        this.from = createPoint(lon,lat);
     }
 
     public Point getTo() {
         return to;
     }
 
-    public void setTo(Double lat, Double lon) {
-        this.to = createPoint(lat,lon);
+    public void setTo(Double lon, Double lat) {
+        this.to = createPoint(lon,lat);
     }
 
     public Date getDate() {
@@ -103,5 +104,13 @@ public class RouteParams {
 
     public void setIsWheelChair(Boolean isWheelChair) {
         this.isWheelChair = isWheelChair;
+    }
+
+    public Boolean getIsShowIntermediateStops() {
+        return showIntermediateStops;
+    }
+
+    public void setIsShowIntermediateStops(Boolean showIntermediateStops) {
+        this.showIntermediateStops = showIntermediateStops;
     }
 }

@@ -205,13 +205,13 @@ public class TestWorkspaceService
     	oldSharings.get(1).setCredentialType(CredentialType.USER);
     	oldSharings.get(1).setStatus(Status.PENDING);
     	
-    	doReturn(oldData).when(_domainService).find(data.getId());
+    	doReturn(oldData).when(_domainService).find((int)data.getId());
     	doReturn(oldSharings).when(_sharingService).GetSharings(ResourceType.WORKSPACE, data.getId());
     	doReturn(user).when(_userService).getUser(user.getId());
     	
     	service.updateWorkspace(data);    	
     	
-    	verify(_domainService).find(data.getId());
+    	verify(_domainService).find((int)data.getId());
     	verify(_sharingService).GetSharings(ResourceType.WORKSPACE, data.getId());
     	verify(_domainService).update(data);
     	

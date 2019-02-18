@@ -7,7 +7,7 @@ import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.*;
 import fi.nls.oskari.domain.map.analysis.Analysis;
 import fi.nls.oskari.map.analysis.service.AnalysisDbService;
-import fi.nls.oskari.map.analysis.service.AnalysisDbServiceIbatisImpl;
+import fi.nls.oskari.map.analysis.service.AnalysisDbServiceMybatisImpl;
 import fi.nls.oskari.map.userowndata.GisDataDbService;
 import fi.nls.oskari.map.userowndata.GisDataDbServiceImpl;
 import fi.nls.oskari.permission.domain.Resource;
@@ -37,7 +37,7 @@ public class DeleteAnalysisDataHandler extends ActionHandler {
     public void init() {
         super.init();
         if(analysisDataService == null) {
-            setAnalysisDataService(new AnalysisDbServiceIbatisImpl());
+            setAnalysisDataService(new AnalysisDbServiceMybatisImpl());
         }
     }
 

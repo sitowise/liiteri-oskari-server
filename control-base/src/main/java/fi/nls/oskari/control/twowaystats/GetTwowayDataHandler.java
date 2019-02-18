@@ -1,6 +1,7 @@
 package fi.nls.oskari.control.twowaystats;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -53,11 +54,16 @@ public class GetTwowayDataHandler extends ActionHandler {
             throw new ActionException("No permissions");
         }
         PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-        final List<String> permissionsList = permissionsService
+        final Set<String> permissionsList = permissionsService
                 .getResourcesWithGrantedPermissions("operation", user,
                         Permissions.PERMISSION_TYPE_EXECUTE);
-
-        if (!permissionsList.contains("statistics+grid")) {
+        boolean gridDataAllowed = false;
+        for(String permission : permissionsList) {
+            if("statistics+grid".equals(permission)) {
+                gridDataAllowed = true;
+            }
+        }
+        if (!gridDataAllowed) {
             throw new ActionException("No permissions");
         }
 

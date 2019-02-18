@@ -72,7 +72,7 @@
 		WHERE id = #id#
 	</update>	
 
-    <select id="find" parameterClass="long" resultMap="UserGisDataResult">
+    <select id="find" parameterClass="int" resultMap="UserGisDataResult">
         select
         id,
         data_id,

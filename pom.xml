@@ -6,12 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fi.nls.oskari</groupId>
     <artifactId>oskari-parent</artifactId>
-    <version>1.34.1</version>
+    <version>1.46.2</version>
     <packaging>pom</packaging>
 
     <name>Oskari parent POM</name>
     <description>Contains common properties and managed dependencies for the Oskari modules.</description>
-    <url>https://github.com/nls-oskari/oskari-server</url>
+    <url>https://github.com/oskariorg/oskari-server</url>
 
     <organization>
         <name>National Land Survey of Finland</name>
@@ -34,17 +34,17 @@
     </licenses>
 
     <issueManagement>
-        <url>https://github.com/nls-oskari/oskari-server/issues</url>
+        <url>https://github.com/oskariorg/oskari-server/issues</url>
         <system>GitHub Issues</system>
     </issueManagement>
 
     <scm>
-        <url>https://github.com/nls-oskari/oskari-server</url>
+        <url>https://github.com/oskariorg/oskari-server</url>
     </scm>
   
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jdk.version>1.7</jdk.version>
+        <jdk.version>1.8</jdk.version>
         <fi.nls.oskari.version>${project.version}</fi.nls.oskari.version>
         <fi.nls.oskari.service.version>${project.version}</fi.nls.oskari.service.version>
 
@@ -63,30 +63,30 @@
         <javax.servlet.jsp.version>2.0</javax.servlet.jsp.version>
         <javax.servlet.jstl.version>1.2</javax.servlet.jstl.version>
         <javax.xml.version>1.0</javax.xml.version>
-        <java3d.version>1.3.1</java3d.version>
+        <vecmath.version>1.5.2</vecmath.version>
 
         <commons-lang.version>2.6</commons-lang.version>
-        <commons-collections.version>3.2.1</commons-collections.version>
+        <commons-collections.version>3.2.2</commons-collections.version>
         <commons-httpclient.version>3.1</commons-httpclient.version>
         <commons-codec.version>1.7</commons-codec.version>
-        <commons-fileupload.version>1.2</commons-fileupload.version>
+        <commons-fileupload.version>1.3.2</commons-fileupload.version>
         <commons-dbcp.version>1.4</commons-dbcp.version>
         <commons-dbcp2.version>2.0.1</commons-dbcp2.version>
 
         <staxon.version>1.2</staxon.version>
         <lambdaj.version>2.3.3</lambdaj.version>
         <kevinsawicki.http-request.version>4.0</kevinsawicki.http-request.version>
-        <jsoup.version>1.7.2</jsoup.version>
+        <jsoup.version>1.10.3</jsoup.version>
         <ibatis.version>2.3.4.726</ibatis.version>
-        <axiom.version>1.2.15</axiom.version>
+        <axiom.version>1.2.20</axiom.version>
         <commons-lang3.version>3.0</commons-lang3.version>
         <stax-api.version>1.0-2</stax-api.version>
         <stax2-api.version>3.1.4</stax2-api.version>
         <woodstox.version>5.0.1</woodstox.version>
         <jsonld-java.version>0.3</jsonld-java.version>
         <xmlunit.version>1.5</xmlunit.version>
-        <jedis.version>2.7.2</jedis.version>
-        <jackson.version>2.5.4</jackson.version>
+        <jedis.version>2.9.0</jedis.version>
+        <jackson.version>2.9.0</jackson.version>
 
         <fi.mml.capabilities.version>1.3.0</fi.mml.capabilities.version>
         <fi.mml.wms.version>1.1.1</fi.mml.wms.version>
@@ -94,27 +94,37 @@
 
         <jetty.version>9.1.0.M0</jetty.version>
 
-        <postgresql.version>9.3-1102-jdbc41</postgresql.version>
+        <postgresql.version>42.1.4</postgresql.version>
         <quartz-scheduler.version>2.2.1</quartz-scheduler.version>
 
         <xerces.version>2.10.0</xerces.version>
-        <xmlbeans.version>2.5.0</xmlbeans.version>
-        <geotools.version>13.1</geotools.version>
+        <xmlbeans.version>2.6.0</xmlbeans.version>
+        <geotools.version>14.2</geotools.version>
+        <jts.version>1.13</jts.version>
         <!-- gt-xsd-kml.version>9.3</gt-xsd-kml.version -->
         <flexjson.version>2.0</flexjson.version>
         <deegree.version>2</deegree.version>
 
-        <mybatis.version>3.2.7</mybatis.version>
+        <mybatis.version>3.4.5</mybatis.version>
         <com.google.guava.version>18.0</com.google.guava.version>
+        <pdfbox.version>2.0.6</pdfbox.version>
         <!-- Test deps versions -->
         <powermock.version>1.5</powermock.version>
         <junit.version>4.11</junit.version>
 
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.12</slf4j.version>
-        <metrics.version>3.1.0</metrics.version>
+        <metrics.version>3.2.4</metrics.version>
     </properties>
 
+    <dependencies>
+        <!-- overrides vulnerable version included by axiom -->
+        <dependency>
+            <groupId>org.apache.james</groupId>
+            <artifactId>apache-mime4j-core</artifactId>
+            <version>0.8.1</version>
+        </dependency>
+    </dependencies>
     <!-- Managed dependencies -->
     <dependencyManagement>
         <dependencies>
@@ -146,6 +156,11 @@
             <dependency>
                 <groupId>fi.nls.oskari.service</groupId>
                 <artifactId>oskari-control</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari</groupId>
+                <artifactId>download-basket</artifactId>
                 <version>${fi.nls.oskari.service.version}</version>
             </dependency>
 
@@ -181,6 +196,12 @@
 
             <dependency>
                 <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-control-users</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
                 <artifactId>oskari-map</artifactId>
                 <version>${fi.nls.oskari.service.version}</version>
             </dependency>
@@ -211,16 +232,56 @@
 
             <dependency>
                 <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-statistics</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-statistics-common</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-statistics-sotka</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-statistics-kapa</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>service-statistics-pxweb</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-statistics-eurostat</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
                 <artifactId>service-csw</artifactId>
                 <version>${fi.nls.oskari.service.version}</version>
             </dependency>
 
-             <dependency>
+            <dependency>
                 <groupId>fi.nls.oskari.service</groupId>
                 <artifactId>service-datamodel</artifactId>
                 <version>${fi.nls.oskari.service.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-feedback</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-feedback-open311</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>fi.nls.oskari.service</groupId>
@@ -233,6 +294,25 @@
                 <artifactId>oskari-search-nls</artifactId>
                 <version>${fi.nls.oskari.service.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-search-wfs</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-mybatis</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>fi.nls.oskari.service</groupId>
+                <artifactId>oskari-search-opendata</artifactId>
+                <version>${fi.nls.oskari.service.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>fi.nls.oskari.service</groupId>
                 <artifactId>oskari-wfs</artifactId>
@@ -310,6 +390,48 @@
                 <version>${fi.mml.wms.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>service-print</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>service-wcs</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>oskari-utils</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>service-capabilities-update</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>oskari-geojson</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>control-userlayer</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.oskari</groupId>
+                <artifactId>service-userlayer</artifactId>
+                <version>${fi.nls.oskari.version}</version>
+            </dependency>
+
             <!-- Spring -->
             <dependency>
                 <groupId>org.springframework.security.extensions</groupId>
@@ -329,6 +451,11 @@
             <dependency>
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-config</artifactId>
+                <version>${spring-security.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-crypto</artifactId>
                 <version>${spring-security.version}</version>
             </dependency>
 
@@ -410,6 +537,16 @@
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-json</artifactId>
                 <version>${metrics.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-databind</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -455,7 +592,7 @@
                 <artifactId>jetty-maven-plugin</artifactId>
                 <version>${jetty.version}</version>
             </dependency>
-			
+
 
             <dependency>
                 <groupId>org.postgresql</groupId>
@@ -528,6 +665,10 @@
                         <groupId>maven-plugins</groupId>
                         <artifactId>maven-findbugs-plugin</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.james</groupId>
+                        <artifactId>apache-mime4j-core</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -545,6 +686,11 @@
                 <groupId>redis.clients</groupId>
                 <artifactId>jedis</artifactId>
                 <version>${jedis.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -570,6 +716,11 @@
             <dependency>
                 <groupId>org.geotools</groupId>
                 <artifactId>gt-main</artifactId>
+                <version>${geotools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-opengis</artifactId>
                 <version>${geotools.version}</version>
             </dependency>
             <dependency>
@@ -632,9 +783,9 @@
 
 
             <dependency>
-                <groupId>java3d</groupId>
+                <groupId>javax.vecmath</groupId>
                 <artifactId>vecmath</artifactId>
-                <version>${java3d.version}</version>
+                <version>${vecmath.version}</version>
             </dependency>
 
             <dependency>
@@ -663,13 +814,16 @@
                 <artifactId>guava</artifactId>
                 <version>${com.google.guava.version}</version>
             </dependency>
-			
-		<dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcomponents-client</artifactId>
-            <version>4.3.4</version>
-        </dependency>
-		
+    		<dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcomponents-client</artifactId>
+                <version>4.3.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
 
             <!-- Managed test dependencies -->
             <dependency>
@@ -764,6 +918,15 @@
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.10</version>
+                <configuration>
+                    <!-- prevent forking java process from stealing
+                    window focus on Mac OS -->
+                    <argLine>-Djava.awt.headless=true</argLine>
+                    <!--systemPropertyVariables>
+                        <oskari.syslog.level></oskari.syslog.level>
+                    </systemPropertyVariables -->
+                    <argLine>-Doskari.syslog.level=warn</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -820,11 +983,21 @@
         </plugins>
     </build>
     <repositories>
-        <!-- In Project repository -->
+        <!-- In Project repository
         <repository>
             <id>in-project</id>
             <name>In Project Repo</name>
             <url>file://${project.basedir}/../external-libs/</url>
+        </repository> -->
+        <repository>
+            <id>oskari_org</id>
+            <name>Oskari.org repository</name>
+            <url>http://oskari.org/nexus/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>oskari_org_snapshot</id>
+            <name>Oskari.org snapshot repository</name>
+            <url>http://oskari.org/nexus/content/repositories/snapshots/</url>
         </repository>
         <repository>
             <id>central</id>
@@ -851,12 +1024,14 @@
             <url>http://download.osgeo.org/webdav/geotools/</url>
         </repository>
         <repository>
+            <id>geosolutions</id>
+            <name>Geo-solutions Maven Repository</name>
+            <url>http://maven.geo-solutions.it</url>
+        </repository>
+        <repository>
             <id>boundless</id>
             <name>Boundless Maven Repository</name>
-            <url>http://repo.boundlessgeo.com/main</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
+            <url>http://repo.boundlessgeo.com/main/</url>
         </repository>
     </repositories>
 
@@ -889,21 +1064,46 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <profiles>
+        <profile>
+            <id>owasp-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>2.1.1</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <modules>
         <!-- basic oskari map requirements -->
         <module>shared-test-resources</module>
         <module>geoserver-ext/geoserver-rest-client</module>
 
         <module>service-base</module>
+        <module>service-mybatis</module>
         <module>service-users</module>
         <module>service-permissions</module>
         <module>service-map</module>
         <module>service-wfs</module>
         <module>service-myplaces</module>
         <module>service-rating</module>
+        <module>service-capabilities-update</module>
 
         <module>service-search</module>
         <module>service-search-nls</module>
+        <module>service-search-wfs</module>
+        <module>service-search-opendata</module>
         <module>service-spatineo-monitor</module>
         <module>service-control</module>
         <module>service-scheduler</module>
@@ -917,17 +1117,23 @@
         <module>control-myplaces</module>
         <module>control-rating</module>
         <module>control-admin</module>
-        <module>control-statistics</module>
         <module>content-resources</module>
         <module>control-routing</module>
+        <module>control-users</module>
+
+        <!-- statistics -->
+        <module>service-statistics-common</module>
+        <module>service-statistics</module>
+        <module>service-statistics-sotka</module>
+        <module>service-statistics-kapa</module>
+        <module>service-statistics-eurostat</module>
+        <module>service-statistics-pxweb</module>
+        <module>control-statistics</module>
 
         <!-- oskari map -->
         <module>servlet-map</module>
         <module>servlet-saml-config</module>
         <module>webapp-map</module>
-        <!-- Standalone Jetty doesn't work with the new spring-based servlet-map so
-        removing it for now and possibly refactoring it later to use spring-boot -->
-        <!-- module>standalone-jetty</module -->
 
         <!-- transport  -->
         <module>service-datamodel</module>
@@ -940,6 +1146,20 @@
         <module>servlet-printout</module>
         <!-- setup -->
         <module>webapp-setup</module>
+
+        <module>service-feedback</module>
+        <module>service-feedback-open311</module>
+        <module>download-basket</module>
+
+        <!-- print -->
+        <module>service-print</module>
+
+        <module>service-wcs</module>
+        <module>oskari-utils</module>
+        <module>oskari-geojson</module>
+
+        <module>control-userlayer</module>
+        <module>service-userlayer</module>
     </modules>
 
 </project>

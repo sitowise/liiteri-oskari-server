@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -91,18 +92,25 @@ public class FilterParser {
                 throw new ActionException("No permissions");
             }
             PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-            final List<String> permissionsList = permissionsService
+            final Set<String> permissionsList = permissionsService
                     .getResourcesWithGrantedPermissions("operation", user,
                             Permissions.PERMISSION_TYPE_EXECUTE);
-
+            boolean functionalIntersectionAllowed = false;
+            boolean gridDataAllowed = false;
+            for(String permission : permissionsList) {
+                if("statistics+functional_intersection".equals(permission)) {
+                    functionalIntersectionAllowed = true;
+                } else if("statistics+grid".equals(permission)) {
+                    gridDataAllowed = true;
+                }
+            }
             if (rulesWithFunctionalAreas > 1
-                    && !permissionsList
-                            .contains("statistics+functional_intersection")) {
+                    && !functionalIntersectionAllowed) {
                 throw new ActionException("No permissions");
             }
 
             if (rulesWithGrid > 0
-                    && !permissionsList.contains("statistics+grid")) {
+                    && !gridDataAllowed) {
                 throw new ActionException("No permissions");
             }
         }
@@ -124,22 +132,27 @@ public class FilterParser {
             throw new ActionException("No permissions");
         }
         PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-        final List<String> permissionsList = permissionsService
+        final Set<String> permissionsList = permissionsService
                 .getResourcesWithGrantedPermissions("operation", user,
                         Permissions.PERMISSION_TYPE_EXECUTE);
-
-        if (!permissionsList.contains("statistics+grid")) {
+        boolean gridDataAllowed = false;
+        for(String permission : permissionsList) {
+            if("statistics+grid".equals(permission)) {
+                gridDataAllowed = true;
+            }
+        }
+        if (!gridDataAllowed) {
             throw new ActionException("No permissions");
         }
 
         StringBuffer buffer = new StringBuffer();
 
         String[] geometryFilterParams = param.split("\\|");
-        
+
         GeometryFactory geomFactory = new GeometryFactory(new PrecisionModel(10));
         WKTReader reader = new WKTReader(geomFactory);
         WKTWriter writer = new WKTWriter();
-        
+
         for (int i = 0; i < geometryFilterParams.length; ++i) {
             try {
                 Geometry g = reader.read(geometryFilterParams[i]).buffer(0);

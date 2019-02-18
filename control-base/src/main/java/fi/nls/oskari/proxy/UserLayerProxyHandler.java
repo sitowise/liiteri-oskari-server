@@ -3,8 +3,8 @@ package fi.nls.oskari.proxy;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
-import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
-import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceIbatisImpl;
+import org.oskari.map.userlayer.service.UserLayerDbService;
+import org.oskari.map.userlayer.service.UserLayerDbServiceMybatisImpl;
 import fi.nls.oskari.service.ProxyServiceConfig;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.List;
  */
 public class UserLayerProxyHandler extends ProxyServiceConfig {
     private static final Logger log = LogFactory.getLogger(UserLayerProxyHandler.class);
-    private static final UserLayerDbService userLayerService = new UserLayerDbServiceIbatisImpl();
+    private static final UserLayerDbService userLayerService = new UserLayerDbServiceMybatisImpl();
     private static final String PARAM_USERLAYER_ID = "id";
 
     /**
@@ -28,6 +28,8 @@ public class UserLayerProxyHandler extends ProxyServiceConfig {
     public ProxyServiceConfig getConfig(final ActionParameters params) {
         ProxyServiceConfig config = new ProxyServiceConfig();
         config.setEncoding(getEncoding());
+        config.setUsername(getUsername());
+        config.setPassword(getPassword());
 
         // passing all params - TODO: list allowed params in props
         final Enumeration<String> parmNames = params.getRequest().getParameterNames();
@@ -36,7 +38,7 @@ public class UserLayerProxyHandler extends ProxyServiceConfig {
         config.setHeaders(getHeaders());
 
         final String requestedUserlayer = params.getHttpParam(PARAM_USERLAYER_ID);
-        
+
         //check if data is shared with the user (then uuid filter is not needed)
         List<Long> sharedUserLayerIds = userLayerService.getSharedUserLayerIds(params.getUser().getId());
         String authenticationFilter = "";
@@ -44,7 +46,7 @@ public class UserLayerProxyHandler extends ProxyServiceConfig {
         {
         	authenticationFilter = "(uuid='" + params.getUser().getUuid() + "'+OR+publisher_name+IS+NOT+NULL)+AND+";
         }
-        
+
         //(uuid='d3a216dd-077d-44ce-b79a-adf20ca88367')
         final String userSpecificURL = getUrl() + authenticationFilter + "user_layer_id=" + requestedUserlayer;
         // setup user specific base url

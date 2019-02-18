@@ -94,7 +94,7 @@ public class GisDataService
 	}
 	
 	public UserGisData getUserGisData(long id, boolean includeSharings) {
-		UserGisData result = _domainService.find(id);
+		UserGisData result = _domainService.find((int)id);
 		if (includeSharings) {
 			List<SharingItem> items = _sharingService.GetSharings(ResourceType.LAYER, id);		
 			List<UserGisDataSharing> sharing = new Vector<UserGisDataSharing>();		

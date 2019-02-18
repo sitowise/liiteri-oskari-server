@@ -2,16 +2,22 @@ package fi.nls.oskari.work.fe;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Polygon;
+import fi.nls.oskari.map.geometry.ProjectionHelper;
 import fi.nls.oskari.pojo.SessionStore;
+import fi.nls.oskari.util.XmlHelper;
 import fi.nls.oskari.wfs.pojo.WFSLayerStore;
+import fi.nls.oskari.work.JobHelper;
 import fi.nls.oskari.work.JobType;
 import org.apache.http.client.utils.URIBuilder;
+import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.opengis.geometry.BoundingBox;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -26,7 +32,11 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.*;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +48,14 @@ import java.util.Map;
 
 public class FERequestTemplate {
 
-    public static final double CONVERSION_FACTOR = 2.54/1200; // 12th of an inch
+    public static final double CONVERSION_FACTOR = 2.54/1200; // 12th of an inch  ??
+    public static final double M_TO_DEGREE = 8.96861E-06d;
+    public static final String DEGREE_UNIT = "°";
+    // GetFeature Rid filter template
+    public static final String GETFEATURE_RID_TEMPLATE = "/fi/nls/oskari/fe/input/request/wfs/generic/generic_wfs_rid_template.xml";
+    // GetFeature Intersect filter template
+    public static final String GETFEATURE_INTERSECT_TEMPLATE = "/fi/nls/oskari/fe/input/request/wfs/generic/generic_wfs_intersect_template.xml";
+
 
     class RequestNSContext implements NamespaceContext {
 
@@ -76,7 +93,7 @@ public class FERequestTemplate {
     public String templateResource;
     public boolean isPost;
     public FEQueryArgsBuilder argsBuilder;
-    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    DocumentBuilderFactory factory = XmlHelper.newDocumentBuilderFactory();
     RequestNSContext nscontext = new RequestNSContext();
     XPathFactory xFactory = XPathFactory.newInstance();
 
@@ -89,6 +106,8 @@ public class FERequestTemplate {
     private String geomProp;
     private String geomNs;
     private String maxcount;
+    private Boolean resolveDepth = false;
+
 
     public FERequestTemplate(FEQueryArgsBuilder argsBuilder) {
         this.templateResource = null;
@@ -109,7 +128,7 @@ public class FERequestTemplate {
     }
 
     protected void buildBBOXRequest_XPath(StringBuffer params, InputStream inp,
-                                          OutputStream outs, BoundingBox bbox)
+                                          OutputStream outs, BoundingBox bbox, boolean longSrsName)
             throws ParserConfigurationException, SAXException, IOException,
             XPathExpressionException, TransformerException {
         String lowerCorner = Double.toString(bbox.getLowerCorner()
@@ -156,7 +175,9 @@ public class FERequestTemplate {
             if( srsName.indexOf("3857") != -1) {
                 _srsName = "EPSG:900913"; // GeoTools vs Deegree vs PostGIS interop - Google messed this up
             }
-
+            if(longSrsName){
+                _srsName = ProjectionHelper.longSyntaxEpsg(_srsName);
+            }
             NodeList nds = (NodeList) expr
                     .evaluate(doc, XPathConstants.NODESET);
 
@@ -244,6 +265,141 @@ public class FERequestTemplate {
                         .setTextContent(maxcount);
             }
         }
+        if (!resolveDepth) {
+            XPathExpression expr = xpath
+                    .compile("//*[@resolveDepth='*']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().removeNamedItem("resolveDepth");
+            }
+        }
+
+        if (featureNs != null) {
+            XPathExpression expr = xpath
+                    .compile("//*[@targetNamespace='[ADD_NSURI]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("targetNamespace")
+                        .setTextContent(featureNs);
+            }
+
+        }
+
+        Transformer transformer = tFactory.newTransformer();
+
+        DOMSource source = new DOMSource(doc);
+        StreamResult result = new StreamResult(outs);
+        transformer.transform(source, result);
+
+    }
+    protected void buildIntersectRequest_XPath(StringBuffer params, InputStream inp,
+                                          OutputStream outs, Polygon polygon, String serviceGeomProp, boolean longSrsName)
+            throws ParserConfigurationException, SAXException, IOException,
+            XPathExpressionException, TransformerException {
+        String coordinates = polygon.toText().replace("POLYGON","").replace("((","").replace("))","").replace(",","");
+
+        factory.setNamespaceAware(true);
+        factory.setValidating(false); // we have placeholders in XML
+
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(inp);
+
+        XPath xpath = xFactory.newXPath();
+        xpath.setNamespaceContext(nscontext);
+
+        {
+            XPathExpression expr = xpath.compile("//*[.='[COORDINATES]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+
+            nd.setTextContent(coordinates);
+
+        }
+
+
+        if (srsName != null) {
+            XPathExpression expr = xpath.compile("//*[@srsName='[SRSNAME]']");
+
+            String _srsName = srsName;
+            if( srsName.indexOf("3857") != -1) {
+                _srsName = "EPSG:900913"; // GeoTools vs Deegree vs PostGIS interop - Google messed this up
+            }
+            if(longSrsName){
+                _srsName = ProjectionHelper.longSyntaxEpsg(_srsName);
+            }
+            NodeList nds = (NodeList) expr
+                    .evaluate(doc, XPathConstants.NODESET);
+
+            if (nds != null && nds.getLength() > 0) {
+
+                for (int n = 0; n < nds.getLength(); n++) {
+                    Node nd = nds.item(n);
+                    nd.getAttributes().getNamedItem("srsName")
+                            .setTextContent(_srsName);
+                }
+            }
+
+        }
+
+        if (serviceGeomProp != null) {
+            String[] prefixTest = serviceGeomProp.split(":");
+            XPathExpression expr = xpath.compile("//*[.='[GEOMETRYNAME]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                if (prefixTest.length > 1) {
+                    nd.setTextContent(serviceGeomProp);
+                } else{
+                    nd.setTextContent(featurePrefix + ":" + serviceGeomProp);
+                }
+            }
+
+        }
+        if (featureName != null && featurePrefix != null && !featurePrefix.isEmpty()) {
+            XPathExpression expr = xpath
+                    .compile("//*[@typeNames='[FEATURENAME]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("typeNames")
+                        .setTextContent(featurePrefix+ ":" + featureName);
+            }
+
+        }
+
+        else if (featureName != null) {
+            XPathExpression expr = xpath
+                    .compile("//*[@typeNames='tns:[FEATURENAME]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("typeNames")
+                        .setTextContent("tns:" + featureName);
+            }
+
+        }
+
+
+        String addns = doc.getDocumentElement().getAttribute("xmlns:tns");
+
+        if (addns != null && "[ADD_NSURI]".equals(addns) && featureName != null && featurePrefix != null ) {
+            doc.getDocumentElement().removeAttribute("xmlns:tns");
+            doc.getDocumentElement().setAttribute("xmlns:"+featurePrefix,featureNs);
+        }
+        if (maxcount != null) {
+            XPathExpression expr = xpath
+                    .compile("//*[@count='[MAXCOUNT]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("count")
+                        .setTextContent(maxcount);
+            }
+
+        }
+
 
         if (featureNs != null) {
             XPathExpression expr = xpath
@@ -265,6 +421,118 @@ public class FERequestTemplate {
 
     }
 
+
+    protected void buildRIDRequest_XPath(StringBuffer params, InputStream inp,
+                                          OutputStream outs, List<String> rids, boolean longSrsName)
+            throws ParserConfigurationException, SAXException, IOException,
+            XPathExpressionException, TransformerException {
+
+        factory.setNamespaceAware(true);
+        factory.setValidating(false); // we have placeholders in XML
+
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(inp);
+
+        XPath xpath = xFactory.newXPath();
+        nscontext.add("fes","http://www.opengis.net/fes/2.0");
+        xpath.setNamespaceContext(nscontext);
+
+
+        if(rids != null && rids.size() < 1){
+            return;
+        }
+
+        if (srsName != null) {
+            XPathExpression expr = xpath.compile("//*[@srsName='[SRSNAME]']");
+
+            String _srsName = srsName;
+            if( srsName.indexOf("3857") != -1) {
+                _srsName = "EPSG:900913"; // GeoTools vs Deegree vs PostGIS interop - Google messed this up
+            }
+            if(longSrsName){
+                _srsName = ProjectionHelper.longSyntaxEpsg(_srsName);
+            }
+            NodeList nds = (NodeList) expr
+                    .evaluate(doc, XPathConstants.NODESET);
+
+            if (nds != null && nds.getLength() > 0) {
+
+                for (int n = 0; n < nds.getLength(); n++) {
+                    Node nd = nds.item(n);
+                    nd.getAttributes().getNamedItem("srsName")
+                            .setTextContent(_srsName);
+                }
+            }
+
+        }
+
+
+        if (featureName != null && featurePrefix != null && !featurePrefix.isEmpty()) {
+            XPathExpression expr = xpath
+                    .compile("//*[@typeNames='[FEATURENAME]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("typeNames")
+                        .setTextContent(featurePrefix+ ":" + featureName);
+            }
+
+        }
+
+        else if (featureName != null) {
+            XPathExpression expr = xpath
+                    .compile("//*[@typeNames='tns:[FEATURENAME]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("typeNames")
+                        .setTextContent("tns:" + featureName);
+            }
+        }
+
+
+        String addns = doc.getDocumentElement().getAttribute("xmlns:tns");
+
+        if (addns != null && "[ADD_NSURI]".equals(addns) && featureName != null && featurePrefix != null ) {
+            doc.getDocumentElement().removeAttribute("xmlns:tns");
+            doc.getDocumentElement().setAttribute("xmlns:"+featurePrefix,featureNs);
+        }
+
+
+        if (featureNs != null) {
+            XPathExpression expr = xpath
+                    .compile("//*[@targetNamespace='[ADD_NSURI]']");
+
+            Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+            if (nd != null) {
+                nd.getAttributes().getNamedItem("targetNamespace")
+                        .setTextContent(featureNs);
+            }
+
+        }
+        // Add ids
+        XPathExpression expr = xpath
+                .compile("//fes:Filter");
+
+        Node nd = (Node) expr.evaluate(doc, XPathConstants.NODE);
+        if (nd != null) {
+          for(String rid : rids){
+              Node elem = nd.getOwnerDocument().createElement("fes:ResourceId");
+              ((Element) elem).setAttribute("rid", rid);
+
+              nd.appendChild(elem);
+
+          }
+        }
+
+        Transformer transformer = tFactory.newTransformer();
+
+        DOMSource source = new DOMSource(doc);
+        StreamResult result = new StreamResult(outs);
+        transformer.transform(source, result);
+
+    }
+
     public void buildParams(StringBuffer params,
                             final JobType type, final WFSLayerStore layer,
                             final SessionStore session, final List<Double> bounds,
@@ -274,6 +542,10 @@ public class FERequestTemplate {
             ParserConfigurationException, SAXException, TransformerException {
 
         BoundingBox bbox = null;
+        Polygon polygon = null;
+        String serviceGeomProp = null;
+        List<String> featureIds = null;
+        String template = templateResource;
 
         if (type == JobType.MAP_CLICK) {
 
@@ -281,42 +553,59 @@ public class FERequestTemplate {
 
             ReferencedEnvelope env = new ReferencedEnvelope(new Envelope(c),
                     crs);
-            env.expandBy(GetSearchTolerance(session));
-            bbox = env.toBounds(layer.getCrs());
+            env.expandBy(GetSearchTolerance(session, crs.getCoordinateSystem().getAxis(0).getUnit().toString()));
+            bbox = env.toBounds(crs);
+            if (wfsVer.equals("2.0.0") && !isCascading(layer)){
+                //  intersect filter not supported in elf  cascading
+                template = GETFEATURE_INTERSECT_TEMPLATE;
+                polygon = JTS.toGeometry(bbox);
+                serviceGeomProp = layer.getGMLGeometryPropertyNoNamespace();
+            }
 
         } else if (type == JobType.HIGHLIGHT) {
-
-            Coordinate c = session.getMapClick();
-
-            ReferencedEnvelope env = new ReferencedEnvelope(new Envelope(c),
-                    crs);
-            env.expandBy(GetSearchTolerance(session));
-            bbox = env.toBounds(layer.getCrs());
+            // Use feature Ids
+            featureIds = session.getLayers().get(layer.getLayerId()).getHighlightedFeatureIds();
+            template = GETFEATURE_RID_TEMPLATE;
 
         } else if (bounds != null) {
-
             ReferencedEnvelope env = new ReferencedEnvelope(
                     new Envelope(bounds.get(0), bounds.get(2), bounds.get(1),
                             bounds.get(3)), crs);
-            bbox = env.toBounds(layer.getCrs());
+            bbox = env.toBounds(crs);
 
         } else {
             ReferencedEnvelope env = session.getLocation().getEnvelope();
-            bbox = env.toBounds(layer.getCrs());
+            bbox = env.toBounds(crs);
         }
+        String query = null;
 
-        ByteArrayOutputStream outs = new ByteArrayOutputStream();
+            ByteArrayOutputStream outs = new ByteArrayOutputStream();
 
-        InputStream inp = getClass().getResourceAsStream(templateResource);
+            InputStream inp = getClass().getResourceAsStream(template);
         try {
-            buildBBOXRequest_XPath(params, inp, outs, bbox);
+            if (polygon != null) {
+                if(layer.isReverseXY(session.getLocation().getSrs())){
+                    ProjectionHelper.flipFeatureYX(polygon);
+                }
+                buildIntersectRequest_XPath(params, inp, outs, polygon, serviceGeomProp, layer.isLongSrsName(this.srsName));
+            } else if (featureIds != null) {
+                buildRIDRequest_XPath(params, inp, outs, featureIds, layer.isLongSrsName(this.srsName));
+            } else if (bbox != null) {
+                if(layer.isReverseXY(session.getLocation().getSrs())){
+                    bbox = new ReferencedEnvelope(bbox.getMinY(), bbox.getMaxY(), bbox.getMinX(), bbox.getMaxX(),crs).toBounds(crs);
+                }
+                buildBBOXRequest_XPath(params, inp, outs, bbox, layer.isLongSrsName(this.srsName) );
+            }
+
 
         } finally {
             inp.close();
         }
 
-        outs.flush();
-        final String query = new String(outs.toByteArray());
+            outs.flush();
+            query = new String(outs.toByteArray());
+
+
 
         params.append(query);
 
@@ -332,7 +621,8 @@ public class FERequestTemplate {
     }
 
     public void setRequestFeatures(String srsName, String featureNs, String featurePrefix,
-                                   String featureName, String wFSver, String geomProp, String geomNs, String maxCount) {
+                                   String featureName, String wFSver, String geomProp, String geomNs, String maxCount,
+                                   Boolean resolveDepth) {
         this.srsName = srsName;
         this.featureNs = featureNs;
         this.featurePrefix = featurePrefix;
@@ -341,10 +631,24 @@ public class FERequestTemplate {
         this.geomProp = geomProp;
         this.geomNs = geomNs;
         this.maxcount = maxCount;
+        this.resolveDepth = resolveDepth;
 
     }
-    private double GetSearchTolerance(final SessionStore session){
-        return session.getMapScales().get((int) session.getLocation().getZoom())*CONVERSION_FACTOR;
+    private double GetSearchTolerance(final SessionStore session, final String unit){
+        // scale unit is always m
+        double tol = session.getMapScales().get((int) session.getLocation().getZoom())*CONVERSION_FACTOR;
+        if(unit.equals(DEGREE_UNIT)){
+            tol = tol * M_TO_DEGREE;
+        }
+        return tol;
     }
 
+    /**
+     * Check, if layer is cascading service layer
+     * @param layer
+     * @return
+     */
+    private boolean isCascading( final WFSLayerStore layer){
+        return layer.getAttributes().has(JobHelper.PARAM_CASCADING);
+    }
 }

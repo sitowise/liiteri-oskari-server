@@ -5,7 +5,7 @@ import fi.nls.oskari.domain.User;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.service.UserService;
-import fi.nls.oskari.user.IbatisRoleService;
+import fi.nls.oskari.user.MybatisRoleService;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -24,7 +24,7 @@ public class IdaPrincipalAuthenticationFilter implements Filter
 
 	private final String KEY_USER = User.class.getName();
 
-	private IbatisRoleService roleService = null;
+	private MybatisRoleService roleService = null;
 
 	private boolean addMissingUsers = true;
 	private Map<String, Role> externalRolesMapping = null;
@@ -34,7 +34,7 @@ public class IdaPrincipalAuthenticationFilter implements Filter
 	{
 		log.debug("Initializating IdaPrincipalAuthenticationFilter filter");
 
-		roleService = new IbatisRoleService();
+		roleService = new MybatisRoleService();
 		externalRolesMapping = new HashMap<String, Role>();
 		try
 		{			

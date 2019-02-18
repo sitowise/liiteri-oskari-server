@@ -1,5 +1,1232 @@
 # Release Notes
 
+## 1.46.2
+
+For a full list of changes see: https://github.com/oskariorg/oskari-server/milestone/10?closed=1
+
+- Imported dataset/userlayer coverage/extent is now transformed properly for embedded maps. Fixes an issue where the layer was immediately hidden by the frontend on embedded map.
+- Fixed an issue where layer/group sorting order wasn't saved properly on the hierarchical layer listing admin functions
+- Added more detailed ordering information for layers as hierarchical layer listing. Layers and groups can now be sorted as a mixed set instead of subgroups always being before any layers in the group. 
+
+## 1.46.1
+
+For a full list of changes see: https://github.com/oskariorg/oskari-server/milestone/9?closed=1
+
+- Fixed secure flag so unsecure services (e.g. WMS) are proxied like before on secured Oskari instances
+- GetHierarchicalMapLayerGroups action route response changed to return layers as a flat array beside the groups structure
+- Layers can now belong to multiple groups (previously caused layer listing to fail) 
+- Userlayer/dataset import extent information is now properly transformed so coverage area can be sent for the frontend
+- Appsetups without mapfull.conf.mapOptions (relying on defaults) couldn't be used to publish maps. MapOptions config is now optional for publishing.
+- Fixed multiple issues for adding, editing and deleting dataprovider/groups via the admin user interface (both hierarchichal admin and the classical one work now).
+- Layer ids are now always used in layer JSON sent to the frontend (previously it could be an "external id" when configured)
+- oskari_maplayer no longer has the external_id column. It has been moved to another table, made unique and only the
+ mapLayers URL-parameter handling cares about it anymore. Migration for database have been provided to replace external ids in 
+ mapfull.state.selectedLayers and configs for BackgroundLayerSelectionPlugin and LayerSelectionPlugin.
+- PermissionService changed to return permissions as a Set instead of a List
+
+## 1.46.0
+
+For a full list of changes see: https://github.com/oskariorg/oskari-server/milestone/7?closed=1
+
+Also check the [MigrationGuide.md](MigrationGuide.md) for actions required on upgrade
+
+### Projection support
+
+- The layer JSON now includes information about supported projections.
+- Layers can have "forced SRS" which are included to the supported projections even if the capabilities response doesn't include it.
+- Supported projections are no longer stored as a long list in a separate database table, but are filtered to only
+ include projections supported by the Oskari instance (only include ones that are used in appsetups) and saved as part of the layer information.
+- New action route has been added for triggering capabilities update on layer(s)
+- ViewService now includes a method to find out projections used in the appsetups.
+- GetAppSetup response now includes more information about the Oskari environment like the default appsetups.
+- Publish functionality now uses the map options (like projection information/zoom levels etc) from the appsetup where the user is publishing the embedded map
+- Listing users saved views and embedded maps now include the projection information so frontend can handle different projections properly.
+- WMTS-layers TileMatrixSetId is now sent for the frontend based on the projection the frontend is using.
+
+### New printout implementation
+
+The new printout implementation has been deemed production ready and as such the old one has been removed. 
+The implementation is baked into oskari-map.war so server setup is a bit more admin-friendly.
+
+### Layer handling
+
+- Database tables around maplayers have been renamed to be more in line with the group/organization naming and
+ accommodate the new folder-like structure of layer groups (previously referred to as Inspire-themes).
+- Layers can now belong to multiple groups. 
+- The layer listing action route "GetMapLayers" have been replaced with "GetHierarchicalMapLayerGroups". 
+
+### Misc
+
+- Added error handling for layer capabilities parsing where layer didn't have any keywords.
+- Added a new service-module for parsing and generating GeoJSON.
+- Regionsets for thematic maps can now be added as resources files in GeoJSON format (in addition to reading the regions from a WFS-service).
+- Fixed an issue where having myplaces layers as initial selected layers prevented the feature from working properly on OpenLayers 3+ based maps.
+- Updated the linked jQuery version from 1.7.2 on Geoportal and 1.7.1 on published maps to 1.10.2 on both.
+- Handling user imported datasets (userlayer) have been improved.
+- Added serverside functionality for updating userlayer style and other information after it has been imported.
+- Improved layer metadata (CSW) parsing.
+
+## 1.45.0
+
+For a full list of changes see: https://github.com/oskariorg/oskari-server/milestone/5
+
+### Statistical maps
+
+- Forced migration! Appsetups having the old statsgrid bundle are migrated to use the new one.
+- UserIndicator migration: data and region references are migrated to be compatible with the new statsgrid functionality.
+- PX-Web adapter for statistical maps has been improved.
+- Sotkanet adapter now fetches data in json format instead of csv.
+- Error handling and projection support improved for regionsets in statistical maps.
+- Indicator data caching improvements
+
+### Layer capabilities
+
+Capabilities for WMS and WMTS services can now be updated automatically (scheduled update). The parsing has been improved and includes changes to the service API (https://github.com/oskariorg/oskari-server/pull/86)
+
+### Database modifications
+
+- oskari_layergroup table renamed to oskari_dataprovider
+- oskari_maplayer.groupid column renamed oskari_maplayer.dataprovider_id
+- portti_inspiretheme table renamed to oskari_maplayer_group
+- oskari_maplayer_themes table renamed to oskari_maplayer_group_link
+- oskari_maplayer_group_link.themeid column renamed oskari_maplayer_group_link.groupid
+
+### transport
+
+Added new config options for oskari(/transport)-ext.properties for controlling when to stop sending requests to service that doesn't answer fast enough (service might be slowed down by getting too many requests and we don't want to pile up requests that will fail):
+
+    # milliseconds as observation window for counting failures before stop sending more WFS-requests to a problematic service (defaults 100 seconds)
+    oskari.transport.rollingwindow = 100000
+
+    # amount of WFS-requests that need to fail/layer in rolling window to do a cooldown (circuit break)
+    oskari.transport.failrequests = 5
+
+    # milliseconds to wait after circuit break until start sending new WFS-requests to problematic WFS-service (defaults 20 seconds)
+    oskari.transport.sleepwindow = 20000
+
+Also increased the defaut timeout from 15 seconds to 25 - configurable with:
+
+    oskari.transport.job.timeoutms = 25000
+
+### Others
+
+- GetFeatureInfo responses handling improved and configuration options added to allow more tags in the response (https://github.com/oskariorg/oskari-server/pull/133)
+- Environmental configs moved out of mapfull bundle's config to a new "env" key under GetAppSetup response.
+- Database table name changes for inspire themes/layer groups/dataproviders
+- WCS-client is now available as service-wcs (https://github.com/oskariorg/oskari-server/pull/89)
+- Metadata search by area projection support improved.
+- IOHelper improvements for example on URL-parameter handling.
+- Fixes for handling analysis related data.
+- Analysis and Userlayers now use MyBatis instead of IBatis. Any Ibatis configuration can be removed from oskari-server-extensions and database settings are now completely configured in oskari-ext.properties
+- Added an action route for getting default views of the system in preparation of larger projection support functionality.
+- WFS-service timeout defaults changed/configuration options added (https://github.com/oskariorg/oskari-server/pull/92)
+- New action routes for MyPlaces functionality in preparation of OpenLayers 4 based myplaces.
+- Initial version of download basket functionality has been added to oskari-server (https://github.com/oskariorg/oskari-server/pull/74)
+- Logging improvements.
+
+## 1.44.1
+
+### XmlHelper
+
+Now configured to reject external entities in XML.
+
+### CSW/layer coverage data handling
+
+The extent of a layer is described with an envelope in WGS84 coordinates. Currently the envelope is reprojected to the
+ currently used coordinate system by reprojecting the bottom left corner and the upper right corner coordinates and
+  forming another envelope from those. This often creates creates unwanted results especially when dealing with huge
+   extents (for example (-180,45),(180,90)) or when using for example North Pole LAEA projections.
+
+This functionality has been improved by generating a polygon from the envelope with (possibly) more than five
+ coordinates (each corner + the first corner again for closing the ring) via linear interpolation.
+  The generated polygon is then transformed to the target coordinate system.
+
+## 1.44.0
+
+### Library changes and Java requirement change
+
+*Oskari-server now requires Java 8.*
+
+Updated libs:
+
+- Postgres JDBC from 9.3-1102-jdbc41 to 42.1.4
+- Jedis from 2.7.2 to 2.9.0
+- MyBatis from 3.4.1 to 3.4.5
+- jsoup from 1.7.2 to 1.10.3
+- Jackson from 2.5.4 to 2.9.0
+- Axiom from 1.2.15 to 1.2.20
+- Dropwizard metrics from 3.1.0 to 3.2.4
+
+### State cookie handling
+
+Added error handling to state handling.
+State cookie parsing no longer assumes that referenced bundles are part of the appsetup.
+
+### GFI response sanitation
+
+Style-tags in GFI html response were interfering with global Oskari CSS.
+Response html is now sanitized with Jsoup if presentation type is TEXT which removes potentially dangerous
+ script injections as well.
+Only tags in in Jsoup ["relaxed" whitelist](https://jsoup.org/apidocs/org/jsoup/safety/Whitelist.html#relaxed--) are allowed.
+
+### Terms of use for map publish functionality
+
+Separate terms of use for map publishing functionality can now be configured in oskari-ext.properties:
+
+    oskari.map.terms.url=https://my.site/terms
+    oskari.map.publish.terms.url=https://my.site/terms-for-publishing
+
+The code will look for publish terms first and default to the generic terms config if not found.
+Both properties can be localized by adding .fi/.en etc language code at the end of the key.
+The value will be populated to publisher/publisher2 bundle configs.
+
+### Userlayer import
+
+New imported userlayers now maintain order for feature properties (user_layer-table's fields-column stored as JSON array instead of object).
+
+The database access library has been updated from Ibatis to Mybatis.
+UserLayerDbService has been changed to be suitable for new Mybatis implementation.
+Old iBATIS implementation isn't compatible with new UserLayerDbService.
+Now layer, style and data inserts are handled in one transaction.
+
+Added error codes (e.g. invalid_file) to response instead of textual messages to support localization in the frontend.
+
+Added feature count to layerJSON response. Also adds a warning object with skipped_features to layerJSON response
+ if feature(s) were skipped (no geometry object or geometry is null) during import.
+
+### Improvements to CSW response parsing
+
+Improved data quality information parsing for metadata.
+
+New configuration option for filtering out field values from MetadataSearchOptions query:
+
+    search.channel.METADATA_CATALOGUE_CHANNEL.field.<field name>.blacklist=<comma separated list of values>
+
+
+### Initial search channel autocomplete functionality
+
+Added initial autocomplete support for search channels. Any search channel that can support autocompletion can
+ implement a new SearchAutocomplete interface to participate on the autocomplete results.
+
+See service-search-nls/src/main/java/fi/nls/oskari/search/channel/ELFGeoLocatorSearchChannel.java for an example.
+
+### Transparent fill & stroke on polygons
+
+Polygon style now supports no fill and no stroke. The condition is expressed as allowed null color string values for
+ "fill_color" and "border_color" in UserLayerStyle/AnalysisStyle/MyPlaceCategory/WFSLayerStore.
+
+### Initial version of print functionality rewrite
+
+New Maven module service-print which provides built-in png/pdf generation for replacing the current
+ servlet-printout once it has been proved production ready.
+
+### Additional layer configuration
+
+WMS-layers GFI functionality can now be enabled/disabled overwriting layer capabilities by adding a configuration in database
+ oskari_maplayer.attributes:
+
+    {
+        "isQueryable" : false
+    }
+
+### Layer updating
+
+Modifying layers registered to Oskari always updated "params" and "attributes" fields even if the client didn't send them.
+Now they are modified only if new values are sent in the request and like other parameters can be omitted without problem.
+
+
+### Test resources/helper
+
+Added a database connection helper in shared-test-resources/TestHelper.
+Provide database credentials/url with env property:
+
+    # linux
+    export oskari_db_test_props=/opt/my.test.properties
+    # windows
+    set oskari_db_test_props=C:/somefolder/my.test.properties
+
+Use assumeTrue to check for db connection WHEN test relies on database connection as it might not always
+ be available depending on the build environment:
+
+    @Test
+    public void testingDB() {
+        assumeTrue(TestHelper.dbAvailable());
+        DataSource ds = TestHelper.getDBforUnitTest();
+        // TODO: use ds for tests
+    }
+
+The TestHelper reads the properties to PropertyUtil so remember to clean up after a test using database:
+
+    @AfterClass
+    public static void teardown() {
+        PropertyUtil.clearProperties();
+    }
+
+### ELF GeoLocator search channel
+
+Removed countries listing resource JSON. Instead uses a CountryFilter operation to fetch the countries from
+ the service.
+
+### Spationeo integration
+
+Removed serval API integration and now only including the monitor API.
+
+### service-users
+
+The database access library has been updated from iBATIS to MyBatis. DatabaseUserService now uses MybatisRoleService and MybatisUserService.
+
+### Database services MyBatis migration
+
+Services have been migrated from Ibatis to MyBatis library:
+
+- KeywordService
+- KeywordRelationService
+- AnalysisService
+- AnalyisisStyleService
+- AnalysisAndStyleService removed because it's not used
+- UserService
+- RoleService
+
+Ibatis is still used by some services, but any new functionality should be implemented with MyBatis.
+
+## 1.43.0
+
+### servlet-printout
+
+Printout no longer assumes Redis is on localhost. Configurable in print-properties with:
+
+    redis.hostname=localhost
+    redis.port=6379
+
+### KTJKIISearchChannel
+
+Removed spammy log messages when results were not found.
+
+## 1.42.1
+
+### User registration functionality rewrite
+
+There was some missing validations and funky looking error handling/messaging on the user registration feature.
+It has been rewritten:
+
+ - registration starts by just entering email address
+ - invalid/expired tokens are now handled by showing a page where user can continue and not the "next step" with an error message.
+ - tokens are now refreshed when the user requests another one so users can't get stuck with an expired token and no means of resetting it.
+ - mails now use HTML-templates that are customizable for the Oskari instance
+ - passwords now have configurable strength check
+ - new users are written to db after they have completed the registration (previously when the initial email was sent for confirmation)
+ - emails and usernames are now checked in case-insensitive fashion
+ - user content (myplaces, saved views, embedded maps, userlayers, analysis, indicators) is now removed from the database with the user.
+
+To customize password requirements configure oskari-ext.properties:
+
+    # min length for user password
+    user.passwd.length=8
+    # Require lower and UPPER chars
+    user.passwd.case=true
+    # Number of days that registration/passwd recover links are valid
+    oskari.email.link.expirytime=2
+
+To customize email-templates configure oskari-ext.properties (add files in classpath for example under jetty/resources/templates):
+
+    # defaults
+    # on registration init
+    oskari.email.registration.tpl=/templates/registration_email.html
+    # on registration init if there's already a user account with the email
+    oskari.email.exists.tpl=/templates/registration_email_exists.html
+    # on "forgot my password"
+    oskari.email.passwordrecovery.tpl=/templates/user_passwordreset_email.html
+    # on "forgot my password" when there's no user account associated with the email
+    oskari.email.passwordrecovery.noaccount.tpl=/templates/user_passwordreset_email_new_user.html
+
+    # you can specify localized versions by adding the language code at the end of the property key
+    oskari.email.registration.tpl.fi=/templates/registration_email_finnish_version.html
+
+
+The default templates are stored in control-users/src/main/resources/fi/nls/oskari/control/users/service
+The templates receive variables for:
+
+ - URL to continue the process (link_to_continue)
+ - number of days before the token expires (days_to_expire)
+
+### Thematic maps
+
+Fixed an issue where GetRegions action route returns the geometry reference point incorrect projection.
+
+### service-csw
+
+Fixed an issue where data quality fields were not parsed correctly from CSW response.
+
+### Layer urls handling for https-services
+
+Layer urls are modified for the frontend if the Oskari instance is running in a secure URL (https://). Most services only provide
+ http urls and won't work properly if the map is loaded using https. For any layer where url doesn't start
+  with https:// or / the url is modified to use a proxied url with GetLayerTile action route.
+  Previously the protocol was replaced with https:// and to preserve this functionality you can add a property
+   for oskari-ext.properties:
+
+    maplayer.wmsurl.secure=https://
+
+### Shapefile import
+
+Shapefile import now tries to find cpg file for identifying the character encoding to be used. This fixes an issue where scandic letters are shown wrong with imported Shapefiles.
+
+The original Shapefile standard defines to use ISO-8859-1 for dpf file encoding. So by default Shapefile is parsed using ISO-8859-1. Optional cpg file can be used to specify the code page for identifying the character set to be used. Also the header of dbf has a reference to a code page (encoding) but unfortunately GeoTools can't handle it reliably. So if you want to use different encoding, you should include cpg file which describes used encoding. e.g. to use UTF-8 encoding create a myshapename.cpg with a texteditor and insert 5 characters (and nothing more): UTF-8.
+
+## 1.42
+
+### Default published JSP-file
+
+The map element now includes the class "published" as some features detect "embedded mode" using it. It was already
+present in the published JSP in webapp-map but missing from the default. This fixes an issue where some frontend
+ features were started in "geoportal mode" on published maps with oskari-server-extensions (namely statsgrid2016 and maplegend).
+
+### SystemLogger
+
+The simple System.out/err logger can now be configured with environment variable "oskari.syslog.level" with a value of
+ debug, info, warn or error. Defaults to debug as before.
+
+### control-base
+
+Removed fi.nls.oskari.util.PrintOutHelper as it's not used anywhere.
+Use JSONHelper.isEqual(JSONArray jsonArray1, JSONArray jsonArray2) for comparing arrays instead.
+
+### Search
+
+SearchResultItem.setVillage() and getVillage() have been deprecated and replaced with setRegion() and getRegion().
+ JSON-presentation of result items now include a region key in addition to the village key with the same value.
+ The village key will be removed in the future.
+
+WFSSearchChannels defaults config is migrated automatically renaming "village" to "region".
+
+SearchOptions action route can now be configured to ignore some of the channels available in the system. This is done
+by configuring a comma-separated list of channel ids in oskari-ext.properties:
+
+    actionhandler.SearchOptions.blacklist=METADATA_CATALOGUE_CHANNEL
+
+### AppSetup action route (publisher)
+
+Additional bundles can be whitelisted for publishing using a new property in oskari-ext.properties:
+
+    actionhandler.AppSetup.bundles.simple=maprotator,maplegend
+
+Defaults to maprotator and maplegend as new bundles that can be published. The value of the property is a comma-separated list of
+bundle ids. If the payload from the browser has a configuration to a bundle that is whitelisted the bundle is added
+to the published map view using the default startup from portti_bundle database table. The configuration and state for
+the bundle are merged with the values from the browser before saving to the database.
+
+### Myplaces as WMS-layers (in embedded maps)
+
+My places layers used in embedded maps are shown as WMS-layers to the frontend, but have some custom behavior on the server.
+OpenLayers 3 defaults to WMS version 1.3.0 which might cause problems with coordinate order on some instances.
+My places layers that are used in embedded maps now use WMS 1.1.0 as a workaround for this.
+
+Map clicks/GetFeatureInfo requests for my places layers should now properly work in embedded maps in
+ projections other than EPSG:3067.
+
+### WFS-layer removal fix
+
+The link between a custom SLD-style and a WFS-layer is now removed by database constraint when a layer is removed.
+This fixes an issue where the link prevented a WFS-layer with custom style being removed properly.
+
+### Thematic maps
+
+The GetRegions action route now returns the geometry as GeoJSON and reference point for the region in addition to id and name.
+The action route now requires srs-parameter to be sent and any statslayer rows in the database should include the srs_name value.
+
+Datasources configuration can now have an info-object including a url key for more information about the datasource.
+The frontend will provide a link with the datasource name in attribution information when provided.
+
+### UserLayerProcessor for property_json
+
+The UserLayerProcessor parses features' property_json JSONObject to new actual properties. Now GFI popup and Feature Data table show user data correctly.
+
+selected_feature_params and feature_params_locales are set empty from portti_wfs_layer table to get all non-geometry feature properties.
+
+Properties: uuid, user_layer_id, feature_id, created, updated and attention_text comes from user_layer_data table and are excluded from feature properties.
+
+### Datasource handling
+
+The datasource configuration didn't work properly before when datasource creation was done by Oskari:
+all the database modules used the default datasource. For most use cases this is acceptable, but the problem emerges
+ when using different database connections for "core" oskari, myplaces, analysis and userlayers.
+
+You can now specify additional connections per flyway module. These are the defaults:
+
+    db.url=jdbc:postgresql://localhost:5432/oskaridb
+    db.username=oskari
+    db.password=oskari
+    db.additional.modules=myplaces,analysis,userlayer,myapp
+
+If you would want to store myplaces to different database you can add the properties:
+
+    db.myplaces.url=jdbc:postgresql://localhost:5432/db_for_usercontent
+    db.myplaces.username=oskari
+    db.myplaces.password=oskari
+    db.myplaces.jndi.name=jdbc/myplacesPool
+
+If the user/pass is the same, you can leave them out and it will default to db.username/db.password property values.
+Note! Ibatis-mappings for analysis and userlayers still have hardcoded values as JNDI-name so you might need to override files under
+"servlet-map/src/main/resources/META-INF": SqlMapConfig_Analysis.xml and SqlMapConfig_UserLayer.xml.
+
+### service-csw
+
+Date parsing has been improved. Any non-parseable dates are now used as is from the XML. This fixes an issue where CSW data
+with dates having for example only year or year and month failed parsing and the user was presented with an empty result.
+
+## 1.41
+
+### CSW Metadata improvements
+
+URL-parameter "metadata" with a value of metadata uuid can now be used to open the metadata info flyout on startup.
+Requires metadataflyout bundle to be present in the appsetup and CSW-service configured in Oskari.
+
+Added a way to add an "always on" filter to CSW-searches. This can be done by adding properties to oskari-ext.properties:
+
+Include some randomly named field to this property like "alwaysOnFilter":
+
+    search.channel.METADATA_CATALOGUE_CHANNEL.fields=...,alwaysOnFilter
+
+You can do a like filter by just naming the filter property and providing it a default value for the:
+
+    search.channel.METADATA_CATALOGUE_CHANNEL.field.alwaysOnFilter.filter=somePropName
+    search.channel.METADATA_CATALOGUE_CHANNEL.field.alwaysOnFilter.value=someValue
+
+This will result in the query having a like filter:
+
+	<ogc:PropertyIsLike escapeChar="/" matchCase="true" singleChar="?" wildCard="*">
+		<ogc:PropertyName>somePropName</ogc:PropertyName>
+		<ogc:Literal><![CDATA[someValue]]></ogc:Literal>
+	</ogc:PropertyIsLike>
+
+If you want to do an exact match you can include filterOp=COMP_EQUAL as additional property:
+
+    search.channel.METADATA_CATALOGUE_CHANNEL.field.alwaysOnFilter.filterOp=COMP_EQUAL
+
+This will result in the query having an exact filter:
+
+	<ogc:PropertyIsEqualTo matchCase="false">
+		<ogc:PropertyName>somePropName</ogc:PropertyName>
+		<ogc:Literal><![CDATA[someValue]]></ogc:Literal>
+	</ogc:PropertyIsEqualTo>
+
+### Code refactoring
+
+fi.nls.oskari.control.view.modifier.param,ParamHandler has been moved from control-base to
+fi.nls.oskari.view.modifier.ParamHandler in service-control Maven module.
+Please update any references to point to the new package.  
+
+### Layer urls with secure domains
+
+Layers that already use secure url or have no protocol/domain as part of the url are no longer prefixed when used in https-enabled Oskari-instance.  
+
+### User registration
+
+The default pages have been visually improved and the default role for registered user is no longer hardcoded as "User".
+ The default role can be configured with oskari-ext.properties (defaults to "User"):
+
+    oskari.user.role.loggedIn=User
+
+Any parameters from registration form prefixed with "user_" like "user_phone" will be saved to attributes JSON in
+ database table oskari_users. This allows more customization for fields to use on registration.
+
+### OpenTripPlanner
+
+OpenTripPlanner defaults changed: max walk distance has been updated from 1000 to 1000000.
+
+Routing action route now provides the otpURL key in response for users having the admin role. The value is the url
+that is used to call OpenTripPlanner so make the feature easier to debug.
+
+### MetaDataFieldHandler
+
+Modifying handler so at field values now can define space replaced char.
+If space is wanted to replace some character then following properties can be defined in properties file:
+search.channel.METADATA_CATALOGUE_CHANNEL.field.<name>.space.char = ?
+
+This is done because of GeoNetwork cannot query GetRecord for special cases. For example: space are not allowed when searching OrganisationName for LocalisedCharacterString.
+
+### search-service
+
+Removed SearchUtil.maxCount and SearchWorker.maxCount. The same value is now returned by
+ SearchService.getMaxResultsCount() and can be configured with oskari-ext.properties:
+
+    search.max.results=100
+
+Classes extending SearchChannel have a new function getMaxResults() which looks for a property:
+
+    search.channel.[CHANNEL_ID].maxFeatures=100
+
+and defaults to 'search.max.results' property. This can be used to configure channel-specific limits. They also have
+ a new function getMaxResults(int max) that you can use to pass the requested count from search criteria. This will
+ return the requested count if it's smaller than the set limit for the channel. Each SearchChannel should resolve
+ maximum results to return by calling getMaxResults(searchCriteria.getMaxResults()).
+
+### servlet-transport
+
+WFS 2.0.0 service responses (feature-engine parsing) can now be logged for debugging with transport-ext.properties:
+
+    transport.response.debug=true
+
+### coordinate transform improvements
+
+Coordinate transforms changed in Oskari to work the same way even when the Geotools flag for enforced coordinate order
+ is used (system property org.geotools.referencing.forceXY=true). This is always true when for example Geoserver is
+  running on the same appserver as Oskari).
+
+Thanks @kessu:
+
+- Geometry transform improvements and AxisOrder management for all projections as lon,lat in geometries.
+- New property configuration in oskari-ext.properties for file import to set default source Crs. Default is used when
+ source crs is not found in import file (SHP and MIF):
+
+    userlayer.default.source.epsg=EPSG:3067
+
+- Improvements in DescribeFeatureType parser / wfs 2.0
+- Improvements in map click buffer tolerance calculation when map crs is geographical (degree units)
+- Optional configuration available for wfs layers (oskari_maplayer attributes column):
+
+        {
+            "reverseXY": {
+                "EPSG:4326":true
+            },
+            "longSrsName":{
+                "EPSG:4326":true
+            }
+        }
+
+These are helpful if the WFS-service uses different coordinate order than what is assumed or expects the long version of
+ SRS name:
+    - "reverseXY": lat,lon order in wfs service
+    - "longSrsName": long srsName syntax in GetFeature
+
+### control/service-statistics
+
+Refactored layer-mapping for statistics layers. Removed source_property and layer_property and added config as JSON with
+the value of source_property as value in  { "regionType" : [value] } for layers that are mapped to SotkaNET and KAPA
+ datasource plugins. Other datasources have an empty config as they didn't use the columns. Config can be used as
+ datasource specific layer configuration that the corresponding plugin can use to provide customized handling for layer.
+
+Removed action routes that were not used by old or new statsgrid implementation: GetSotkaRegion,
+ GetIndicatorSelectorMetadata, GetIndicatorsMetadata
+
+Renamed classes to make it easier to separate between the two and corresponding functions:
+StatisticalIndicatorSelectors -> StatisticalIndicatorDataModel
+StatisticalIndicatorSelector -> StatisticalIndicatorDataDimension
+
+Refactored the indicator listing functionality for datasource adapters. There's a new method update() that should begin
+processing the datasource for indicators and call onIndicatorProcessed() method for any indicators that are suitable for
+using in Oskari. This will be called from a background thread. For very user specific content and fast datasource you can
+also override getIndicatorSet() method to return the user indicators directly. This way the update will not be called
+ as it's triggered by the default implementation of getIndicatorSet().
+
+Added a scheduled task to update statistical datasources data to cache. It runs by default at 4 AM each night, but can be configured in oskari-ext.properties:
+
+    oskari.scheduler.job.StatisticsDatasources.cronLine=0 0 4 * * ?
+
+To disable running it you can set the value to empty
+
+    oskari.scheduler.job.StatisticsDatasources.cronLine=
+
+Statistical datasource configuration in the database can now include hints for sorting indicator dimension values:
+
+    {
+      "hints" : {
+        "dimensions" : [ {
+          "id" : "year",
+          "sort" : "DESC"
+        }, {
+          "id" : "gender",
+          "default" : "total"
+        }]
+      }
+    }
+
+Where id value will match the id of a datadimension item in indicator datamodel. Other keys affect the order of
+allowed values for that dimension. Sort (if present) will be done first with either DESC or ASC value. If default is present
+ the matching allowed value will be moved as the first value in allowed values.
+
+### service-base
+
+Added list operations for JedisManager: pushToList() and popList().
+Added convenience method for checking if a key holds value (returns length of the value. Assumes string value): getValueStringLength().
+
+### Removed deprecated code
+
+Removed GetInspireThemes action route as it has been deprecated for a while and it's not used by anything in the front-end code.
+InspireThemes with GET request works as a replacement, but offers also admin functions with other request types.
+
+Removed GetSupportedLocales action route as the information is part of the GetAppSetup response.
+
+### Updated libraries
+
+The managed dependency of java3d.vecmath version 1.3.1 has been updated to new version 1.5.2.
+ The groupid for the library has changed between versions and is now javax.vecmath.
+ You should update any dependencies using it from:
+
+    <dependency>
+        <groupId>javax.vecmath</groupId>
+        <artifactId>vecmath</artifactId>
+    </dependency>
+
+To the new one:
+
+	<dependency>
+        <groupId>java3d</groupId>
+        <artifactId>vecmath</artifactId>
+    </dependency>
+
+## 1.40
+
+### Configuration improvements
+
+Added "oskari.transport.port" property handling so transport configuration can be configured (as oskari.transport.domain and oskari.transport.url)
+in oskari-ext.properties if default values are not used.
+
+Removed default search channel settings from oskari.properties (previously had OpenStreetMap as default).
+Now all available search channels that return true from SearchableChannel.isDefault() are used.
+ The properties below can be used for keeping the previous behavior:
+
+    # comma-separated list of id for search channel that will be used (defaulted to) if none are explicitly configured
+    search.channels.default=OPENSTREETMAP_CHANNEL
+    # comma-separated list of search channel ids used by GetSearchResult
+    actionhandler.GetSearchResult.channels=OPENSTREETMAP_CHANNEL
+
+Note! if actionhandler.GetSearchResult.channels is used any additional default channels are not included in the search (like wfs-channels).
+To get wfs-channels working you need to blacklist individual channels you don't want to include instead of whitelisting:
+
+    # blacklist single channel with id "CHANNEL_ID"
+    search.channel.CHANNEL_ID.isDefault=false
+
+### Utils
+
+IOHelper: Added a new convenience method setupBasicAuth(connection, user, pass) which sets up basic auth for the given connection.
+JSONHelper: Added a new convenience method createJSONArray(json, bln) to easily create empty arrays from null/problematic JSON param.
+content-resources/ViewHelper: Added convenience methods for easily adding a bundle to default views.
+Flyway migrations can use them like this to add a bundle to default and user type views if the view doesn't have the bundle already:
+
+        public class Vxx_yy__add_bundle_to_views implements JdbcMigration {
+            private static final String BUNDLE_ID = "[replace with bundle id]";
+
+            public void migrate(Connection connection) throws Exception {
+                final ArrayList<Long> views = ViewHelper.getUserAndDefaultViewIds(connection);
+                for(Long viewId : views){
+                    if (ViewHelper.viewContainsBundle(connection, BUNDLE_ID, viewId)) {
+                        continue;
+                    }
+                    ViewHelper.addBundleWithDefaults(connection, viewId, BUNDLE_ID);
+                }
+            }
+        }
+
+### MyBatis
+
+Updated MyBatis version from 3.2.7 to 3.4.1.
+New module service-mybatis for common helpers/typehandlers to be used with MyBatis.
+
+### control-base
+
+GetSearchResult action route now supports channels-parameter for client-specified search channels.
+The value is a comma-separated list of channel ids.
+
+### search-service
+
+Added three new interface methods for SearchableChannel and default implementations for them on the SearchChannel base class:
+
+    // should the channel be used for searching when none has been selected (defaults true)
+    boolean isDefaultChannel();
+
+    // does the user have permission to use this channel (defaults true)
+    boolean hasPermission(User user);
+
+    /**
+     * JSON presentation of channel localization like
+     * {
+     *     "en" : {
+     *         "name" : "Channel name",
+     *         "desc" : "This channel is used for..."
+     *     }
+     * }
+     *
+     * Defaults to name as channel ID for the default language
+     * @return
+     */
+    JSONObject getUILabels();
+
+Added a new hook for search service to enable SearchChannel factories: ChannelProvider. On startup the search service
+will find any @Oskari annotated classes extending ChannelProvider and add any search channels they returns with getChannels() method.
+ Any changes to factory-provided channels are propagated to the available channels in SearchService on runtime using an
+ included SearchChannelChangeListener interface implementation.
+
+Search service now adds all default search channels as targets for searches when none is specified.
+
+### search-service-nls
+
+Added TM35LehtijakoSearchChannel class to allow both reverse geocoding and normal searches for map sheets in Finland. Also added support for "scale" parameter in GetReverseGeocodingResultHandler for reverse geocoding search channels.
+
+### WFS search services
+
+Added a new module service-search-wfs based on https://github.com/dimenteq/tampere-oskari-server-extension/tree/436550ba3dd7c4f4645ec243487f81d7e1285e08.
+Changed the code to use MyBatis instead of Ibatis for more programmatic setup of database usage.
+This enables WFS-services registered as maplayers to be used as sources for search channels. The frontend bundle to enable
+ configuration is found at Oskari/bundles/tampere/admin-wfs-search-channel. Documentation for using and extending the
+ functionality will be added to oskari.org in the near future.
+
+### service-statistics/control-statistics
+
+New server-side functionality for statistical datasources integration. The code has been redesigned to read statistical data
+from multiple datasources with a plugin architecture to interpret statistics APIs to common internal format usable by the
+ new frontend implementation. Documentation for using and extending the functionality will be added to oskari.org in
+ the near future.
+
+## 1.39
+
+### Major migration
+
+ A gigantic migration is being done for publish template and published maps on the system.
+ Please see [Migration Guide](MigrationGuide.md) for details.
+
+### User registration
+
+Added initial support for user registration. The functionality can be enabled by adding properties:
+
+    allow.registration=true
+    oskari.email.sender=<sender email>
+    oskari.email.host=smtp.domain.com
+
+When building as an oskari-server-extension you need to also add the dependency:
+
+    <groupId>fi.nls.oskari.service</groupId>
+    <artifactId>oskari-control-users</artifactId>
+
+### Metadata search channel
+
+Code moved from service-search-nls to service-cws for metadata search functionality since it's not NLS spesific.
+
+### service-search-nls
+
+Fixed ELFGeoLocatorSearchChannel common fields override to just handle scale in spesific way.
+Other common fields are now properly inherited from base functionality.
+
+### servlet-transport
+
+Browser version information is no longer supported since frontend doesn't send it anymore. This results in some IE 6-8
+specific code being removed.
+
+## 1.38.2
+
+### service-search
+
+Added optional language variable to search result items.
+Added configurable rank based on result item type for search channels common functionalities:
+
+    # default rank for all items from channel
+    search.channel.OPENSTREETMAP_CHANNEL.rank=100
+    # type-based rank for place and amenity types
+    search.channel.OPENSTREETMAP_CHANNEL.rank.place=120
+    search.channel.OPENSTREETMAP_CHANNEL.rank.amenity=130
+
+Updated What3Words searchchannel now returns the language information for results.
+
+## 1.38.1
+
+### service-search-opendata
+
+Updated What3Words searchchannel to API version 2.
+
+## 1.38
+
+### csw record parsing
+
+-added coverage geometry
+-added crs-info
+-optional metadata rating added (service.metadata.rating - property)
+-optional license info added(search.channel.METADATA_CATALOGUE_CHANNEL.licenseUrlPrefix - property)
+
+### publisher bundle handler
+
+Now uses oskari.map.terms.url -property for injecting terms url to publisher bundle like with LogoPlugin.
+
+### AppSetup action route (map publisher)
+
+Statsgrid is now allowed in published map. It will replace publishedgrid in the future, but currently both are allowed.
+
+### Publish action route
+
+The Publish action route has been deprecated for a while and is now removed. AppSetup is the current implementation for
+map publisher server side functionality.
+
+### servlet-transport
+
+Now recognizes special style named "oskari_none": tile images are not rendered when style is selected.
+
+## 1.37
+
+### publish template
+
+The publish template for new Oskari installations with the default setup is now Openlayers 3 based.
+We are planning to update existing installs in the next release or so with the kind of "recommended, but optional"
+ migration that we are doing for publisher in this release. See MigrationGuide.md for details.
+
+### service-users
+
+When using the DatabaseUserService for user management the user password is now encrypted with bcrypt instead of MD5.
+Both are supported for logging in, but new passwords are saved using bcrypt.
+
+### GetAppSetup
+
+AppSetup now includes markers for the env properties.
+
+### service-map
+
+SLD Style setup and management is added for wfs layers (versions 1.1.0 and 2.0.0) in admin layer selector.
+
+### transport && control-base
+
+**WFS 2.0.0  / Feature engine**
+
+Feature highlighting is now supported for wfs 2.0.0 layers.
+
+{"cascading":true} setup is optionally available in oskari_maplayer attributes-column for wfs 2.0.0 layers.
+
+ (In this case bbox filter is used in MapClick / GetFeature request. Use this septup, if service doesn't support intersect filter.)
+
+### control-example/GetArticlesByTag action route
+
+Previously removed retried files by removing _ in names other than the last tag
+
+- termsofuse__mappublication__en.html
+- termsofuse_mappublication.html
+
+Fixed to work as intended
+
+- termsofuse__mappublication__en.html
+- termsofuse__mappublication.html
+
+### DB changes
+
+Added source column to portti_backendstatus table in preparation for multiple service status sources.
+
+## 1.36.2
+
+### Database migration
+
+Restrict oskari_maplayer and oskari_capabilities_cache tables version column to not null and default to empty string.
+Cleanup any cached capabilities with null version (there might be many, this is the main reason for the hotfix).
+
+### control-example/GetArticlesByTag action route
+
+Now tries to locate "articles"/content by reducing tags if the exact match doesn't get a hit.
+
+For example with default settings a call to /action?action_route=GetArticlesByTag&tags=termsofuse%2C+mappublication%2C+en
+tries to locate page under articlesByTag folder with filenames in the following order:
+
+- termsofuse__mappublication__en.html
+- termsofuse__mappublication__en.json
+- termsofuse__mappublication.html
+- termsofuse__mappublication.json
+- termsofuse.html
+- termsofuse.json
+
+The first one matching is returned and if none of these are found a message telling to add a file under articlesByTag is displayed.
+
+### control-base / GetWSCapabilities action route
+
+Cached capabilities might be faulty in the database. The GetWSCapabilities action route now tries to fetch capabilities
+from the service in such case.
+
+### service-csw
+
+Added errorhandling for missing dates on CSW response.
+
+## 1.36.1
+
+### Migration for published maps
+
+Adds toolbar bundle with no default buttons to all views with type PUBLISHED that don't have it already.
+ Configures MarkerPlugin to NOT add it's button to toolbar as it's not supported and should be part of
+ publish template.
+Toolbar is required for mobile mode functionality in maps and any old published maps don't have it if the user hasn't
+selected the history/measurement tools for the map.
+
+### HTML for published maps
+
+Added viewport metadata-tag for published maps.
+
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+## 1.36
+
+### Generic
+
+Geotools version has been updated to 14.2.
+Custom JSP-files need to be updated.
+See MigrationGuide.md for details.
+
+### GetAppSetup
+
+AppSetup now includes generic information about the environment like languages and available locales.
+
+### service-map
+
+A bugfix to legend image parsing when there were multiple styles with the same name.
+
+Multiple parser configs are now allowed for same feature type (layer name)  (wfs 2).
+Parser configs are defined in oskari_wfs_parser_config table.
+
+ResolveDepth attribute setup is added for wfs layers in admin layer selector.
+
+#### WMS layers
+WMS service capabilities parsing is improved and prepared to support service versions.
+It is now possible to add WMS layers both 1.1.1 and 1.3.0 versions under same wms service in admin layer selector.
+
+Capabilities cache was layertype and service url based, It is now now layertype, service url and version based.
+
+### service-feedback [new]
+
+New service for ``Feedback``  action route
+
+### service-feedback-open311 [new]
+
+New Open311 feedback implementation for feedback service
+
+### Database
+
+Added indexes for oskari_resource and oskari_permission tables.
+
+New ``title`` column inserted into oskari_wfs_parser_config table.
+
+### service-search-opendata
+
+New url parameter **&what3words** for positioning the map in startup
+e.g. http://www.paikkatietoikkuna.fi/web/en/map-window?ver=1.17&zoomLevel=6&what3words=examine.flying.daytime&mapLayers=base_35+100+default&showMarker=true
+
+### control-base
+
+#### FeedbackHandler [new, This is POC for time being and will be develop future on]
+
+New handler for feedback requests. Look at oskari.org documentation for more details.
+
+    &action_route=Feedback&method=postFeedback
+    &action_route=Feedback&method=serviceList
+    &action_route=Feedback&method=serviceDefinition&serviceId=172
+    &action_route=Feedback&method=postFeedback
+
+2 new properties must be defined in oskari-ext.properties
+
+    #Api key for posting feedback (Open311 api_key parameter value, only required for posting user's  feeback data)
+    #test api base url http://dev.hel.fi/open311-test/v1/
+    feedback.open311.key=f1301b1ded935eabc5faa6a2ce975f6
+    feedback.open311.url=http://dev.hel.fi/open311-test/v1/
+
+#### MapfullHandler
+
+WfsLayerPlugin config can now be configured with oskari-ext.properties if defaults are not working for your environment:
+
+    oskari.transport.domain=http://localhost:9090
+    oskari.transport.url=/mytransport
+
+These will write the host and contextPath to the plugins config if they are not configured in database view.
+
+Populate missing projection definitions for mapfull config projectionDefs. It uses the projection defs in:
+    control-base\src\main\resources\fi\nls\oskari\control\view\modifier\bundle\epsg_proj4_formats.json
+
+Populate svgMarkers for mapfull config, it uses for populate SVG markers JSONArray in:
+    control-base\src\main\resources\fi\nls\oskari\control\view\modifier\bundle\svg-markers.json
+
+#### GetWFSDescribeFeatureHandler
+
+Now returns now exact xsd types for feature properties
+
+Earlier version responsed generalized types (text or numeric).
+New extra request parameter  `&simple=true` is available for the earlier response behaviour
+
+#### ActionConstants
+
+Changed PARAM_SRS value from "epsg" to "srs". This affects GetMapLayers which now assumes the projection is sent in srs-parameter.
+The parameter in most action routes for transmitting projection information is "srs" so this is a consistency improvement.
+
+#### CoordinatesHandler
+
+New action route. Transforms point-coordinates from projection to another.
+Transformation class can be configured with property `projection.library.class` (defaults to `fi.nls.oskari.map.geometry.ProjectionHelper`).
+Takes `lan`, `lot`, `srs` and `targetSRS` parameters and returns a JSONObject with transformed result:
+
+      {
+          lan: 123,
+          lot : 456,
+          srs : "EPSG:789"
+      }
+
+#### GetReverseGeocodingResultHandler
+
+New action parameter **channels_ids** for selecting a spesific reverse search channel(s) instead all available channels
+e.g. &action_route=GetReverseGeocodingResult&lang=fi&epsg=EPSG:3067&lon=368978.93&lat=6670688.861&channel_ids=WHAT3WORDS_CHANNEL
+
+#### CoordinateToolHandler
+
+When coordinatetool bundle is part of the setup. And it has configuration to do client-side transforms the handler populates
+ missing projection definitions for mapfull config projectionDefs. It uses the same mechanic as mapfullhandler and the
+ same projection defs in:
+
+    control-base\src\main\resources\fi\nls\oskari\control\view\modifier\bundle\epsg_proj4_formats.json
+
+#### AppSetupHandler
+
+Coordinatetool is now allowed bundle for publisher.
+
+#### GetPermissionsLayerHandlers
+
+Additional permissions can now be configured with oskari-ext.properties:
+
+    permission.types = EDIT_LAYER_CONTENT
+    permission.EDIT_LAYER_CONTENT.name.fi=Muokkaa tasoa
+    permission.EDIT_LAYER_CONTENT.name.en=Edit layer
+
+These permissions will then be shown by the admin-layerrights bundle in Oskari frontend.
+
+### transport && control-base
+
+**WFS-T**  functionality is added to oskari-server package.
+User roles can be granted a EDIT_LAYER_CONTENT permission that will enable them to edit features on a WFS-service.
+This requires the content-editor bundle in Oskari frontend to provide the user-interface.
+
+**WFS 2.0.0**
+
+WFS layer's current coordinate reference system (crs) is now Transport session's crs (was layer config crs).
+This reduces coordinate transformations and process better result.
+
+**WFS / manual refresh**
+
+One new property ''success_nop'' added to notify-job-completed response.
+There is no need to the client to act for this layer, when success_nop is true (e.g. refresh feature data)
+
+## 1.35.1
+
+### generic
+
+Apache commons-collections library upgraded 3.2.1 -> 3.2.2 for security reasons.
+
+### service-search-nls
+
+Enabled reverse geocoding for ELFGeoLocatorSearchChannel.
+
+### control-base
+
+Openlayers3 sends WTMS-request parameters in camelCase while Openlayers2 always sends params in CAPS.
+GetLayerTileHandler has been modified to accept wmts-parameters in any letter case.
+
+## 1.35
+
+### service-search-nls
+
+Added data identification date and type to metadata search results.
+
+### servlet-map
+
+Now expects UTF-8 input and writes UTF-8 as output.
+Fixes an issue where user-generated my places with name containing non-ascii characters prevented IE11 from showing my places.
+
+### control-base
+
+MapfullHandler now fills in missing projection configurations for mapfull bundle/proj4js when a view is loaded:
+
+    {
+        "projectionDefs": {
+            "EPSG:4326": "+title=WGS 84 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+        }
+    }
+
+These can still be configured to the database as part of mapfull-bundles config and database are used when configured.
+The automation uses configurations from:
+
+    control-base\src\main\resources\fi\nls\oskari\control\view\modifier\bundle\epsg_proj4_formats.json
+
+Missing configurations can be added to the file or to the view in database.
+
+### service-search
+
+SearchableChannel interface changes:
+- Removed deprecated method - handle channel specific config in channels code instead:
+
+    void setProperty(String propertyName, String propertyValue).
+
+- Added SearchChannel methods to SearchableChannel interface:
+```
+    void init(); // any initialization should be performed here
+    Capabilities getCapabilities(); // COORD, TEXT or BOTH. Defaults to TEXT on SearchChannel
+    boolean isValidSearchTerm(SearchCriteria criteria); // defaults true on SearchChannel
+    void calculateCommonFields(final SearchResultItem item); // Setup zoomlevel based on item type on SearchChannel
+    ChannelSearchResult reverseGeocode(SearchCriteria criteria) throws IllegalSearchCriteriaException; // reverse geocode impl
+```
+Any legacy SearchChannel implementation should implement these or inherit the SearchChannel class for defaults.
+SearchChannels can now be used for text and/or reverse geocoding. The capabilities should be used to indicate if the
+ implementation provides one or both.
+
+### service-base
+
+Added IOHelper convenience method for just adding one param to an URL:
+
+    public static String addUrlParam(final String url, String key, String value)
+    String url = IOHelper.addUrlParam("https://google.com", "q", "test");
+
+### service-map
+
+Data import is improved
+
+1. Long files names do not break the import any more.
+2. There is no empty my data layer any more, if feature geometry import fails.
+
+### service-search-opendata
+
+New maven module for any open data sources usable for searches.
+New search channel implementation for What3Words service. Apikey is required:
+
+1. Get it from here https://map.what3words.com/register?dev=true
+2. Configure it to oskari-ext.properties:
+```
+    search.channel.WHAT3WORDS_CHANNEL.service.apikey=[YOUR APIKEY]
+    actionhandler.GetSearchResult.channels=[Add "WHAT3WORDS_CHANNEL" to list]
+```
+The channel can also be used for reverse geocoding (for example with findbycoordinates frontend-bundle).
+
+### control-base
+
+Action route "GetReverseGeocodingResult" doesn't need the channels configuration any more:
+
+    actionhandler.GetReverseGeocodingResult.channels=NLS_NEAREST_FEATURE_CHANNEL
+
+The action route uses all search channels that have the reverse geocoding capability by default.
+The channels-property can be used as whitelist search channels to pick which ones to use.
+
+### control-example
+
+OpenStreetMapSearchChannel moved to service-search-opendata which is now a dependency for control-example.
+
+### servlet-transport
+
+The init-command now uses layer visibility setting and prevents calls to wfs-service for layers that are hidden.
+
+### Database changes
+
+oskari_jaas_users tables login/password field types changed to text to not needlessly restrict the length of password (or username).
+
+### ParamHandler interface
+
+Parameter handlers now implement the Comparable interface and are sorted by priority order (prio 1 is executed before prio 500):
+- The default priority is 500
+- coord and address handlers have priority of 10 so by default they are executed before others
+- showMarker and isCenterMarker have much lower priority since they use the map center information
+ and any handler that modifies the map location need to be executed before these
+
+### Analysis
+
+Geometry clip method (IntersectionFeatureCollection2) improved in Geoserver wps methods
+
+### service-csw
+
+Fixed the datasource reference issue in CSWCoverageUpdateService. The scheduled job now gets datasource the same way as
+ flyway db migrations.
+
 ## 1.34.1
 
 ### control-base
@@ -22,7 +1249,7 @@ Flyway-migration can now be disabled by using oskari-ext.properties with
 
 Using more than one server and starting them simultaneously might result in deadlock on flyway database tables.
 You can use this as a workaroung to have one node migrate the database and the other ones configured to ignore
- the migration using this property.  
+ the migration using this property.
 
 ## 1.34
 
@@ -39,7 +1266,7 @@ Published maps are now checked for referer domain correctly when opened.
  To disable check you can define unrestricted domains in oskari-ext.properties (* = allow all):
 
     view.published.usage.unrestrictedDomains=localhost, my.domain.com
-    
+
 ### Transport
 
 New property for wfs read timeout in transport-ext.properties
@@ -52,7 +1279,7 @@ oskari.transport.job.timeoutms=25000
 ## 1.33.2
 
 Re-run fixed version of a flyway migration pre-populating capabilities information in the database (oskari_maplayer.capabilities).
- The previous script didn't work correctly for layers having capital letters in the URL since the URL is normalized to 
+ The previous script didn't work correctly for layers having capital letters in the URL since the URL is normalized to
  lowercase in oskari_capabilities_cache.
 
 ## 1.33.1
@@ -92,31 +1319,31 @@ Removed outdated view description files from resources/json/views.
 Flyway migration for Oskari core db is ran when setup files have the base database created (create, setup, bundles phases have been run).
  To disable the migration in "partial" setup scripts, these need to be tagged with "isPartial" : true on the JSON.
 
-Added migration helper for handling the replacement of publisher bundle with publisher2. The sample flyway module has 
+Added migration helper for handling the replacement of publisher bundle with publisher2. The sample flyway module has
 an example V1_0_5__publisher2_migration.java how to use it in application installations.
 
-Added a temporary setup-script for an app using Openlayers 3 components on published map (setup/app-tmp-ol3.json). This 
-will be modified and removed once the OL3 functionality reaches maturity. After that the original publisher template 
+Added a temporary setup-script for an app using Openlayers 3 components on published map (setup/app-tmp-ol3.json). This
+will be modified and removed once the OL3 functionality reaches maturity. After that the original publisher template
  will be modified to use OL3.
 
 ### servlet-map
 
-Now prevents view loading with id when onlyUUID-flag in on. 
+Now prevents view loading with id when onlyUUID-flag in on.
 
 ### control-base
 
-#### GetMapLayersHandler 
+#### GetMapLayersHandler
 
-Now provides prefixed urls for maplayers is request.isSecure() or parameter ssl=[true|false] is provided. 
+Now provides prefixed urls for maplayers is request.isSecure() or parameter ssl=[true|false] is provided.
 The prefix is configurable in oskari-ext.properties (defaults to https://):
 
     maplayer.wmsurl.secure=/secure/
-    
-This handling was already present for selected layers and now it's used for GetMapLayers also. 
+
+This handling was already present for selected layers and now it's used for GetMapLayers also.
 The functionality removes the protocol part of layer url and servers the url prefixed by the value defined in properties.
 This enables custom proxying for services that don't have https enabled.
 
-#### GetLayerTile 
+#### GetLayerTile
 
 Added handling for WMTS-layers with resourceURL.
 
@@ -129,9 +1356,9 @@ When adding layers the capabilities parser now includes layer styles and infofor
 Improvements in analysis methods:
 
  - Better management of unauthorized data
- 
+
  - Aggregate, Spatial join and Difference methods improved
- 
+
  - sld_muutos_n1.sld  style updated in Geoserver Styles / used in analysis method difference
 
 ### service-map
@@ -142,32 +1369,32 @@ but defaults to the basic url. This means that proxying WMTS-layers with resourc
 GetGtWMSCapabilities now includes method to parse String into WMSCapabilities to make it work better with cached
  capabilities XMLs from CapabilitiesService. Also added styles parsing from capabilities.
 
-WMS capabilities are now parsed when layers are added (previously when they are loaded by user). Pre-parsed capabilities 
+WMS capabilities are now parsed when layers are added (previously when they are loaded by user). Pre-parsed capabilities
 are saved to database table oskari_maplayer in the capabilities column. Flyway migration has been implemented for existing layers.
 
 OskariLayer now has a field for pre-parsed capabilities JSON. This is generated when saving a layer and served to browser
  instead of parsed just-in-time when layers are loaded.
- 
+
 LayerJSONFormatter now has convenience methods to operate the "admin" only data.
 
 ### Default view functionality
 
 Added functionality for saving / restoring a user defined default view.
 
-Loading the system default view can be forced by using an additional URL-parameter 'reset=true'. This is useful if the 
+Loading the system default view can be forced by using an additional URL-parameter 'reset=true'. This is useful if the
 personalized view is faulty.
 
 ## 1.32.2
 
-Fixed an issue where unexpected zip contents could result in an infinity loop in CreateUserLayerHandler.  
+Fixed an issue where unexpected zip contents could result in an infinity loop in CreateUserLayerHandler.
 
-Error handling improved in analysis functionality. 
+Error handling improved in analysis functionality.
 
 ## 1.32.1
 
 ### database/flywaydb
 
-1.32.4 script goes through all registered WMTS-layers and resolves resourceURL information for them. 
+1.32.4 script goes through all registered WMTS-layers and resolves resourceURL information for them.
 Updates the options database column when needed.
 
 ### servlet-map
@@ -176,10 +1403,10 @@ URL-parameters are now properly handled again (fixes the link tool).
 
 ### service-map
 
-If a capabilities document is saved in the database, it will no longer be overwritten with an empty document when capabilities fetch 
+If a capabilities document is saved in the database, it will no longer be overwritten with an empty document when capabilities fetch
  timeouts or in other problem scenarios.
- 
-Capabilities fetch default timeout increased from 15 seconds to 30 seconds. Still configurable in oskari-ext.properties: 
+
+Capabilities fetch default timeout increased from 15 seconds to 30 seconds. Still configurable in oskari-ext.properties:
 
     # seconds for timeout
     capabilities.timeout=30
@@ -194,7 +1421,7 @@ SpatineoServalUpdateService now cleans up the datasource it uses correctly.
 
 SaveLayer now generates resourceURL information for WMTS-layers and saves them in layers options-field.
 
-GetMapLayers now include the original legendimage urls for password protected layers for users that have permission to edit layers. 
+GetMapLayers now include the original legendimage urls for password protected layers for users that have permission to edit layers.
 This fixes an issue where legend image was overwritten with the proxy url when editing layers.
 
 GetLayerTile now supports style-specific legendimages.
@@ -203,7 +1430,7 @@ GetLayerTile now supports style-specific legendimages.
 
 Servlet-printout now uses options from layer JSON to get WMTS resourceUrl specific information (previously used the Openlayers2 specific JSON capabilities).
 
-Added initial support for WMTS-layers using KVP urls. 
+Added initial support for WMTS-layers using KVP urls.
 
 ## 1.32
 
@@ -213,15 +1440,15 @@ geoserver-ext/geoserver-rest-client now has a simple REST client for Geoserver. 
  GeoserverPopulator which can be used by a new webapp named "setup". This enables you to setup geoserver for myplaces,
  analysis and userlayers with the projection that is needed and also adds datastores with the credentials and url as
  configured in oskari-ext.properties.
- 
- To use the setup webapp copy the setup.war under oskari-server/webapp-setup/target/ to {JETTY_HOME}/webapps. Then access 
- Jetty in http://localhost:8080/setup (default url, modify host/port if needed). It shows the geoserver specific properties 
+
+ To use the setup webapp copy the setup.war under oskari-server/webapp-setup/target/ to {JETTY_HOME}/webapps. Then access
+ Jetty in http://localhost:8080/setup (default url, modify host/port if needed). It shows the geoserver specific properties
  needed for by the client and asks for projection. When it completes it shows a message indicating success/error and
   properties that need updating. This also updates the baselayers in oskari_maplayer database table for projection,
    geoserver url and credentials.
 
 The relevant properties are:
-    
+
     geoserver.url=http://localhost:8080/geoserver
     geoserver.user=admin
     geoserver.password=geoserver
@@ -232,18 +1459,18 @@ Tested on Geoserver 2.7.1. Atleast on 2.5.2 the REST API is a bit different so t
 
 ### servlet-transport
 
-Improved error handling when client disconnects before WFSJob finishes. 
+Improved error handling when client disconnects before WFSJob finishes.
 References for jobs were not properly cleared which resulted in memory leaks.
 
 ### control-example/OpenStreetMapSearchChannel
 
-The search channel should now properly handle coordinate transforms even if coordinate order is forced in geotools using 
-the system property "org.geotools.referencing.forceXY". When using projection that is affected by this setting and have 
+The search channel should now properly handle coordinate transforms even if coordinate order is forced in geotools using
+the system property "org.geotools.referencing.forceXY". When using projection that is affected by this setting and have
 the system property, you need to define an override in oskari-ext.properties:
 
     search.channel.OPENSTREETMAP_CHANNEL.forceXY=true
 
-Using the system property might affect other parts of Oskari as well. We will fix the issues as they are noticed. 
+Using the system property might affect other parts of Oskari as well. We will fix the issues as they are noticed.
 
 ### Database initialization
 
@@ -261,7 +1488,7 @@ The capabilities network request timeouts after 15 seconds by default. You can c
 
     # seconds for timeout
     capabilities.timeout=15
- 
+
 The database table portti_capabilities_cache is replaced with oskari_capabilities_cache table. Capabilities are
  mapped based on service url and type (WMS/WMTS) instead of layer ids to prevent duplication. The migration for 1.32 will
  take some time since the cache is prepopulated from the services as a flyway migration. This depends on the amount of layers that need to be fetched.
@@ -274,7 +1501,7 @@ Added time dimension support for WMS layers. WebMapService and JSONs for layers 
 ### control-base
 
 Removed fi.nls.oskari.util.GetWMSCapabilities. Functionality has been moved to
- fi.nls.oskari.service.capabilities.CapabilitiesCacheServiceIbatisImpl in service-map. 
+ fi.nls.oskari.service.capabilities.CapabilitiesCacheServiceIbatisImpl in service-map.
 
 New action route 'GetLayerCapabilities' returns the cached capabilities for a registered layer (if the user has
  permission for requested layer). This enables Oskari to get rid of Openlayers 2 specific JSON format for WMTS-layers.
@@ -297,8 +1524,8 @@ Resultset content format is changed. There is now one record for each property w
 
 ## 1.31.2
 
-Fixes an issue where users myplaces layers were not tagged as "published" when used in an embedded maps. This 
-prevented using previously unpublished myplaces layers in embedded maps. 
+Fixes an issue where users myplaces layers were not tagged as "published" when used in an embedded maps. This
+prevented using previously unpublished myplaces layers in embedded maps.
 
 ## 1.31.1
 
@@ -320,33 +1547,33 @@ Added "Metrics" action route that is accessible by admins. This returns metrics 
 
 BundleService can now be instructed to cache bundle templates.
 
-Added a metadata field for Views. This will be used to store for example publisher specific information about the view. 
+Added a metadata field for Views. This will be used to store for example publisher specific information about the view.
 
 ### service-base
 
-ConversionHelper.asSet(T... type) added as a convenience method to get arrays as sets. 
+ConversionHelper.asSet(T... type) added as a convenience method to get arrays as sets.
 
 ### content-resources
 
-DBHandler now allows further customization using command line parameters/env properties (thanks hatapitk): 
+DBHandler now allows further customization using command line parameters/env properties (thanks hatapitk):
 
 1) Using env property 'oskari.resourceOverlayDir' one can override default setup files by providing an overriding file
  with the same name and in the same directory structure in the referenced 'overlay' directory.
- 
+
 2) Maven assembly plugin can be used to create a bundled runnable jar for standalone use
- 
+
 3) Command line parameter can be used to reference an override properties-file to be used to f. ex. provide database credentials.
 
 See oskari-server/content-resources/README.md for details.
 
 ### service-control
 
-#### Added white-/blacklist capabilities for action handlers. 
+#### Added white-/blacklist capabilities for action handlers.
 
 To blacklist/block action routes define existing route keys as comma-separated value for property:
 
     actioncontrol.blacklist=Users, ManageRoles
-    
+
 To whitelist (use only mentioned) action routes define existing route keys as comma-separated value for property:
 
     actioncontrol.whitelist=GetAppSetup, GetSupportedLocales
@@ -355,14 +1582,14 @@ Note! This can also be used to replace existing handler with a custom implementa
 programmatically adding the custom implementation on startup by calling (true as third parameter to skip black/whitelist check):
 
     ActionControl.addAction("ActionKey", new MyActionHandler(), true);
-    
+
 #### ActionParameters - Added a convenience method for boolean type params
- 
+
     boolean bln = actionParams.getHttpParam("booleanParamKey", true);
 
 ### Added metrics for ActionControl
 
-Metrics for action route handling (processing time/call counts) are now recorded by default in ActionControl. To 
+Metrics for action route handling (processing time/call counts) are now recorded by default in ActionControl. To
  disable metrics gathering add this configuration to oskari-ext.properties:
 
     actioncontrol.metrics=false
@@ -373,7 +1600,7 @@ The gathered metrics are available by calling ActionControl.getMetrics().
 
 GetAppSetupHandler now updates views usages to portti_view usagecount and used columns.
 * usagecount column tells how many times view has been used
-* used column tells the last time when view was used 
+* used column tells the last time when view was used
 
 CreateAnalysisLayerHandler can now be used to generate aggregated values without saving as analysislayer.
 
@@ -381,10 +1608,10 @@ GetLayerTileHandler can now be used to get legendImages which need authenticatio
 
 GetLayerTileHandler now has default timeouts for connect (1 second) and read (5 seconds). These can be configured
  in oskari-ext.properties (defined in ms):
- 
+
     GetLayerTile.timeout.connection=1000
     GetLayerTile.timeout.read=5000
-    
+
 GetLayerTileHandler now records metrics for proxied services by default. To disable metrics gathering add this
  configuration to oskari-ext.properties:
 
@@ -397,12 +1624,12 @@ It uses programmatic initialization instead of a web.xml and can utilize SAML-se
  but drops configurable database JNDI-names and JAAS-support. JNDI-names need to be configured in Ibatis SQLMapConfig.xml
  in addition to oskari-ext.properties if not using the defaults. Ibatis will be replaced with Mybatis in the future which
  will solve this issue.
- 
+
  See MigrationGuide.md for further info.
- 
+
 Added localization support for server-side HTML/Login form.
- 
-TODO: 
+
+TODO:
 - Thymeleaf support
 - LDAP login
 - spring-boot setup (or otherwise try to restore standalone-jetty packaging)
@@ -418,14 +1645,14 @@ New module providing SAML2 support for servlet-map. Add it to your webapp with s
             <groupId>fi.nls.oskari</groupId>
             <artifactId>servlet-saml-config</artifactId>
         </dependency>
-        
+
 ### webapp-map
 
 Has been updated to use the new servlet-map.
 
 ### standalone-jetty
 
-Moved out of oskari-server modules and Jetty-bundle from oskari.org should be used instead. 
+Moved out of oskari-server modules and Jetty-bundle from oskari.org should be used instead.
 
 ### service-webapp
 
@@ -433,7 +1660,7 @@ This new module has some common helper classes for webapps.
 
 ### service-myplaces
 
-Myplaces services have been moved from service-map to service-myplaces. 
+Myplaces services have been moved from service-map to service-myplaces.
 The database access library has been updated from Ibatis to Mybatis.
 
 ### service-routing (POC)
@@ -448,7 +1675,7 @@ To be able to use this you need to have the following parameters defined in prop
 
 ### control-routing (POC)
 
-New action route "RoutingHandler" added for handling route request. 
+New action route "RoutingHandler" added for handling route request.
 Gets route parameters from frotend end returns route geometry as geoJson and route instructions as json.
 
 ### Library upgrades
@@ -456,7 +1683,7 @@ Gets route parameters from frotend end returns route geometry as geoJson and rou
 Servlet-API upgraded from 2.4 to 3.1.0 in preparation of replacing current servlet-map/webapp-map with spring
  counterparts from oskari-spring repository.
 
-Other updates: 
+Other updates:
 * Jackson 1.9.11 -> 2.5.4
 * Jedis 2.6.0 -> 2.7.2
 * Axiom 1.2.14 -> 1.2.15
@@ -467,38 +1694,38 @@ Note that both Jackson 1.x and 2.x are used currently. 1.x is mostly used in WFS
 
 ### Property changes
 
-db.additional.pools has been changed to db.additional.modules to better describe it. 
+db.additional.pools has been changed to db.additional.modules to better describe it.
 The default value is the same (under servlet-map/src/main/resources/oskari.properties).
 It is now used to keep track of DB-modules for the FlywayDB migration.
 
 ### Automated database upgrade
 
 The database is now automatically upgraded using FlywayDB library. The default upgrade setup is configured in
-servlet-map/src/main/resources/oskari.properties and the migration is triggered by 
+servlet-map/src/main/resources/oskari.properties and the migration is triggered by
 fi.nls.oskari.map.servlet.OskariContextInitializer. The database is separated to 4 modules: oskari, myplaces, analysis
- and userlayer. Each has its own status table for keeping track of the database. 
- 
-Application specific update scripts can be added by adding a module in the property: 
+ and userlayer. Each has its own status table for keeping track of the database.
+
+Application specific update scripts can be added by adding a module in the property:
 
     db.additional.modules=myplaces,analysis,userlayer,myapplication
-    
-This will result a table called oskari_status_myapplication to the database and migration scripts will be searched 
- from the classpath under the path /flyway/myapplication by default. The scripts are executed with the default Oskari 
- datasource. To customize the used datasource, script locations, status table name in the database define these 
+
+This will result a table called oskari_status_myapplication to the database and migration scripts will be searched
+ from the classpath under the path /flyway/myapplication by default. The scripts are executed with the default Oskari
+ datasource. To customize the used datasource, script locations, status table name in the database define these
  properties in oskari-ext.properties:
-   
+
     db.myapplication.jndi.name=jdbc/MyApplicationDS
     db.myapplication.url=[db url]
     db.myapplication.username=[db user]
     db.myapplication.password=[db pass]
     db.myapplication.status_table=my_status_table
     db.myapplication.script.locations=/flyway/myapplication,/upgrade/scripts/in/here/also
-    
+
 For further information about script naming etc see http://flywaydb.org/
 
 ### servlet-transport
 
-Session id is now always sent as cookie when getting layer permissions. The default cookie name is 'JSESSIONID' and can be 
+Session id is now always sent as cookie when getting layer permissions. The default cookie name is 'JSESSIONID' and can be
 overridden in transport-ext.properties with 'oskari.cookie.session' as before.
 
 ### flyway migrates
@@ -521,7 +1748,7 @@ The new Geotools version no longer supports Java 6 so Oskari now requires Java 7
 Geoserver and WPS extensions have been upgraded for version 2.7.1.
 See MigrationGuide.md for details.
 
-ASDI application specific artifacts have been removed from oskari-server. 
+ASDI application specific artifacts have been removed from oskari-server.
 They can now be accessed in: https://github.com/arctic-sdi/oskari-server-extensions
 
 ### service-search-nls
@@ -543,10 +1770,10 @@ PropertyUtil now has a convenience method for getting properties that might be l
         Map<String, String> values = (Map<String, String>) urlObj;
         JSONHelper.putValue(config, "url", new JSONObject(values));
     }
-    
-This will result in { "url" : "single value" } or 
 
-    { "url" : { 
+This will result in { "url" : "single value" } or
+
+    { "url" : {
          "en" : "en value",
          "fi" : "fi value"
       }
@@ -565,7 +1792,7 @@ MapfullHandler now populates map link and terms of use urls for LogoPlugin confi
     oskari.map.url=/
     oskari.map.terms.url=/terms
 
-Properties can also have localized values with keys like 'oskari.map.terms.url.en' and 'oskari.map.terms.url.fi'. Existing 
+Properties can also have localized values with keys like 'oskari.map.terms.url.en' and 'oskari.map.terms.url.fi'. Existing
  config will NOT be overwritten, the values are only populated if they don't exist in the database for the view.
 
 ## 1.29
@@ -583,10 +1810,10 @@ GetAppSetup now includes an apikey in user data.
 Now builds transport.war instead of transport-0.0.1.war as this is the default Oskari frontend uses.
 
 ### content-resources
- 
-Separated userlayers triggers to a separate file and created a setup.json for other userlayer related things.  
-The default setup (content-resources/src/main/resources/setup/app-default.json) now populates the database with 
-more content than before and creates tables for analysis and userlayers as well as myplaces. 
+
+Separated userlayers triggers to a separate file and created a setup.json for other userlayer related things.
+The default setup (content-resources/src/main/resources/setup/app-default.json) now populates the database with
+more content than before and creates tables for analysis and userlayers as well as myplaces.
 
 It also setups 3 views with different levels of Oskari installations:
 1) view that includes bundles that can be used with having just webapp-map (default-view.json)
@@ -594,10 +1821,10 @@ It also setups 3 views with different levels of Oskari installations:
 3) view that includes bundles using webapp-map and transport (requires redis as well) (default-transport-view.json)
 4) view that includes the whole stack: webapp-map/transport/printout/geoserver (requires redis as well) (default-full-view.json)
 
-These can be accessed by adding url parameter viewId with value of the view number listed above (for example viewId=4). 
-The view definition files can be found in content-resources/src/main/resources/json/views. 
+These can be accessed by adding url parameter viewId with value of the view number listed above (for example viewId=4).
+The view definition files can be found in content-resources/src/main/resources/json/views.
 
-The myplaces/userlayer/analysis baselayers SQLs have been updated to point to a geoserver running on 
+The myplaces/userlayer/analysis baselayers SQLs have been updated to point to a geoserver running on
 http://localhost:8080/geoserver (previously the same, but port 8084).
 
 #### New WFS 2.0.0 initial parser config table  (oskari_wfs_parser_config)

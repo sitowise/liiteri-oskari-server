@@ -100,7 +100,7 @@
 		=#id#
 	</update>	
 	
-    <select id="find" parameterClass="long" resultMap="WorkSpaceResult">
+    <select id="find" parameterClass="java.lang.Integer" resultMap="WorkSpaceResult">
         select
         id,
         name,
@@ -113,7 +113,7 @@
         where id = #id# 
     </select>	
 
-	<statement id="delete" parameterClass="java.lang.Long"
+	<statement id="delete" parameterClass="java.lang.Integer"
 		resultClass="java.lang.Integer">
 		DELETE FROM oskari_workspaces WHERE
 		id = #id#

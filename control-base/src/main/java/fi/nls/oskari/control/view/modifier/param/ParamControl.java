@@ -5,6 +5,7 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.view.modifier.ModifierException;
 import fi.nls.oskari.view.modifier.ModifierParams;
+import fi.nls.oskari.view.modifier.ParamHandler;
 import fi.nls.oskari.view.modifier.ViewModifierManager;
 
 import java.util.*;
@@ -78,14 +79,21 @@ public class ParamControl {
         if (actions.isEmpty()) {
             addDefaultControls();
         }
-	    return actions.keySet();
+        // sort keys by priority
+        Object[] handlers = actions.values().toArray();
+        Arrays.sort(handlers);
+        Set<String> keys = new LinkedHashSet<>();
+        for(Object h : handlers) {
+            keys.add(((ParamHandler) h).getName());
+        }
+	    return keys;
 	}
 
     /**
      * Uses ViewModifierManager to get all instances of ParamHandler and registers them as parameter handlers.
      * @see ViewModifierManager
      */
-    public static void addDefaultControls() {
+    public synchronized static void addDefaultControls() {
         if (!actions.isEmpty()) {
             return;
         }

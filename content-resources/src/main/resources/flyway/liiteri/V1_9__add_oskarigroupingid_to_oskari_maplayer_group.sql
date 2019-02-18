@@ -1,0 +1,2 @@
+ALTER TABLE oskari_maplayer_group ADD COLUMN oskarigroupingid INTEGER;
+ALTER TABLE oskari_maplayer_group ADD CONSTRAINT fk_oskari_maplayer_group_oskari_groupings FOREIGN KEY (oskarigroupingid) REFERENCES oskari_groupings (id);

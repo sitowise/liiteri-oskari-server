@@ -12,7 +12,9 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.xpath.*;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -24,7 +26,9 @@ public class CSWISORecordParser {
     private static final Logger log = LogFactory.getLogger(CSWISORecordParser.class);
 
     // we need to map languages from 3-letter codes to 2-letter codes so initialize a global codeMapping property
-    private final static Map<String, String> ISO3letterOskariLangMapping = new HashMap<String, String>();
+    private static final Map<String, String> ISO3letterOskariLangMapping = new HashMap<String, String>();
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'kk:mm:ss"); // or ISO_DATE_TIME
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     static {
         for (final String language : Locale.getISOLanguages()) {
@@ -33,40 +37,11 @@ public class CSWISORecordParser {
         }
     }
 
-    private static SimpleDateFormat dateTimeFormat() {
-        // 2011-02-23T14:32:09
-        return new SimpleDateFormat("yyyy-MM-dd'T'kk:mm:ss", Locale.US);
-    }
-
-    private static SimpleDateFormat dateFormat() {
-        // 2011-02-23
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-    }
-
     GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
     private XPath xpath = XPathFactory.newInstance().newXPath();
 
     private XPathExpression XPATH_DATA_QUALITY = null;
-    private XPathExpression XPATH_DATA_QUALITY_CONFORMANCES = null;
-    private XPathExpression XPATH_DATA_QUALITY_LINEAGE = null;
     private XPathExpression XPATH_DISTRIBUTION_INFO = null;
-    private XPathExpression XPATH_DATA_QUALITY_ABSOLUTE_EXTERNAL_POSITIONAL_ACCURACY = null;
-    private XPathExpression XPATH_DATA_QUALITY_ACCURACY_OF_TIME_MEASUREMENT = null;
-    private XPathExpression XPATH_DATA_QUALITY_COMPLETENESS_COMMISSION = null;
-    private XPathExpression XPATH_DATA_QUALITY_COMPLETENESS_OMISSION = null;
-    private XPathExpression XPATH_DATA_QUALITY_CONCEPTUAL_CONSISTENCY = null;
-    private XPathExpression XPATH_DATA_QUALITY_DOMAIN_CONSISTENCY = null;
-    private XPathExpression XPATH_DATA_QUALITY_FORMAT_CONSISTENCY = null;
-    private XPathExpression XPATH_DATA_QUALITY_GRIDDED_DATA_POSITIONAL_ACCURACY = null;
-    private XPathExpression XPATH_DATA_QUALITY_NON_QUANTITATIVE_ATTRIBUTE_ACCURACY = null;
-    private XPathExpression XPATH_DATA_QUALITY_QUANTITATIVE_ATTRIBUTE_ACCURACY = null;
-    private XPathExpression XPATH_DATA_QUALITY_RELATIVE_INTERNAL_POSITIONAL_ACCURACY = null;
-    private XPathExpression XPATH_DATA_QUALITY_TEMPORAL_CONSISTENCY = null;
-    private XPathExpression XPATH_DATA_QUALITY_TEMPORAL_VALIDITY = null;
-    private XPathExpression XPATH_DATA_QUALITY_THEMATIC_CLASSIFICATION_CORRECTNESS = null;
-    private XPathExpression XPATH_DATA_QUALITY_TOPOLOGICAL_CONSISTENCY = null;
-    private XPathExpression XPATH_DATA_QUALITY_NODE_CHARACTER_STRINGS = null;    
-    private XPathExpression XPATH_DATA_QUALITY_NODE_PASS = null;
     private XPathExpression XPATH_DISTRIBUTION_INFO_DISTRIBUTION_FORMATS = null;
     private XPathExpression XPATH_DISTRIBUTION_INFO_DISTRIBUTION_FORMAT_NAME = null;
     private XPathExpression XPATH_DISTRIBUTION_INFO_DISTRIBUTION_FORMAT_VERSION = null;
@@ -115,6 +90,7 @@ public class CSWISORecordParser {
     private XPathExpression XPATH_METADATA_CHARSET = null;
     private XPathExpression XPATH_METADATA_RESPONSIBLE_PARTIES = null;
     private XPathExpression XPATH_METADATA_DATE = null;
+    private XPathExpression XPATH_METADATA_REFERENCESYSTEM = null;
 
     public CSWISORecordParser() throws XPathExpressionException {
         xpath.setNamespaceContext(new CSWISORecordNamespaceContext());
@@ -122,49 +98,6 @@ public class CSWISORecordParser {
         //(0..*)
         XPATH_DATA_QUALITY = xpath.compile(
                 "./gmd:dataQualityInfo/gmd:DQ_DataQuality");
-
-        XPATH_DATA_QUALITY_CONFORMANCES = xpath.compile(
-                "./gmd:report/gmd:DQ_DomainConsistency/gmd:result/gmd:DQ_ConformanceResult/gmd:specification/gmd:CI_Citation/gmd:title/gco:CharacterString");
-
-        XPATH_DATA_QUALITY_LINEAGE = xpath.compile(
-                "./gmd:lineage/gmd:LI_Lineage/gmd:statement/gco:CharacterString");
-
-        XPATH_DATA_QUALITY_ABSOLUTE_EXTERNAL_POSITIONAL_ACCURACY = xpath.compile(
-                "./gmd:report/gmd:DQ_AbsoluteExternalPositionalAccuracy/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_ACCURACY_OF_TIME_MEASUREMENT = xpath.compile(
-                "./gmd:report/gmd:DQ_AccuracyOfATimeMeasurement/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_COMPLETENESS_COMMISSION = xpath.compile(
-                "./gmd:report/gmd:DQ_CompletenessCommission/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_COMPLETENESS_OMISSION = xpath.compile(
-                "./gmd:report/gmd:DQ_CompletenessOmission/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_CONCEPTUAL_CONSISTENCY = xpath.compile(
-                "./gmd:report/gmd:DQ_ConceptualConsistency/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_DOMAIN_CONSISTENCY = xpath.compile(
-                "./gmd:report/gmd:DQ_DomainConsistency/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_FORMAT_CONSISTENCY = xpath.compile(
-                "./gmd:report/gmd:DQ_FormatConsistency/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_GRIDDED_DATA_POSITIONAL_ACCURACY = xpath.compile(
-                "./gmd:report/gmd:DQ_GriddedDataPositionalAccuracy/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_NON_QUANTITATIVE_ATTRIBUTE_ACCURACY = xpath.compile(
-                "./gmd:report/gmd:DQ_NonQuantitativeAttributeAccuracy/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_QUANTITATIVE_ATTRIBUTE_ACCURACY = xpath.compile(
-                "./gmd:report/gmd:DQ_AbsoluteExternalPositionalAccuracy/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_RELATIVE_INTERNAL_POSITIONAL_ACCURACY = xpath.compile(
-                "./gmd:report/gmd:DQ_RelativeInternalPositionalAccuracy/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_TEMPORAL_CONSISTENCY = xpath.compile(
-                "./gmd:report/gmd:DQ_TemporalConsistency/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_TEMPORAL_VALIDITY = xpath.compile(
-                "./gmd:report/gmd:DQ_TemporalValidity/gmd:result/gmd:DQ_ConformanceResult");
-        XPATH_DATA_QUALITY_THEMATIC_CLASSIFICATION_CORRECTNESS = xpath.compile(
-                "./gmd:report/gmd:DQ_ThematicClassificationCorrectness/gmd:result/gmd:DQ_ConformanceResult");
-        
-        XPATH_DATA_QUALITY_TOPOLOGICAL_CONSISTENCY = xpath.compile(
-                "./gmd:report/gmd:DQ_TopologicalConsistency/gmd:result/gmd:DQ_ConformanceResult");
-        /*parse the character strings from a qualitynode*/
-        XPATH_DATA_QUALITY_NODE_CHARACTER_STRINGS = xpath.compile(".//gco:CharacterString");
-
-        /*parse the "pass" tag from a qualitynode*/
-        XPATH_DATA_QUALITY_NODE_PASS = xpath.compile(".//gmd:pass/gco:Boolean");
 
         //(0..1)
         XPATH_DISTRIBUTION_INFO = xpath.compile(
@@ -324,6 +257,11 @@ public class CSWISORecordParser {
         // From root
         XPATH_METADATA_DATE = xpath.compile(
                 "./gmd:dateStamp/gco:DateTime");
+        // From root
+        XPATH_METADATA_REFERENCESYSTEM = xpath.compile(
+                "./gmd:referenceSystemInfo/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/gco:CharacterString");
+
+
     }
 
     public CSWIsoRecord parse(final Node elem, final Locale locale, MathTransform transform) throws XPathExpressionException, ParseException, TransformException {
@@ -346,7 +284,13 @@ public class CSWISORecordParser {
 
         nodeList = (NodeList) XPATH_DATA_QUALITY.evaluate(elem, XPathConstants.NODESET);
         if (nodeList.getLength() > 0) {
-            parseDataQualities(nodeList, record.getDataQualities(), pathToLocalizedValue);
+            try {
+                CSWISORecordDataQualityParser dataQualityParser = new CSWISORecordDataQualityParser();
+                record.setDataQualityObject(dataQualityParser.parseDataQualities(nodeList, pathToLocalizedValue));
+            }
+            catch (Exception e) {
+                log.warn("parseDataQualities FAIL! "+e.getMessage());
+            }
         }
 
         node = (Node) XPATH_DISTRIBUTION_INFO.evaluate(elem, XPathConstants.NODE);
@@ -392,7 +336,17 @@ public class CSWISORecordParser {
         node = (Node) XPATH_METADATA_DATE.evaluate(elem, XPathConstants.NODE);
         if (node != null) {
             value = getLocalizedContent(node, pathToLocalizedValue);
-            record.setMetadataDateStamp(dateTimeFormat().parse(value));
+            try{
+                record.setMetadataDateStamp(LocalDateTime.parse(value, DATE_TIME_FORMAT));
+            }catch (Exception e){
+                // TODO: should we add raw xml content if parsing fails
+            }
+        }
+
+        nodeList = (NodeList) XPATH_METADATA_REFERENCESYSTEM.evaluate(elem, XPathConstants.NODESET);
+        List<String> referenceSystemList = record.getReferenceSystems();
+        for (i = 0; i < nodeList.getLength(); i++) {
+            referenceSystemList.add(getText(nodeList.item(i)));
         }
 
         return record;
@@ -587,7 +541,13 @@ public class CSWISORecordParser {
         }
         node = (Node) XPATH_DI_SI_CITATION_DATE_VALUE.evaluate(cNode, XPathConstants.NODE);
         if (node != null) {
-            dateWithType.setDate(dateFormat().parse(getText(node)));
+            try {
+                dateWithType.setDate(LocalDate.parse(getText(node), DATE_FORMAT));
+            }
+            catch (Exception e) {
+                dateWithType.setXmlDate(getText(node));
+            }
+
         }
         citation.setDate(dateWithType);
         nodeList = (NodeList) XPATH_DI_SI_CITATION_RESOURCE_IDENTIFIERS.evaluate(cNode, XPathConstants.NODESET);
@@ -608,141 +568,6 @@ public class CSWISORecordParser {
             }
         }
     }
-
-    private void parseDataQualities(NodeList dqNodes, List<CSWIsoRecord.DataQuality> dataQualities, XPathExpression pathToLocalizedValue) throws XPathExpressionException {
-        Node parentNode;
-        NodeList nodeList;
-        List<String> list;
-
-
-        try {
-        for (int i = 0; i < dqNodes.getLength(); i++) {
-            
-            parentNode = dqNodes.item(i);
-            CSWIsoRecord.DataQuality dataQuality = new CSWIsoRecord.DataQuality();
-            Node lineageStatementNode = (Node) XPATH_DATA_QUALITY_LINEAGE.evaluate(parentNode, XPathConstants.NODE);
-            if (lineageStatementNode != null) {
-                dataQuality.setLineageStatement(getLocalizedContent(lineageStatementNode, pathToLocalizedValue));
-            }
-
-            /*this is essentially the same as domainconsistency, but is used on another tab in the gui...Leaving this as it is for now...*/
-            NodeList dataQualityConformancesNodeList = (NodeList) XPATH_DATA_QUALITY_CONFORMANCES.evaluate(parentNode, XPathConstants.NODESET);
-            List<String> reportConformancesList = dataQuality.getReportConformances();
-            parseNodeListStrings(dataQualityConformancesNodeList, reportConformancesList, pathToLocalizedValue);
-
-            NodeList positionalAccuracyNodeList = (NodeList) XPATH_DATA_QUALITY_ABSOLUTE_EXTERNAL_POSITIONAL_ACCURACY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> positionalAccuracyObjectList = dataQuality.getAbsoluteExternalPositionalAccuracyList();
-            this.processDataQualityNodeList(positionalAccuracyNodeList, positionalAccuracyObjectList, pathToLocalizedValue);
-
-            NodeList accuracyOfTimeMeasurementNodeList = (NodeList) XPATH_DATA_QUALITY_ACCURACY_OF_TIME_MEASUREMENT.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> accuracyOfTimeMeasurementObject = dataQuality.getAccuracyOfTimeMeasurementList();
-            this.processDataQualityNodeList(accuracyOfTimeMeasurementNodeList, accuracyOfTimeMeasurementObject, pathToLocalizedValue);
-
-            NodeList completenessCommissionNodeList = (NodeList) XPATH_DATA_QUALITY_COMPLETENESS_COMMISSION.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> completenessCommissionObject = dataQuality.getCompletenessCommissionList();
-            this.processDataQualityNodeList(completenessCommissionNodeList, completenessCommissionObject, pathToLocalizedValue);
-
-            NodeList completenessOmissionNodeList = (NodeList) XPATH_DATA_QUALITY_COMPLETENESS_OMISSION.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> completenessOmissionObject = dataQuality.getCompletenessOmissionList();
-            this.processDataQualityNodeList(completenessOmissionNodeList, completenessOmissionObject, pathToLocalizedValue);
-
-            NodeList conceptualConsistencyNodeList = (NodeList) XPATH_DATA_QUALITY_CONCEPTUAL_CONSISTENCY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> conceptualConsistencyObject = dataQuality.getConceptualConsistencyList();
-            this.processDataQualityNodeList(conceptualConsistencyNodeList, conceptualConsistencyObject, pathToLocalizedValue);
-
-            NodeList domainConsistencyNodeList = (NodeList) XPATH_DATA_QUALITY_DOMAIN_CONSISTENCY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> domainConsistencyObject = dataQuality.getDomainConsistencyList();
-            this.processDataQualityNodeList(domainConsistencyNodeList, domainConsistencyObject, pathToLocalizedValue);
-
-            NodeList formatConsistencyNodeList = (NodeList) XPATH_DATA_QUALITY_FORMAT_CONSISTENCY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> formatConsistencyObject = dataQuality.getFormatConsistencyList();
-            this.processDataQualityNodeList(formatConsistencyNodeList, formatConsistencyObject, pathToLocalizedValue);
-
-            NodeList griddedDataPositionalAccuracyNodeList = (NodeList) XPATH_DATA_QUALITY_GRIDDED_DATA_POSITIONAL_ACCURACY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> griddedDataPositionalAccuracyObject = dataQuality.getGriddedDataPositionalAccuracyList();
-            this.processDataQualityNodeList(griddedDataPositionalAccuracyNodeList, griddedDataPositionalAccuracyObject, pathToLocalizedValue);
-
-            NodeList nonQuantitativeAttributeAccuracyNodeList = (NodeList) XPATH_DATA_QUALITY_NON_QUANTITATIVE_ATTRIBUTE_ACCURACY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> nonQuantitativeAttributeAccuracyObject = dataQuality.getNonQuantitativeAttributeAccuracyList();
-            this.processDataQualityNodeList(nonQuantitativeAttributeAccuracyNodeList, nonQuantitativeAttributeAccuracyObject, pathToLocalizedValue);
-
-            NodeList quantitativeAttributeAccuracyNodeList = (NodeList) XPATH_DATA_QUALITY_QUANTITATIVE_ATTRIBUTE_ACCURACY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> quantitativeAttributeAccuracyObject = dataQuality.getQuantitativeAttributeAccuracyList();
-            this.processDataQualityNodeList(quantitativeAttributeAccuracyNodeList, quantitativeAttributeAccuracyObject, pathToLocalizedValue);
-
-            NodeList relativeInternalPositionalAccuracyNodeList = (NodeList) XPATH_DATA_QUALITY_RELATIVE_INTERNAL_POSITIONAL_ACCURACY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> relativeInternalPositionalAccuracyObject = dataQuality.getRelativeInternalPositionalAccuracyList();
-            this.processDataQualityNodeList(relativeInternalPositionalAccuracyNodeList, relativeInternalPositionalAccuracyObject, pathToLocalizedValue);
-
-            NodeList temporalConsistencyNodeList = (NodeList) XPATH_DATA_QUALITY_TEMPORAL_CONSISTENCY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> temporalConsistencyObject = dataQuality.getTemporalConsistencyList();
-            this.processDataQualityNodeList(temporalConsistencyNodeList, temporalConsistencyObject, pathToLocalizedValue);
-
-            NodeList temporalValidityNodeList = (NodeList) XPATH_DATA_QUALITY_TEMPORAL_VALIDITY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> temporalValidityObject = dataQuality.getTemporalValidityList();
-            this.processDataQualityNodeList(temporalValidityNodeList, temporalValidityObject, pathToLocalizedValue);
-
-            NodeList thematicClassificationCorrectnessNodeList = (NodeList) XPATH_DATA_QUALITY_TEMPORAL_VALIDITY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> thematicClassificationCorrectnessObject = dataQuality.getThematicClassificationCorrectnessList();
-            this.processDataQualityNodeList(thematicClassificationCorrectnessNodeList, thematicClassificationCorrectnessObject, pathToLocalizedValue);
-
-            NodeList topologicalConsistencyNodeList = (NodeList) XPATH_DATA_QUALITY_TEMPORAL_VALIDITY.evaluate(parentNode, XPathConstants.NODESET);
-            List<CSWIsoRecord.DataQuality.DataQualityObject> topologicalConsistencyObject = dataQuality.getTopologicalConsistencyList();
-            this.processDataQualityNodeList(topologicalConsistencyNodeList, topologicalConsistencyObject, pathToLocalizedValue);
-            
-            dataQualities.add(dataQuality);
-
-        }
-    } catch (Exception e) {
-        log.warn("parseDataQualities FAIL! "+e.getMessage());
-    }
-    }
-
-    /**
-     * Processes a set of DQ_* - nodes into a corresponding json structure
-     *
-     * @param nodeList list of nodes
-     * @param dataQualityObjectList the list of objects to generate based on nodeList
-     * @param pathToLocalizedValue
-     * @return
-     * @throws XPathExpressionException
-     */
-
-    private void processDataQualityNodeList(NodeList nodeList, List<CSWIsoRecord.DataQuality.DataQualityObject> dataQualityObjectList, XPathExpression pathToLocalizedValue)  throws XPathExpressionException {
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            CSWIsoRecord.DataQuality.DataQualityObject dqObject = new CSWIsoRecord.DataQuality.DataQualityObject();
-            parseDataQualityNodeAttributes(node, dqObject, pathToLocalizedValue);
-            dataQualityObjectList.add(dqObject);         
-        }
-    }
-
-    /**
-     * Parse the values from inside a DQ_* - node into a corresponding json structure
-     *
-     * @param node the node to process
-     * @param dataQualityObject the object to add the values to
-     * @param pathToLocalizedValue
-     * @return
-     * @throws XPathExpressionException
-     */
-    private void parseDataQualityNodeAttributes(Node node, CSWIsoRecord.DataQuality.DataQualityObject dataQualityObject, XPathExpression pathToLocalizedValue)  throws XPathExpressionException {
-        if (node != null) {
-            List<String> list = dataQualityObject.getList(); 
-            //Character strings
-            NodeList nodeList  = (NodeList) XPATH_DATA_QUALITY_NODE_CHARACTER_STRINGS.evaluate(node, XPathConstants.NODESET);
-            if (nodeList != null) {
-                parseNodeListStrings(nodeList, list, pathToLocalizedValue);
-            }
-
-            //"pass" tag.
-            Node pass = (Node)XPATH_DATA_QUALITY_NODE_PASS.evaluate(node, XPathConstants.NODE);
-            if (pass != null) {
-                dataQualityObject.setPass(getText(pass));
-            }
-            
-        }
-    };
 
     private void parseDistributionInfo(Node diNode, CSWIsoRecord record, XPathExpression pathToLocalizedValue) throws XPathExpressionException {
         int i;
@@ -870,7 +695,7 @@ public class CSWISORecordParser {
 
             // GeoTools
             CSWIsoRecord.Envelope envStr = new CSWIsoRecord.Envelope();
-            Envelope env = new Envelope(y1, y2, x1, x2);
+            Envelope env = new Envelope(x1, x2, y1, y2);
             if (transform != null) {
                 env = JTS.transform(env, transform);
             }

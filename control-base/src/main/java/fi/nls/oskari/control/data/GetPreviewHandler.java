@@ -38,6 +38,8 @@ import java.io.FileOutputStream;
 import java.net.HttpURLConnection;
 import java.util.*;
 
+import static fi.nls.oskari.control.ActionConstants.PARAM_SRS;
+
 @OskariActionRoute("GetPreview")
 public class GetPreviewHandler extends ActionHandler {
 
@@ -148,7 +150,7 @@ public class GetPreviewHandler extends ActionHandler {
             final byte[] presponse = IOHelper.readBytes(con.getInputStream());
             // Save plot for future use
             if (!file_save.isEmpty()) savePdfPng(presponse, file_save, pformat);
-            
+
             //savePdfPng(presponse, "GETPREVIEWFINAL", pformat);
 
             final String contentType = con.getHeaderField(HEADER_CONTENT_TYPE);
@@ -250,7 +252,7 @@ public class GetPreviewHandler extends ActionHandler {
 
             // GeoJson graphics layers to selected layers
             final String geojs64 = params.getHttpParam(PARM_GEOJSON, "");
-             
+
             JSONArray geojs = null;
             if (!geojs64.isEmpty()) {
                 // decoding geojson
@@ -273,7 +275,7 @@ public class GetPreviewHandler extends ActionHandler {
             final JSONArray fullLayersConfigJson = MapfullHandler
                     .getFullLayerConfig(configLayers, params.getUser(), params
                             .getLocale().getLanguage(),
-                            PRINT_VIEW, ViewTypes.PRINT, Collections.EMPTY_SET, useDirectURLForMyplaces);                       
+                            PRINT_VIEW, ViewTypes.PRINT, Collections.EMPTY_SET, useDirectURLForMyplaces, params.getHttpParam(PARAM_SRS));
 
             // GeoJson graphics layers + styles
             if (geojs != null) {
@@ -292,9 +294,9 @@ public class GetPreviewHandler extends ActionHandler {
                     addTiles2Layers(fullLayersConfigJson, tiles);
                     fixStatsOrganization(fullLayersConfigJson, tiles);
                 }
-        //    }            
-                
-            jsonprint.put(KEY_LAYERS, fullLayersConfigJson);                        
+        //    }
+
+            jsonprint.put(KEY_LAYERS, fullLayersConfigJson);
 
         } catch (Exception e) {
         	log.error(e);
@@ -327,11 +329,11 @@ public class GetPreviewHandler extends ActionHandler {
 							}
 						}
 					}
-					
+
 					if (indicatorData != null && indicatorData.has("dataSource"))
 						layerObj.put("copyrightInfo", indicatorData.get("dataSource"));
 				}
-				
+
 			} catch (JSONException e)
 			{
 				log.warn(e, "Cannot get layer configuration");
@@ -345,7 +347,7 @@ public class GetPreviewHandler extends ActionHandler {
         try {
             // GeoJson graphics layers to selected layers
             final String tiles = params.getHttpParam(PARM_TILES, "");
-           
+
             if (!tiles.isEmpty()) {
                 tilesjs = new JSONArray(tiles);
             }
@@ -433,7 +435,7 @@ public class GetPreviewHandler extends ActionHandler {
                                                             .getDouble(KEY_GJS_FILLOPACITY);
                                                 	opacityPresent = true;
                                                 }
-                                                    
+
                                             }
                                         }
                                     }
@@ -491,9 +493,9 @@ public class GetPreviewHandler extends ActionHandler {
                         // There is only one key
                         if (keys.hasNext()) {
                             String key = (String) keys.next();
-                            // Stats layer in one tile                            
+                            // Stats layer in one tile
                             for (int ix = 0; ix < tile.getJSONArray(key).length(); ix++)
-                            {															
+                            {
                             	JSONObject tile0 = tile.getJSONArray(key).getJSONObject(ix);
                             	List boxpoints = new ArrayList();
                             	boxpoints.add(minxy.getInt(0));
@@ -541,7 +543,7 @@ public class GetPreviewHandler extends ActionHandler {
                 }
 
             }
- 
+
         } catch (Exception e) {
             throw new ActionException("Failed to read print info geojson", e);
         }

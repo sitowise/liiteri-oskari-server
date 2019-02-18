@@ -3,6 +3,7 @@ package fi.nls.oskari.control.szopa.requests;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONArray;
@@ -49,11 +50,14 @@ public class Indicators extends SzopaRequest {
 
         if (user != null) {
             PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-            final List<String> permissionsList = permissionsService
+            final Set<String> permissionsList = permissionsService
                     .getResourcesWithGrantedPermissions("operation", user,
                             Permissions.PERMISSION_TYPE_EXECUTE);
-
-            hasPermission = permissionsList.contains("statistics+restricted");
+            for(String permission : permissionsList) {
+                if("statistics+restricted".equals(permission)) {
+                    hasPermission = true;
+                }
+            }
         }
 
         if (hasPermission) {

@@ -18,23 +18,24 @@ import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.analysis.domain.AnalysisLayer;
 import fi.nls.oskari.map.analysis.service.AnalysisDbService;
-import fi.nls.oskari.map.analysis.service.AnalysisDbServiceIbatisImpl;
+import fi.nls.oskari.map.analysis.service.AnalysisDbServiceMybatisImpl;
 import fi.nls.oskari.map.layer.OskariLayerService;
-import fi.nls.oskari.map.userlayer.service.UserLayerDbService;
-import fi.nls.oskari.map.userlayer.service.UserLayerDbServiceIbatisImpl;
 import fi.nls.oskari.myplaces.MyPlacesService;
 import fi.nls.oskari.permission.domain.Permission;
 import fi.nls.oskari.permission.domain.Resource;
 import fi.nls.oskari.service.OskariComponentManager;
 import fi.nls.oskari.service.UserService;
 import fi.nls.oskari.util.ConversionHelper;
-import fi.nls.oskari.util.ServiceFactory;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.oskari.map.userlayer.service.UserLayerDbService;
+import org.oskari.service.util.ServiceFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by SMAKINEN on 17.8.2015.
@@ -59,11 +60,11 @@ public class PublishPermissionHelper {
         }
 
         if (analysisService == null) {
-            setAnalysisService(new AnalysisDbServiceIbatisImpl());
+            setAnalysisService(new AnalysisDbServiceMybatisImpl());
         }
 
         if (userLayerService == null) {
-            setUserLayerService(new UserLayerDbServiceIbatisImpl());
+            setUserLayerService(OskariComponentManager.getComponentOfType(UserLayerDbService.class));
         }
 
         if (permissionsService == null) {
@@ -191,13 +192,13 @@ public class PublishPermissionHelper {
             return false;
         }
 
-        final List<String> permissionsList = permissionsService.getResourcesWithGrantedPermissions(
+        final Set<String> permissions = permissionsService.getResourcesWithGrantedPermissions(
                 AnalysisLayer.TYPE, user, Permissions.PERMISSION_TYPE_PUBLISH);
-        LOG.debug("Analysis layer publish permissions", permissionsList);
+        LOG.debug("Analysis layer publish permissions", permissions);
         final String permissionKey = "analysis+"+analysis.getId();
 
-        LOG.debug("PublishPermissions:", permissionsList);
-        boolean hasPermission = permissionsList.contains(permissionKey);
+        LOG.debug("PublishPermissions:", permissions);
+        boolean hasPermission = permissions.contains(permissionKey);
         if (hasPermission) {
             // write publisher name for analysis
             analysisService.updatePublisherName(analysisId, user.getUuid(), user.getScreenname());

@@ -42,16 +42,16 @@
     </statement>	
 
     <select id="findAll" resultMap="GroupingThemeDataResult">
-        select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1
-		UNION ALL
-		select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid
+        select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1 
+        UNION ALL
+        select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid
     </select>   
 
 	<select id="getDataForThemeId" resultMap="GroupingThemeDataResult"
 		parameterClass="java.lang.Long">
 		select Id, Name,DataId,DataType,OskariGroupingThemeId,status from oskari_groupings_data where DataType = 1 and OskariGroupingThemeId = #id#
-		UNION ALL
-		select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid and g.OskariGroupingThemeId = #id#
+        UNION ALL
+        select g.Id, m.locale As name,g.DataId,g.DataType,g.OskariGroupingThemeId,g.status from oskari_groupings_data g, oskari_maplayer m where g.DataType = 0 and m.id = g.dataid and g.OskariGroupingThemeId = #id#
 	</select>
 	
 	<select id="getAllIndicatorsForStatisticsThemes" resultMap="GroupingThemeDataResult">

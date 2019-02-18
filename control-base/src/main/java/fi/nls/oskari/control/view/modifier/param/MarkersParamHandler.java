@@ -1,6 +1,7 @@
 package fi.nls.oskari.control.view.modifier.param;
 
 import fi.nls.oskari.annotation.OskariViewModifier;
+import fi.nls.oskari.view.modifier.ParamHandler;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.ConversionHelper;
@@ -47,6 +48,7 @@ public class MarkersParamHandler extends ParamHandler {
     private static final String KEY_MESSAGE = "msg";
     private static final String KEY_X = "x";
     private static final String KEY_Y = "y";
+    static final String KEY_TRANSIENT = "transient";
 
     // for parsing mapfull config
     private static final String MARKERSPLUGIN_ID = "MainMapModuleMarkersPlugin";

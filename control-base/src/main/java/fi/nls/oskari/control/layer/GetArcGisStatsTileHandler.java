@@ -12,7 +12,6 @@ import fi.nls.oskari.domain.map.stats.StatsVisualization;
 import fi.nls.oskari.log.LogFactory;
 import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.stats.VisualizationService;
-import fi.nls.oskari.map.stats.VisualizationServiceIbatisImpl;
 import fi.nls.oskari.util.ConversionHelper;
 import fi.nls.oskari.util.IOHelper;
 import fi.nls.oskari.util.PropertyUtil;
@@ -58,7 +57,7 @@ public class GetArcGisStatsTileHandler extends ActionHandler {
     final private static String PARAM_SCALE = "SCALE";   
     final private static String PARAM_REQUEST = "REQUEST";
 
-    private final VisualizationService service = new VisualizationServiceIbatisImpl();
+    private final VisualizationService service = new VisualizationService();
     private final ArcgisTokenService tokenService = ArcgisTokenService.getInstance();
     private final ArcgisImageService imageService = ArcgisImageService.getInstance();
     private final ArcgisLayerService arcgisLayerService = new ArcgisLayerService();

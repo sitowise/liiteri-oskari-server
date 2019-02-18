@@ -10,12 +10,15 @@ import fi.nls.oskari.routing.RouteResponse;
 import fi.nls.oskari.routing.RoutingService;
 import fi.nls.oskari.routing.RoutingServiceOpenTripPlannerImpl;
 import fi.nls.oskari.util.ConversionHelper;
+import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import fi.nls.oskari.util.ResponseHelper;
+import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import static fi.nls.oskari.control.ActionConstants.*;
 
 /**
  * Created by SMAKINEN on 26.6.2015.
@@ -27,18 +30,17 @@ public class RoutingHandler extends ActionHandler {
     private RoutingService service = new RoutingServiceOpenTripPlannerImpl();
 
 
-    private static final String PARAM_LANG = "lang";
     private static final String PARAM_FROM_LAT = "fromlat";
     private static final String PARAM_FROM_LON = "fromlon";
     private static final String PARAM_TO_LAT = "tolat";
     private static final String PARAM_TO_LON = "tolon";
-    private static final String PARAM_SRS = "srs";
     private static final String PARAM_DATE = "date";
     private static final String PARAM_TIME = "time";
     private static final String PARAM_ARRIVEBY = "arriveby";
     private static final String PARAM_MODE = "mode";
     private static final String PARAM_MAX_WALK_DISTANCE = "maxwalkdistance";
     private static final String PARAM_WHEELCHAIR = "wheelchair";
+    public static final String PARAM_SHOW_INTERMEDIATE_STOPS = "showIntermediateStops";
 
     @Override
     public void handleAction(ActionParameters params) throws ActionException {
@@ -62,15 +64,20 @@ public class RoutingHandler extends ActionHandler {
         }
         routeparams.setIsArriveBy("true".equals(params.getHttpParam(PARAM_ARRIVEBY)));
         routeparams.setIsWheelChair("true".equals(params.getHttpParam(PARAM_WHEELCHAIR)));
+        routeparams.setIsShowIntermediateStops("true".equals(params.getHttpParam(PARAM_SHOW_INTERMEDIATE_STOPS)));
 
         routeparams.setSrs(params.getHttpParam(PARAM_SRS));
-        routeparams.setLang(params.getHttpParam(PARAM_LANG));
-        routeparams.setMaxWalkDistance(ConversionHelper.getLong(params.getHttpParam(PARAM_MAX_WALK_DISTANCE, PropertyUtil.get("routing.default.maxwalkdistance")), 1000));
+        routeparams.setLang(params.getHttpParam(PARAM_LANGUAGE));
+        routeparams.setMaxWalkDistance(ConversionHelper.getLong(params.getHttpParam(PARAM_MAX_WALK_DISTANCE, PropertyUtil.get("routing.default.maxwalkdistance")), 1000000));
         routeparams.setMode(params.getHttpParam(PARAM_MODE, PropertyUtil.get("routing.default.mode")));
 
         RouteResponse result = service.getRoute(routeparams);
+        JSONObject response = result.toJSON();
+        if(params.getUser().isAdmin()) {
+            JSONHelper.putValue(response, "otpUrl", result.getRequestUrl());
+        }
 
-        ResponseHelper.writeResponse(params, result.toJSON());
+        ResponseHelper.writeResponse(params, response);
 
     }
 }

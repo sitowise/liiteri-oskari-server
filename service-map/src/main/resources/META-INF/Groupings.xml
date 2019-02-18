@@ -38,7 +38,7 @@
 		</iterate>
 	</select>
 	
-	<select id="find" resultMap="GroupingResult" parameterClass="java.lang.Long">
+	<select id="find" resultMap="GroupingResult" parameterClass="java.lang.Integer">
         select id, name,label,status,description,userGroup,created,updated,mapState from oskari_groupings
         where id = #id#
     </select>

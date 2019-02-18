@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<!DOCTYPE sqlMap      
-    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"      
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
     "http://ibatis.apache.org/dtd/sql-map-2.dtd">
 
 <sqlMap namespace="OskariLayer">
@@ -16,7 +16,7 @@
         <parameter property="parentId" jdbcType="INTEGER"  javaType="int" />
         <parameter property="type" />
         <parameter property="baseMap" />
-        <parameter property="groupId" />
+        <parameter property="dataproviderId" />
 
         <parameter property="name" />
         <parameter property="url" />
@@ -30,7 +30,6 @@
         <parameter property="legendImage" />
         <parameter property="metadataId" />
 
-        <parameter property="tileMatrixSetId" />
         <parameter property="params" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="options" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
@@ -51,9 +50,12 @@
 
         <parameter property="created" jdbcType="DATETIME" javaType="java.util.Date" />
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
-        
+
+        <parameter property="capabilitiesLastUpdated" jdbcType="DATETIME" javaType="java.util.Date" />
+        <parameter property="capabilitiesUpdateRateSec" jdbcType="INTEGER" javaType="int" />
+
         <parameter property="downloadServiceUrl" />
-		<parameter property="copyrightInfo" />
+        <parameter property="copyrightInfo" />
 
         <!-- parameter property="id" jdbcType="INTEGER" javaType="java.lang.Integer" mode="OUT" / -->
     </parameterMap>
@@ -61,7 +63,7 @@
     <parameterMap id="LayerUpdateParameter" class="OskariLayer"> <!--  extends="OskariLayer.LayerInsertParameter" -->
         <parameter property="parentId" />
         <parameter property="baseMap" />
-        <parameter property="groupId" />
+        <parameter property="dataproviderId" />
 
         <parameter property="name" />
         <parameter property="url" />
@@ -75,7 +77,6 @@
         <parameter property="legendImage" />
         <parameter property="metadataId" />
 
-        <parameter property="tileMatrixSetId" />
         <parameter property="params" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="options" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
         <parameter property="attributes" jdbcType="VARCHAR" javaType="org.json.JSONObject" />
@@ -96,9 +97,12 @@
 
         <parameter property="updated" jdbcType="DATETIME" javaType="java.util.Date" />
 
-		<parameter property="downloadServiceUrl" />
-		<parameter property="copyrightInfo" />
-		
+        <parameter property="capabilitiesLastUpdated" jdbcType="DATETIME" javaType="java.util.Date" />
+        <parameter property="capabilitiesUpdateRateSec" jdbcType="INTEGER" javaType="int" />
+
+        <parameter property="downloadServiceUrl" />
+        <parameter property="copyrightInfo" />
+
         <parameter property="id" />
     </parameterMap>
 
@@ -112,7 +116,7 @@
         l.externalId,
         l.type,
         l.base_map,
-        l.groupId,
+        l.dataprovider_id,
 
         l.name,
         l.url,
@@ -126,7 +130,6 @@
         l.legend_image,
         l.metadataId,
 
-        l.tile_matrix_set_id,
         l.params,
         l.options,
         l.attributes,
@@ -145,13 +148,16 @@
 
         l.created,
         l.updated,
-        
+
+        l.capabilities_last_updated,
+        l.capabilities_update_rate_sec,
+
         l.download_service_url,
-		l.copyright_info
+        l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
-        ON  m.metadataid = l.metadataId
+        oskari_maplayer l
+        LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
         WHERE
         l.id = #id# OR l.parentId = #id#
         ORDER BY l.parentId ASC
@@ -168,7 +174,7 @@
         l.externalId,
         l.type,
         l.base_map,
-        l.groupId,
+        l.dataprovider_id,
 
         l.name,
         l.url,
@@ -182,7 +188,6 @@
         l.legend_image,
         l.metadataId,
 
-        l.tile_matrix_set_id,
         l.params,
         l.options,
         l.attributes,
@@ -201,13 +206,16 @@
 
         l.created,
         l.updated,
-        
+
+        l.capabilities_last_updated,
+        l.capabilities_update_rate_sec,
+
         l.download_service_url,
-		l.copyright_info
+        l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
-        ON  m.metadataid = l.metadataId
+        oskari_maplayer l
+        LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
         WHERE
         l.parentId = #id#
 
@@ -224,7 +232,7 @@
         l.externalId,
         l.type,
         l.base_map,
-        l.groupId,
+        l.dataprovider_id,
 
         l.name,
         l.url,
@@ -238,7 +246,6 @@
         l.legend_image,
         l.metadataId,
 
-        l.tile_matrix_set_id,
         l.params,
         l.options,
         l.attributes,
@@ -257,19 +264,22 @@
 
         l.created,
         l.updated,
-        
+
+        l.capabilities_last_updated,
+        l.capabilities_update_rate_sec,
+
         l.download_service_url,
-		l.copyright_info
+        l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
-        ON  m.metadataid = l.metadataId
+        oskari_maplayer l
+        LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
         WHERE
         l.externalId = #id#
         AND l.parentId = -1
 
     </select>
-    
+
     <select id="findByUuId"
             parameterClass="String"
             resultClass="java.util.HashMap">
@@ -281,7 +291,7 @@
         l.externalId,
         l.type,
         l.base_map,
-        l.groupId,
+        l.dataprovider_id,
 
         l.name,
         l.url,
@@ -295,7 +305,6 @@
         l.legend_image,
         l.metadataId,
 
-        l.tile_matrix_set_id,
         l.params,
         l.options,
         l.attributes,
@@ -313,11 +322,17 @@
         m.wkt as geom,
 
         l.created,
-        l.updated
+        l.updated,
+
+        l.capabilities_last_updated,
+        l.capabilities_update_rate_sec,
+
+        l.download_service_url,
+        l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
-        ON  m.metadataid = l.metadataId
+        oskari_maplayer l
+        LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
         WHERE
         m.metadataid = #id#
         AND l.parentId = -1
@@ -335,7 +350,7 @@
         l.externalId,
         l.type,
         l.base_map,
-        l.groupId,
+        l.dataprovider_id,
 
         l.name,
         l.url,
@@ -349,7 +364,6 @@
         l.legend_image,
         l.metadataId,
 
-        l.tile_matrix_set_id,
         l.params,
         l.options,
         l.attributes,
@@ -367,18 +381,24 @@
         m.wkt as geom,
 
         l.created,
-        l.updated
+        l.updated,
+
+        l.capabilities_last_updated,
+        l.capabilities_update_rate_sec,
+
+        l.download_service_url,
+        l.copyright_info
 
         FROM
-        oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
-        ON  m.metadataid = l.metadataId
+        oskari_maplayer l
+        LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
         WHERE
         l.name = #name#
         AND  l.url = #url#
         AND l.parentId = -1
 
     </select>
-        
+
 <select id="findAll"
         resultClass="java.util.HashMap">
 
@@ -388,7 +408,7 @@
     l.externalId,
     l.type,
     l.base_map,
-    l.groupId,
+    l.dataprovider_id,
 
     l.name,
     l.url,
@@ -402,7 +422,153 @@
     l.legend_image,
     l.metadataId,
 
-    l.tile_matrix_set_id,
+    l.params,
+    l.options,
+    l.attributes,
+    l.capabilities,
+
+    l.gfi_xslt,
+    l.gfi_type,
+    l.gfi_content,
+    l.realtime,
+    l.refresh_rate,
+    l.username,
+    l.password,
+    l.version,
+    <dynamic>
+        <isParameterPresent>
+            #crs# as srs_name,
+        </isParameterPresent>
+        <isNotParameterPresent>
+    l.srs_name,
+        </isNotParameterPresent>
+    </dynamic>
+    l.srs_name,
+    m.wkt as geom,
+
+    l.created,
+    l.updated,
+
+    l.capabilities_last_updated,
+    l.capabilities_update_rate_sec,
+
+    l.download_service_url,
+    l.copyright_info
+
+    FROM
+    oskari_maplayer l
+    LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
+    <dynamic>
+        <isNotEmpty property="id">
+            WHERE
+            l.id = #id# OR l.parentId = #id#
+        </isNotEmpty>
+    </dynamic>
+
+    ORDER BY l.parentId ASC
+
+    </select>
+
+    <select id="findByIdList"
+            parameterClass="map"
+            resultClass="java.util.HashMap">
+
+        SELECT
+        l.id,
+        l.parentId,
+        l.externalId,
+        l.type,
+        l.base_map,
+        l.dataprovider_id,
+
+        l.name,
+        l.url,
+        l.locale,
+
+        l.opacity,
+        l.style,
+        l.minscale,
+        l.maxscale,
+
+        l.legend_image,
+        l.metadataId,
+
+        l.params,
+        l.options,
+        l.attributes,
+        l.capabilities,
+
+        l.gfi_xslt,
+        l.gfi_type,
+        l.gfi_content,
+        l.realtime,
+        l.refresh_rate,
+        l.username,
+        l.password,
+        l.version,
+        l.srs_name,
+        m.wkt as geom,
+
+        l.created,
+        l.updated,
+
+        l.capabilities_last_updated,
+        l.capabilities_update_rate_sec,
+
+        l.download_service_url,
+        l.copyright_info
+
+        FROM
+        oskari_maplayer l
+        LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
+        <dynamic prepend="WHERE">
+            <isNotEmpty  property="intList" prepend="OR">
+                l.id in
+                <iterate property="intList" open="(" close=")" conjunction=",">
+                    #intList[]#
+                </iterate>
+
+            </isNotEmpty>
+            <isNotEmpty  property="strList" prepend="OR">
+                l.externalId in
+                <iterate property="strList" open="(" close=")" conjunction=",">
+                    #strList[]#
+                </iterate>
+            </isNotEmpty>
+            <isNotEmpty property="parentIntList" prepend="OR">
+                l.parentId in
+                <iterate property="parentIntList" open="(" close=")" conjunction=",">
+                    #parentIntList[]#
+                </iterate>
+            </isNotEmpty>
+        </dynamic>
+
+        ORDER BY l.parentId ASC
+    </select>
+
+    <select id="findAllWithPositiveUpdateRateSec"
+        resultClass="java.util.HashMap">
+
+    SELECT
+    l.id,
+    l.parentId,
+    l.externalId,
+    l.type,
+    l.base_map,
+    l.dataprovider_id,
+
+    l.name,
+    l.url,
+    l.locale,
+
+    l.opacity,
+    l.style,
+    l.minscale,
+    l.maxscale,
+
+    l.legend_image,
+    l.metadataId,
+
     l.params,
     l.options,
     l.attributes,
@@ -421,15 +587,19 @@
 
     l.created,
     l.updated,
-    
+
+    l.capabilities_last_updated,
+    l.capabilities_update_rate_sec,
+
     l.download_service_url,
-	l.copyright_info
+    l.copyright_info
 
     FROM
-    oskari_maplayer l LEFT OUTER JOIN oskari_maplayer_metadata m
-    ON  m.metadataid = l.metadataId
+    oskari_maplayer l
+    LEFT OUTER JOIN oskari_maplayer_metadata m ON  m.metadataid = l.metadataId
+    WHERE capabilities_update_rate_sec > 0
     ORDER BY l.parentId ASC
-    </select>
+</select>
 
     <statement id="delete" parameterClass="int">
         <![CDATA[
@@ -444,7 +614,7 @@
             parentId,
             type,
             base_map,
-            groupId,
+            dataprovider_id,
 
             name,
             url,
@@ -458,7 +628,6 @@
             legend_image,
             metadataId,
 
-            tile_matrix_set_id,
             params,
             options,
             attributes,
@@ -479,10 +648,14 @@
 
             created,
             updated,
-            
+
+            capabilities_last_updated,
+
+            capabilities_update_rate_sec,
+
             download_service_url,
-			copyright_info)
-        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            copyright_info)
+        values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     </statement>
 
     <statement id="update" parameterMap="LayerUpdateParameter">
@@ -490,7 +663,7 @@
         SET
         parentId = ?,
         base_map = ?,
-        groupId = ?,
+        dataprovider_id = ?,
 
         name = ?,
         url = ?,
@@ -504,7 +677,6 @@
         legend_image = ?,
         metadataId = ?,
 
-        tile_matrix_set_id = ?,
         params = ?,
         options = ?,
         attributes = ?,
@@ -524,10 +696,13 @@
         srs_name = ?,
 
         updated=?,
-        
+
+        capabilities_last_updated=?,
+        capabilities_update_rate_sec=?,
+
         download_service_url=?,
-		copyright_info=?
-        
+        copyright_info=?
+
         WHERE id = ?
     </statement>
 </sqlMap>

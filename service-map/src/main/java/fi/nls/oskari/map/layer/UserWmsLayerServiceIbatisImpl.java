@@ -310,14 +310,4 @@ public class UserWmsLayerServiceIbatisImpl implements UserWmsLayerService {
         }
         return Collections.emptyList();
     }
-
-	@Override
-	public UserWmsLayer find(long id)
-	{
-		return this.find((int)id);
-	}
-	@Override
-    public void delete(long id) {
-    	this.delete((int)id);
-    }
 }

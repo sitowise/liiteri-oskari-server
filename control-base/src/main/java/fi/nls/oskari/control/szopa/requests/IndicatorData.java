@@ -29,7 +29,7 @@ import fi.nls.oskari.util.JSONHelper;
 /**
  * Request class for SotkaNET statistics query to get indicator data in CSV
  * format. SotkaRequest transforms CSV to JSON since we defined isCSV() => true
- * 
+ *
  * @author SMAKINEN
  */
 public class IndicatorData extends SzopaRequest {
@@ -174,12 +174,14 @@ public class IndicatorData extends SzopaRequest {
             boolean hasPermission = false;
             if (user != null) {
                 PermissionsService permissionsService = new PermissionsServiceIbatisImpl();
-                final List<String> permissionsList = permissionsService
+                final Set<String> permissionsList = permissionsService
                         .getResourcesWithGrantedPermissions("operation", user,
                                 Permissions.PERMISSION_TYPE_EXECUTE);
-
-                hasPermission = permissionsList
-                        .contains("statistics+restricted");
+                for(String permission : permissionsList) {
+                    if("statistics+restricted".equals(permission)) {
+                        hasPermission = true;
+                    }
+                }
             }
             if (!hasPermission) { // user has no permission to restricted data
                                   // so check from metadata if this indicator is

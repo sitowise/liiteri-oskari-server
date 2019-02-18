@@ -1,5 +1,6 @@
 package fi.nls.oskari.domain.map.view;
 
+import fi.nls.oskari.util.JSONHelper;
 import fi.nls.oskari.util.PropertyUtil;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.json.JSONObject;
@@ -178,6 +179,34 @@ public class View implements Serializable {
         return this.bundles;
     }
 
+    public void setBundles(List<Bundle> bundles) {
+        if (!checkSeqNumbers(bundles)) {
+            resetSeqNumbers(bundles);
+        }
+        this.bundles = bundles;
+    }
+
+    private boolean checkSeqNumbers(List<Bundle> bundles) {
+        if (bundles != null) {
+            int expected = 1;
+            for (Bundle bundle : bundles) {
+                if (expected++ != bundle.getSeqNo()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void resetSeqNumbers(List<Bundle> bundles) {
+        if (bundles != null) {
+            int seqNo = 1;
+            for (Bundle bundle : bundles) {
+                bundle.setSeqNo(seqNo++);
+            }
+        }
+    }
+
     public void addBundle(final Bundle bundle) {
         if(bundle.getSeqNo() == -1) {
             // fix sequence number if not set
@@ -206,12 +235,24 @@ public class View implements Serializable {
     }
 
     /**
+     * Reset bundle's segment number to be highest values (last bundle in loading)
+      * @param bundleName  bundle, which segment number must be highest
+     */
+    public void pushBundleLast(String bundleName) {
+        final int lastIndex = this.bundles.get(bundles.size() -1).getSeqNo();
+        for (Bundle bundle : this.bundles) {
+            if (bundle.getName().equals(bundleName)) {
+                bundle.setSeqNo(lastIndex + 1);
+            }
+        }
+    }
+
+    /**
      * Skips id, oldId and uuid but clones the rest of the info. Bundles retain ids.
      * @return cloned object with bundles
      */
     public View cloneBasicInfo() {
         View view = new View();
-//        // skip id, oldId, uuid, isDefault
         // skip id, oldId, uuid
         view.setName(getName());
         view.setDescription(getDescription());
@@ -229,4 +270,22 @@ public class View implements Serializable {
 
         return view;
     }
+
+    public JSONObject getMapOptions() {
+        Bundle mapfull = getBundleByName("mapfull");
+        if (mapfull == null) {
+            return null;
+        }
+        JSONObject config = mapfull.getConfigJSON();
+        return JSONHelper.getJSONObject(config, "mapOptions");
+    }
+
+    public String getSrsName() {
+        JSONObject mapOptions = getMapOptions();
+        if (mapOptions == null) {
+            return null;
+        }
+        return JSONHelper.getStringFromJSON(mapOptions, "srsName", null);
+    }
+
 }

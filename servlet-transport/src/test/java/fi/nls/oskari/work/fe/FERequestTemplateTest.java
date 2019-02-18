@@ -39,7 +39,7 @@ public class FERequestTemplateTest {
         final String maxCount = "1000";  // Not used - only for 2.0.0
         String srsName = "EPSG:3067"; // compatible with most WFS servers...
         template.setRequestFeatures(srsName, featureNs,featurePrefix, featureName, wFSver,
-                geomProp, geomNs, maxCount);
+                geomProp, geomNs, maxCount, false);
 
         CoordinateReferenceSystem crs = CRS
                 .decode(srsName);
@@ -51,7 +51,7 @@ public class FERequestTemplateTest {
 
         ByteArrayOutputStream outs = new ByteArrayOutputStream();
 
-        template.buildBBOXRequest_XPath(null, inp, outs, bbox);
+        template.buildBBOXRequest_XPath(null, inp, outs, bbox, false);
         outs.flush();
 
         String result = new String(outs.toByteArray());
@@ -81,7 +81,7 @@ public class FERequestTemplateTest {
         final String maxCount = "1000";  // Not used - only for 2.0.0
         String srsName = "EPSG:900913"; // compatible with most WFS servers...
         template.setRequestFeatures(srsName, featureNs,featurePrefix, featureName, wFSver,
-                geomProp, geomNs, maxCount);
+                geomProp, geomNs, maxCount, false);
 
         CoordinateReferenceSystem crs = CRS
                 .decode(srsName.indexOf("900913") != -1 ? "EPSG:3785" : srsName);
@@ -93,7 +93,7 @@ public class FERequestTemplateTest {
 
         ByteArrayOutputStream outs = new ByteArrayOutputStream();
 
-        template.buildBBOXRequest_XPath(null, inp, outs, bbox);
+        template.buildBBOXRequest_XPath(null, inp, outs, bbox, false);
         outs.flush();
 
         String result = new String(outs.toByteArray());
@@ -124,7 +124,7 @@ public class FERequestTemplateTest {
         final String maxCount = "1000";  // Not used for 1.1.0 version
         String srsName = "EPSG:900913"; // compatible with most WFS servers...
         template.setRequestFeatures(srsName, featureNs, featurePrefix, featureName, wFSver,
-                geomProp, geomNs, maxCount);
+                geomProp, geomNs, maxCount, false);
 
         CoordinateReferenceSystem crs = CRS
                 .decode(srsName.indexOf("900913") != -1 ? "EPSG:3785" : srsName);
@@ -135,7 +135,7 @@ public class FERequestTemplateTest {
         InputStream inp = getClass().getResourceAsStream(templatePath);
         ByteArrayOutputStream outs = new ByteArrayOutputStream();
 
-        template.buildBBOXRequest_XPath(null, inp, outs, bbox);
+        template.buildBBOXRequest_XPath(null, inp, outs, bbox, false);
         outs.flush();
 
         String result = new String(outs.toByteArray());

@@ -42,13 +42,15 @@ public class FEOutputProcessor implements OutputProcessor {
     final Map<Resource, Integer> selectedPropertiesIndex;
 
     final MathTransform transform;
+    final String geomProp;
 
     public FEOutputProcessor(final ArrayList<List<Object>> list,
             final Map<Resource, SimpleFeatureCollection> responseCollections,
             CoordinateReferenceSystem crs, FERequestResponse requestResponse,
             ArrayList<String> selectedProperties,
             Map<Resource, Integer> selectedPropertiesIndex,
-            MathTransform transform) {
+            MathTransform transform,
+            String geomProp) {
         this.list = list;
         this.responseCollections = responseCollections;
         this.crs = crs;
@@ -56,6 +58,7 @@ public class FEOutputProcessor implements OutputProcessor {
         this.selectedProperties = selectedProperties;
         this.selectedPropertiesIndex = selectedPropertiesIndex;
         this.transform = transform;
+        this.geomProp = geomProp;
     }
 
     public void begin() throws IOException {
@@ -86,7 +89,7 @@ public class FEOutputProcessor implements OutputProcessor {
     public void flush() throws IOException {
     }
 
-    public SimpleFeatureBuilder getAndSetFeatureBuilder(Resource type) {
+    public SimpleFeatureBuilder getAndSetFeatureBuilder(Resource type, List<Pair<Resource, Object>> simpleProperties) {
 
         SimpleFeatureBuilder sfb = responseBuilders.get(type);
         if (sfb == null) {
@@ -98,8 +101,26 @@ public class FEOutputProcessor implements OutputProcessor {
             // add a geometry property
 
             ftb.setCRS(crs); // set crs first
-            ftb.add("geometry", Geometry.class, crs); // then add
-            // geometry
+            // then add geometry
+            ftb.add(this.geomProp, Geometry.class, crs);
+
+            // Add other properties
+            if (selectedProperties != null && selectedProperties.size() > 0) {
+
+                for (Pair<Resource, ?> pair : simpleProperties) {
+                    Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
+                    if (keyIndex == null) {
+                    /*
+                     * log.debug("KEY INDEX FOR " + pair.getKey() +
+                     * " not found");
+                     */
+                        continue;
+                    }
+                    //TODO: type management
+                    ftb.add(pair.getKey().getLocalPart(),  pair.getValue().getClass());
+
+                }
+            }
 
             SimpleFeatureType schema = ftb.buildFeatureType();
 
@@ -172,7 +193,7 @@ public class FEOutputProcessor implements OutputProcessor {
             List<Pair<Resource, Geometry>> geometryProperties)
             throws IOException {
 
-        SimpleFeatureBuilder sfb = getAndSetFeatureBuilder(type);
+        SimpleFeatureBuilder sfb = getAndSetFeatureBuilder(type, simpleProperties);
         List<SimpleFeature> sfc = getAndSetListSimpleFeature(type);
 
         for (Pair<Resource, Geometry> geomPair : geometryProperties) {
@@ -189,8 +210,25 @@ public class FEOutputProcessor implements OutputProcessor {
             }
 
             sfb.add(geom);
+            // Add other properties
+            if (selectedProperties != null && selectedProperties.size() > 0) {
 
-            SimpleFeature f = sfb.buildFeature(iri.toString());
+                for (Pair<Resource, ?> pair : simpleProperties) {
+                    Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
+                    if (keyIndex == null) {
+                    /*
+                     * log.debug("KEY INDEX FOR " + pair.getKey() +
+                     * " not found");
+                     */
+                        continue;
+                    }
+                    sfb.add(pair.getValue());
+                }
+
+
+            }
+
+            SimpleFeature f = sfb.buildFeature(iri.getUuid());
 
             sfc.add(f);
 
@@ -211,7 +249,7 @@ public class FEOutputProcessor implements OutputProcessor {
             for (String field : selectedProperties) {
                 props.add(null);
             }
-            props.set(0, iri.toString());
+            props.set(0, iri.getUuid());  //Use local part for id
             for (Pair<Resource, ?> pair : simpleProperties) {
                 Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
                 if (keyIndex == null) {
@@ -268,5 +306,57 @@ public class FEOutputProcessor implements OutputProcessor {
             log.debug("Local href subfeature merge failed:", ee);
         }
     }
+
+    /**
+     * Make property element jsonarrays to equal size
+     *
+     * @param multiElemmap elements to make equal size
+
+     */
+    public void equalizePropertyArraySize(Map<String, Integer> multiElemmap, Map<String, Resource> resmap) {
+        if (multiElemmap.size() < 1) return;
+        try {
+            // loop hashmap
+            Resource res = null;
+            int maxsize = 0;
+            for (Map.Entry<String, Integer> entry : multiElemmap.entrySet()) {
+                res = resmap.get(entry.getKey());
+                maxsize = entry.getValue();
+                // Get index of resource
+                Integer keyInd = selectedPropertiesIndex.get(res);
+                if (keyInd == null) return;
+
+                //Loop features and equalize size
+                for (List lis : list) {
+                    // Href key
+                    Object val = lis.get(keyInd);
+                    if (val instanceof List) {
+                        ArrayList<Object> valList = (ArrayList<Object>) val;
+                        if(valList.size() < maxsize){
+                            for(int i=0; i < (maxsize - valList.size()); i++){
+                                valList.add(null);
+                            }
+                            lis.set(keyInd,valList);
+                        }
+
+                    } else {
+                        ArrayList<Object> newList = new ArrayList<Object>();
+                        newList.add(val);
+                        for(int i=0; i < (maxsize - 1); i++){
+                            newList.add(null);
+                        }
+                        lis.set(keyInd,newList);
+                    }
+                }
+
+
+            }
+        } catch (Exception ee) {
+            log.debug("Array size equalizing failed:", ee);
+        }
+
+
+    }
+
 
 };

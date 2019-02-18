@@ -1,6 +1,8 @@
 package fi.nls.oskari.domain.map.userlayer;
 
 import fi.nls.oskari.util.ConversionHelper;
+import fi.nls.oskari.util.JSONHelper;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,24 +27,55 @@ public class UserLayerStyle {
     public void populateFromJSON(final JSONObject stylejs) throws JSONException {
         try {
             // {"area":{"fillColor":"FFDC00","lineColor":"CC9900","size":"2"},"line":{"color":"CC9900","size":"2"},"dot":{"color":"CC9900","size":"4"}}
-            setBorder_color(stylejs.getJSONObject("area").optString("lineColor"));
-            setBorder_width(stylejs.getJSONObject("area").optInt("size"));
+            JSONObject areaSubObject = stylejs.getJSONObject("area");
+
+            setBorder_color(areaSubObject.isNull("lineColor") ? null : areaSubObject.optString("lineColor")); // null is valid color value for "no stroke"
+            setBorder_width(areaSubObject.optInt("lineWidth"));
             setDot_color(stylejs.getJSONObject("dot").optString("color"));
             setDot_size(stylejs.getJSONObject("dot").optInt("size"));
-            setFill_color(stylejs.getJSONObject("area").optString("fillColor"));
+            setFill_color(areaSubObject.isNull("fillColor") ? null : areaSubObject.optString("fillColor")); // null is valid color value for "no fill"
             setStroke_color(stylejs.getJSONObject("line").optString("color"));
-            setStroke_width(stylejs.getJSONObject("line").optInt("size"));
+            setStroke_width(stylejs.getJSONObject("line").optInt("width"));
             setDot_shape(stylejs.getJSONObject("dot").optString("shape"));
             setStroke_linejoin(stylejs.getJSONObject("line").optString("corner"));
-            setFill_pattern(ConversionHelper.getInt(stylejs.getJSONObject("area").optString("fillStyle"), -1));
+            setFill_pattern(ConversionHelper.getInt(areaSubObject.optString("fillStyle"), -1));
             setStroke_linecap(stylejs.getJSONObject("line").optString("cap"));
             setStroke_dasharray(stylejs.getJSONObject("line").optString("style"));
-            setBorder_linejoin(stylejs.getJSONObject("area").optString("lineCorner"));
-            setBorder_dasharray(stylejs.getJSONObject("area").optString("lineStyle"));
+            setBorder_linejoin(areaSubObject.optString("lineCorner"));
+            setBorder_dasharray(areaSubObject.optString("lineStyle"));
         } catch (Exception ex) {
             throw new JSONException(ex);
         }
 
+    }
+
+    public JSONObject parseUserLayerStyle2JSON(){
+        JSONObject json = new JSONObject();
+        //dot
+        JSONObject dot = new JSONObject();
+        JSONHelper.putValue(dot, "shape", getDot_shape());
+        JSONHelper.putValue(dot, "color", getDot_color());
+        JSONHelper.putValue(dot, "size", getDot_size());
+        JSONHelper.putValue(json, "dot", dot);
+        //line
+        JSONObject line = new JSONObject();
+        JSONHelper.putValue(line, "style", getStroke_dasharray());
+        JSONHelper.putValue(line, "cap", getStroke_linecap());
+        JSONHelper.putValue(line, "corner", getStroke_linejoin());
+        JSONHelper.putValue(line, "width", getStroke_width());
+        JSONHelper.putValue(line, "color", getStroke_color());
+        JSONHelper.putValue(json, "line", line);
+        //area
+        JSONObject area = new JSONObject();
+        JSONHelper.putValue(area, "lineStyle", getBorder_dasharray());
+        JSONHelper.putValue(area, "lineCorner", getBorder_linejoin());
+        JSONHelper.putValue(area, "lineWidth", getBorder_width());
+        JSONHelper.putValue(area, "lineColor", getBorder_color());
+        JSONHelper.putValue(area, "fillStyle", getFill_pattern());
+        JSONHelper.putValue(area, "fillColor", getFill_color());
+        JSONHelper.putValue(json, "area", area);
+
+        return json;
     }
 
     public long getId() {

@@ -2,6 +2,8 @@ package fi.nls.oskari.control.layer;
 
 import fi.mml.map.mapwindow.service.wms.WebMapService;
 import fi.mml.map.mapwindow.service.wms.WebMapServiceFactory;
+import fi.mml.map.mapwindow.service.wms.WebMapServiceParseException;
+import fi.mml.map.mapwindow.service.wms.LayerNotFoundInCapabilitiesException;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.*;
 import fi.nls.oskari.domain.map.UserWmsLayer;
@@ -19,6 +21,7 @@ import fi.nls.oskari.wmts.WMTSCapabilitiesParser;
 import fi.nls.oskari.wmts.domain.ResourceUrl;
 import fi.nls.oskari.wmts.domain.WMTSCapabilities;
 import fi.nls.oskari.wmts.domain.WMTSCapabilitiesLayer;
+import org.oskari.service.util.ServiceFactory;
 
 import org.json.JSONObject;
 
@@ -40,7 +43,7 @@ public class SaveUserWmsLayerHandler extends ActionHandler {
     }
 
     private UserWmsLayerService userWmsLayerService = new UserWmsLayerServiceIbatisImpl();
-    
+
     private CapabilitiesCacheService capabilitiesService = ServiceFactory.getCapabilitiesCacheService();
     private final static LayerJSONFormatter FORMATTER = new LayerJSONFormatter();
 
@@ -147,12 +150,12 @@ public class SaveUserWmsLayerHandler extends ActionHandler {
         }
     }
 
-    private boolean handleRequestToMapLayer(final ActionParameters params, UserWmsLayer ml) throws ActionException {
+    private boolean handleRequestToMapLayer(final ActionParameters params, UserWmsLayer ml) throws ActionException, WebMapServiceParseException, LayerNotFoundInCapabilitiesException {
 
         HttpServletRequest request = params.getRequest();
 
         ml.setUserId(params.getUser().getId());
-        
+
         if(ml.getId() == -1) {
             // setup type and parent for new layers only
             ml.setType(params.getHttpParam("layerType"));
@@ -245,7 +248,7 @@ public class SaveUserWmsLayerHandler extends ActionHandler {
         return handleWMSSpecific(params, ml);
     }
 
-    private boolean handleWMSSpecific(final ActionParameters params, UserWmsLayer ml) throws ActionException {
+    private boolean handleWMSSpecific(final ActionParameters params, UserWmsLayer ml) throws ActionException, WebMapServiceParseException, LayerNotFoundInCapabilitiesException {
 
         HttpServletRequest request = params.getRequest();
         final String xslt = request.getParameter("xslt");

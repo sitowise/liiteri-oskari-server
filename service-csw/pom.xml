@@ -7,7 +7,7 @@
     <parent>
         <groupId>fi.nls.oskari</groupId>
         <artifactId>oskari-parent</artifactId>
-        <version>1.34.1</version>
+        <version>1.46.2</version>
     </parent>
 
     <groupId>fi.nls.oskari.service</groupId>
@@ -24,14 +24,18 @@
             <groupId>org.mybatis</groupId>
             <artifactId>mybatis</artifactId>
         </dependency>
-        <!-- dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency -->
-        <!-- dependency>
-            <groupId>commons-httpclient</groupId>
-            <artifactId>commons-httpclient</artifactId>
-        </dependency -->
+		<dependency>
+			<groupId>fi.nls.oskari.service</groupId>
+			<artifactId>oskari-control</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.deegree</groupId>
+			<artifactId>deegree</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>javax.vecmath</groupId>
+			<artifactId>vecmath</artifactId>
+		</dependency>
 
         <dependency>
             <groupId>junit</groupId>
@@ -43,6 +47,48 @@
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
 
+	</dependencies>
+
+    <build>
+    	<pluginManagement>
+    		<plugins>
+    			<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+    			<plugin>
+    				<groupId>org.eclipse.m2e</groupId>
+    				<artifactId>lifecycle-mapping</artifactId>
+    				<version>1.0.0</version>
+    				<configuration>
+    					<lifecycleMappingMetadata>
+    						<pluginExecutions>
+    							<pluginExecution>
+    								<pluginExecutionFilter>
+    									<groupId>
+    										pl.project13.maven
+    									</groupId>
+    									<artifactId>
+    										git-commit-id-plugin
+    									</artifactId>
+    									<versionRange>
+    										[2.0.4,)
+    									</versionRange>
+    									<goals>
+    										<goal>revision</goal>
+    									</goals>
+    								</pluginExecutionFilter>
+    								<action>
+    									<ignore></ignore>
+    								</action>
+    							</pluginExecution>
+    						</pluginExecutions>
+    					</lifecycleMappingMetadata>
+    				</configuration>
+    			</plugin>
+    		</plugins>
+    	</pluginManagement>
+    </build>
 </project>

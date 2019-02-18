@@ -52,6 +52,8 @@ public abstract class MyPlacesService extends OskariComponent {
     public abstract List<UserGisData> getSharedMyPlaceLayers(long userId);
     public abstract List<UserGisData> getUnexpiredMyPlaceLayers(long userId);
 
+    public abstract void deleteByUid(final String uid);
+
     public MyPlacesService() {
         // default 'myplaces.client.wmsurl' to ajax url for tiles if not configured
         if (MYPLACES_CLIENT_WMS_URL == null) {
@@ -69,10 +71,19 @@ public abstract class MyPlacesService extends OskariComponent {
                                                 final String uuid, final boolean modifyURLs) {
 
         final OskariLayer layer = new OskariLayer();
-        layer.setExternalId(MYPLACES_LAYERID_PREFIX + mpLayer.getId());
         layer.setName(MYPLACES_WMS_NAME);
         layer.setType(OskariLayer.TYPE_WMS);
         layer.setName(lang, mpLayer.getCategory_name());
+
+        /*
+Version 1.1.0 works better as it has fixed coordinate order, the OL3 default 1.3.0 causes problems with some setups like:
+ERROR org.geoserver.ows -
+java.lang.RuntimeException: Unable to encode filter [[ geometry bbox POLYGON ((4913648.8700826 4969613.8817587, 4913648.8700826 4970013.1540413, 4914182.3089174 4970013.1540413, 4914182.3089174 4969613.8817587, 4913648.8700826 4969613.88
+17587)) ] AND [[ category_id = 186 ] AND [ uuid = 8e1cd426-6d91-26-23 ]]]
+        at org.geoserver.wfs.GetFeature.encodeQueryAsKvp(GetFeature.java:892)
+        at org.geoserver.wfs.GetFeature.buildKvpFromRequest(GetFeature.java:814)
+         */
+        layer.setVersion("1.1.0");
         layer.setTitle(lang, mpLayer.getPublisher_name());
         layer.setOpacity(50);
         JSONObject options = JSONHelper.createJSONObject("singleTile", true);
@@ -91,11 +102,10 @@ public abstract class MyPlacesService extends OskariComponent {
         // enable gfi
         capabilities.setQueryable(true);
 
-        JSONObject myPlaceLayer = JSON_FORMATTER.getJSON(layer, lang, modifyURLs, capabilities);
+        JSONObject myPlaceLayer = JSON_FORMATTER.getJSON(layer, lang, modifyURLs, null, capabilities);
         // flag with metaType for frontend
         JSONHelper.putValue(myPlaceLayer, "metaType", "published");
+        JSONHelper.putValue(myPlaceLayer, "id", MYPLACES_LAYERID_PREFIX + mpLayer.getId());
         return myPlaceLayer;
     }
-
-
 }

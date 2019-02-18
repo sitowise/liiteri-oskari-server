@@ -4,7 +4,7 @@
     <parent>
         <groupId>fi.nls.oskari</groupId>
         <artifactId>oskari-parent</artifactId>
-        <version>1.34.1</version>
+        <version>1.46.2</version>
     </parent>
 
     <groupId>fi.nls.oskari</groupId>
@@ -28,6 +28,11 @@
         <dependency>
             <groupId>fi.nls.oskari.service</groupId>
             <artifactId>oskari-control-base</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>fi.nls.oskari.service</groupId>
+            <artifactId>oskari-control-users</artifactId>
         </dependency>
 
         <dependency>
@@ -56,6 +61,22 @@
         </dependency>
 
         <dependency>
+            <groupId>fi.nls.oskari.service</groupId>
+            <artifactId>oskari-control-statistics</artifactId>
+        </dependency>
+        <!-- Statistics plugins -->
+        <dependency>
+            <groupId>fi.nls.oskari.service</groupId>
+            <artifactId>service-statistics-pxweb</artifactId>
+        </dependency>
+        <!-- /Statistics plugins -->
+
+        <dependency>
+            <groupId>org.oskari</groupId>
+            <artifactId>control-userlayer</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>fi.nls.oskari</groupId>
             <artifactId>service-logging</artifactId>
         </dependency>
@@ -66,7 +87,6 @@
         </dependency>
         <dependency>
             <groupId>fi.nls.oskari</groupId>
-            <!-- artifactId>map-servlet</artifactId -->
             <artifactId>servlet-map</artifactId>
             <exclusions>
                 <exclusion>
@@ -84,6 +104,11 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>fi.nls.oskari.service</groupId>
+            <artifactId>oskari-search-nls</artifactId>
         </dependency>
     </dependencies>
 

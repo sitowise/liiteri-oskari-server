@@ -1,14 +1,15 @@
 package fi.nls.oskari.myplaces;
 
-import fi.nls.oskari.domain.map.MyPlace;
-import fi.nls.oskari.domain.map.MyPlaceCategory;
-import fi.nls.oskari.domain.map.UserGisData;
+import java.util.List;
+import java.util.Map;
 
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
-import java.util.List;
-import java.util.Map;
+import fi.nls.oskari.domain.map.MyPlace;
+import fi.nls.oskari.domain.map.MyPlaceCategory;
+import fi.nls.oskari.domain.map.UserGisData;
 
 /**
  * Created by SMAKINEN on 8.7.2015.
@@ -23,6 +24,8 @@ public interface MyPlaceMapper {
     List<MyPlaceCategory> findByIds(@Param("list") List<Long> idList);
     List<MyPlaceCategory> freeFind(Map<String, Object> data);
     List<MyPlaceCategory> findAll();
+    @Delete("delete from categories where uuid = #{uid}")
+    void deleteByUid(String uid);
 	List<UserGisData> findUnexpiredCategories(long userId);
 	List<UserGisData> findSharedCategories(long userId);
 }

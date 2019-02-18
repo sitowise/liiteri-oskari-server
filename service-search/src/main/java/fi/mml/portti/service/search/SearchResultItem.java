@@ -19,12 +19,17 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
     public static final String KEY_NAME = "name";
     public static final String KEY_UUID = "uuid";
     public static final String KEY_TYPE = "type";
+	public static final String KEY_LANG = "lang";
     public static final String KEY_RANK = "rank";
     public static final String KEY_LON = "lon";
     public static final String KEY_LAT = "lat";
     public static final String KEY_ZOOMLEVEL = "zoomLevel";
     public static final String KEY_ZOOMSCALE = "zoomScale";
+	@Deprecated
     public static final String KEY_VILLAGE = "village";
+	// region is the new "village"
+	public static final String KEY_REGION = "region";
+	public static final String KEY_CHANNELID = "channelId";
 
     public static final String KEY_BBOX = "bbox";
     public static final String KEY_LEFT = "left";
@@ -37,14 +42,16 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	private String title;
 	private String resourceNameSpace;
 	private String resourceId;
+	private String channelId;
     private String natureOfTarget;
 	private String description;
 	private String contentURL;
 	private String actionURL;
 	private String gmdURL;
-	private String village;
+	private String region;
 	private String locationTypeCode;
     private String type;
+	private String lang;
 	private String locationName;
 	private String lon;
 	private String lat;
@@ -61,7 +68,7 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	private boolean downloadAllowed = false;
     private Map<String, Object> properties = new HashMap<String, Object>();
 	
-	private int rank;
+	private int rank = -1;
 
     /**
      * Add custom result field value for result
@@ -96,68 +103,56 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 		+ ", title=" + title + ", actionURL=" + actionURL + ", gmdURL=" + gmdURL;
 	}
 
-/*
-    public String toStringAll(){
-        return "title" + title +
-                "resourceNameSpace" + resourceNameSpace +
-                "resourceId" + resourceId +
-                "natureOfTarget" + natureOfTarget +
-                "" + description +
-                ""contentURL +
-        "actionURL" + actionURL +
-        "" + gmdURL +
-        "" + village +
-        "" + locationTypeCode +
-        "" + type +
-        "" + locationName +
-        "" + lon +
-        "" + lat +
-        "" + westBoundLongitude +
-        "" + southBoundLatitude +
-        "" + eastBoundLongitude +
-        "" + northBoundLatitude +
-        "" + mapURL +
-        "" + zoomLevel +
-        "" + trunkateDescription;
-    } */
-	
 	public int compareTo(SearchResultItem sri) {
-        // TODO: rank should be normalized and village -> type(?)
-        // streetname ranking should be done internally in the search channel impl which knows about the title content
-		if (this.rank == sri.getRank()) {
-			if (this.title.equals(sri.getTitle())) {
-				/* Same title, order is determined by village */
-				return this.village.compareTo(sri.getVillage());
-			} else {
-				
-				String[] streetName1 = this.getTitle().split("\\s");
-				String[] streetName2 = sri.getTitle().split("\\s");
-				
-				/* without street number */
-				if (streetName1.length != streetName2.length) {
-					return streetName1.length - streetName2.length;
-				}
-				
-				/* Same street names  */
-				if (streetName1[0].equals(streetName2[0])) {
-					//if (streetName1[1] == null || streetName2[1] != null)
-					if (streetName1[1].length() == streetName2[1].length()) {
-						return streetName1[1].compareTo(streetName2[1]);
-					} else {
-						return streetName1[1].length() - streetName2[1].length();
-					}
-				} 
-				else {
-					/* But those titles not are of same length */
-					return title.compareTo(sri.getTitle());
-				}
-			}
+		if (this.rank != sri.getRank()) {
+			// TODO: rank should be normalized throughout different channels, currently it's not
+			return this.rank - sri.getRank();
 		}
-		
-		return this.rank - sri.getRank();
+		// TODO: should make a function to compare if the other one has value and return 1/-1
+		if(this.title == null || sri.getTitle() == null) {
+			return 0;
+		}
+
+		if (this.title.equals(sri.getTitle())) {
+			// Same title, order is determined by region
+			// Should we use type instead of region here?
+			if(this.region == null || sri.getRegion() == null) {
+				return 0;
+			}
+			return this.region.compareTo(sri.getRegion());
+		}
+
+		// TODO: streetname ranking should be done internally in the search channel impl which knows about the title content
+		String[] streetName1 = this.getTitle().split("\\s");
+		String[] streetName2 = sri.getTitle().split("\\s");
+
+		// without street number
+		if (streetName1.length != streetName2.length) {
+			return streetName1.length - streetName2.length;
+		}
+
+		// Same street names
+		if (streetName1[0].equals(streetName2[0])) {
+			if (streetName1[1] == null || streetName2[1] != null) {
+				return 0;
+			}
+			if (streetName1[1].length() == streetName2[1].length()) {
+				return streetName1[1].compareTo(streetName2[1]);
+			}
+			return streetName1[1].length() - streetName2[1].length();
+		}
+		return title.compareTo(sri.getTitle());
 	}
 
-    public String getType() {
+	public String getLang() {
+		return lang;
+	}
+
+	public void setLang(String lang) {
+		this.lang = lang;
+	}
+
+	public String getType() {
         return type;
     }
 
@@ -238,6 +233,9 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 			
 		this.description = description;
 	}
+
+	public String getChannelId() { return channelId;	}
+	public void setChannelId(String channelId) { this.channelId = channelId; }
 	public String getContentURL() {
 		return contentURL;
 	}
@@ -256,11 +254,28 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
 	public void setGmdURL(String gmdURL) {
 		this.gmdURL = gmdURL;
 	}
-	public String getVillage() {
-		return village;
+	public String getRegion() {
+		return region;
 	}
+	public void setRegion(String region) {
+		this.region = region;
+	}
+
+	/**
+	 * Deprecated, use getRegion() instead.
+	 * @return
+     */
+	@Deprecated
+	public String getVillage() {
+		return getRegion();
+	}
+	/**
+	 * Deprecated, use setRegion() instead.
+	 * @return
+	 */
+	@Deprecated
 	public void setVillage(String village) {
-		this.village = village;
+		setRegion(village);
 	}
 	public String getLocationTypeCode() {
 		return locationTypeCode;
@@ -416,13 +431,16 @@ public class SearchResultItem implements Comparable<SearchResultItem>, Serializa
         JSONHelper.putValue(node, KEY_LON, getLon());
         JSONHelper.putValue(node, KEY_LAT, getLat());
 
+		JSONHelper.putValue(node, KEY_LANG, getLang());
         JSONHelper.putValue(node, KEY_RANK, getRank());
         JSONHelper.putValue(node, KEY_TYPE, getType());
+		JSONHelper.putValue(node, KEY_CHANNELID, getChannelId());
 
-        // Village (?)
-        // TODO: Shouldn't this be 'municipality' or sth?
-        String village = ConversionHelper.getString(getVillage(), "");
-        JSONHelper.putValue(node, KEY_VILLAGE, Jsoup.clean(village, Whitelist.none()));
+        String region = ConversionHelper.getString(getRegion(), "");
+		JSONHelper.putValue(node, KEY_REGION, Jsoup.clean(region, Whitelist.none()));
+		// TODO: Village has been deprecated on 1.42. Remove any time after 1.44.
+		// Note! This affects the frontend event/RPC API.
+		JSONHelper.putValue(node, KEY_VILLAGE, Jsoup.clean(region, Whitelist.none()));
 
         // do the bbox if we have any of the bbox values (Should have all if has any one of these)
         if(getWestBoundLongitude() != null) {

@@ -120,11 +120,15 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 		
 		for (URL url : this.imageUrls)
 		{
-			BufferedImage image = ImageIO.read(url);
-			if(image != null) {
-			    images.add(image);
-			} else {
-			    log.warn("No legend graphic found " + url);
+			try {
+				BufferedImage image = ImageIO.read(url);
+				if(image != null) {
+					images.add(image);
+				} else {
+					log.warn("No legend graphic found " + url);
+				}
+			} catch (Exception e) {
+				log.warn("No legend graphic found " + url);
 			}
 		}				
 		

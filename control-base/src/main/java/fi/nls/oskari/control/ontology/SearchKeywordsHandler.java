@@ -16,11 +16,12 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.map.layer.OskariLayerService;
 import fi.nls.oskari.ontology.domain.Keyword;
 import fi.nls.oskari.ontology.service.KeywordService;
-import fi.nls.oskari.ontology.service.KeywordServiceIbatisImpl;
+import fi.nls.oskari.ontology.service.KeywordServiceMybatisImpl;
 import fi.nls.oskari.util.*;
 import fi.nls.oskari.wfs.WFSCapabilitiesParser;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.oskari.service.util.ServiceFactory;
 
 import java.util.*;
 
@@ -36,7 +37,7 @@ public class SearchKeywordsHandler extends ActionHandler {
 
     public void init() {
         if (service == null) {
-            setService(new KeywordServiceIbatisImpl());
+            setService(new KeywordServiceMybatisImpl());
         }
         if (permissionsService == null) {
             setPermissionsService(new PermissionsServiceIbatisImpl());
@@ -263,7 +264,7 @@ public class SearchKeywordsHandler extends ActionHandler {
         try {
             if(OskariLayer.TYPE_WMS.equals(layer.getType())) {
                 boolean isUserWmsLayer = (layer instanceof UserWmsLayer);
-                WebMapService wms = WebMapServiceFactory.buildWebMapService(layer.getId(), isUserWmsLayer);
+                WebMapService wms = WebMapServiceFactory.buildWebMapService(layer.getId());
                 if (wms == null || wms.getKeywords() == null) {
                     log.warn("Error parsing keywords for layer", layer);
                     return EMPTY_RESULT;

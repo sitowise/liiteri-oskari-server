@@ -160,9 +160,9 @@ public class ImageServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "No image could be found from cache");
                 return;
             } else {
-                // create & send image
-                bufferedImage = WFSProcess.highlight(session, layerId, featureIds, bbox, srs, zoom, width, height);
                 try {
+                    // create & send image
+                    bufferedImage = WFSProcess.highlight(session, layerId, featureIds, bbox, srs, zoom, width, height);
                     OutputStream out = response.getOutputStream();
                     ImageIO.write(bufferedImage, FORMAT, out);
                     out.close();
@@ -197,7 +197,7 @@ public class ImageServlet extends HttpServlet {
     private CoordinateReferenceSystem getCrs(String srs) {
         CoordinateReferenceSystem crs = null;
         try {
-            crs = CRS.decode(srs);
+            crs = CRS.decode(srs, true);
         } catch (FactoryException e) {
             log.error(e, "CRS decoding failed");
         }
