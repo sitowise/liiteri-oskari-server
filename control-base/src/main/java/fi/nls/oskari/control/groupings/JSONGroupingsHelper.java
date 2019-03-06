@@ -1,5 +1,8 @@
 package fi.nls.oskari.control.groupings;
 
+import fi.nls.oskari.domain.map.MaplayerGroup;
+import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.map.layer.group.link.OskariLayerGroupLink;
 import fi.nls.oskari.util.PropertyUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -15,8 +18,8 @@ import fi.nls.oskari.log.Logger;
 import fi.nls.oskari.util.JSONHelper;
 
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class JSONGroupingsHelper {
 
@@ -79,7 +82,7 @@ public class JSONGroupingsHelper {
 			 * ThemeType .getInstanceFromCodeValue(t.getThemeType()).getName());
 			 * JSONHelper.putValue(thMain, "mainType", "theme"); JSONArray
 			 * JSONThemes = new JSONArray();
-			 * 
+			 *
 			 * JSONThemes.put(crerateThemeJSONObject(t, groupingThemes, data));
 			 * List<GroupingThemeData> grData = GroupingCollectionHelper
 			 * .findGroupingThemeData(t.getId(), data); if (grData.size() > 0) {
@@ -96,16 +99,127 @@ public class JSONGroupingsHelper {
 			JSONHelper.putValue(thMain, "mainType", "theme");
 			JSONHelper.putValue(thMain, "id", t.getId());
 			JSONHelper.putValue(thMain, "state", GroupingStatus.getInstanceFromCodeValue(t.getStatus()).getName());
-			
+
 			addJSONGroupingPermissions(thMain, allUsers, allRoles, t.getId());
-			
+
 			JSONgroupings.put(thMain);
-			
+
 		}
 
 		JSONHelper.putValue(main, "groupings", JSONgroupings);
 
 		return main;
+	}
+
+	public static final JSONObject createThemeGroupingsJSONObject(
+			List<GroupingTheme> groupingThemes,
+			List<GroupingThemeData> data,
+			List<GroupingPermission> allUsers,
+			List<GroupingPermission> allRoles,
+			HashMap<Long, String> indicatorNames,
+			List<OskariLayer> layers, Map<Integer,
+			List<MaplayerGroup>> groupsByParentId,
+			Map<Integer, List<OskariLayerGroupLink>>linksByGroupId) throws Exception {
+		final JSONObject main = new JSONObject();
+		JSONArray JSONgroupings = new JSONArray();
+
+		for (GroupingTheme t : GroupingCollectionHelper
+				.findUnbindedMainThemes(groupingThemes)) {
+			JSONObject thMain = createThemeJSONObject(t, groupingThemes, data, indicatorNames); //TODO: Zmienić logikę createThemeJSONObject (nowa metoda)
+			JSONHelper.putValue(thMain, "mainType", "theme");
+			JSONHelper.putValue(thMain, "id", t.getId());
+			JSONHelper.putValue(thMain, "state", GroupingStatus.getInstanceFromCodeValue(t.getStatus()).getName());
+			
+			addJSONGroupingPermissions(thMain, allUsers, allRoles, t.getId());
+			
+			JSONgroupings.put(thMain);
+		}
+
+		int[] sortedLayerIds = layers.stream().mapToInt(OskariLayer::getId).toArray();
+		Arrays.sort(sortedLayerIds);
+		JSONArray jsonArray = getGroupJSON(groupsByParentId, linksByGroupId, sortedLayerIds, -1, layers);
+
+		for (int i = 0; i < jsonArray.length(); i++) {
+			JSONgroupings.put(jsonArray.getJSONObject(i));
+		}
+
+		JSONHelper.putValue(main, "groupings", JSONgroupings);
+
+		return main;
+	}
+
+	public static JSONArray getGroupJSON(final Map<Integer, List<MaplayerGroup>> groupsByParentId,
+								   final Map<Integer, List<OskariLayerGroupLink>> linksByGroupId,
+								   final int[] sortedLayerIds,
+								   final int parentGroupId,
+										 final List<OskariLayer> layers) throws Exception {
+		List<MaplayerGroup> groups = groupsByParentId.get(parentGroupId);
+		if (groups == null || groups.isEmpty()) {
+			return null;
+		}
+
+		JSONArray json = new JSONArray();
+		groups.sort(Comparator.comparing(MaplayerGroup::getId));
+		for (MaplayerGroup group : groups) {
+			int groupId = group.getId();
+
+			JSONObject groupAsJson = new JSONObject();
+			groupAsJson.put("name", group.getName("fi"));
+			groupAsJson.put("type", "map_layers");
+			groupAsJson.put("mainType", "theme");
+			groupAsJson.put("id", groupId);
+			//groupAsJson.put("permissions", new int[]{});
+			//groupAsJson.put("isPublic", true);
+
+			JSONArray subGroups = getGroupJSON(groupsByParentId, linksByGroupId, sortedLayerIds, groupId, layers);
+			if (subGroups != null) {
+				groupAsJson.put("themes", subGroups);
+			}
+
+			List<OskariLayerGroupLink> groupLinks = linksByGroupId.get(groupId);
+			if (groupLinks != null && !groupLinks.isEmpty()) {
+				List<OskariLayerGroupLink> groupLayers = groupLinks.stream()
+						.filter(l -> contains(sortedLayerIds, l.getLayerId()))
+						.sorted(Comparator.comparingInt(OskariLayerGroupLink::getGroupId))
+						.collect(Collectors.toList());
+				if (!groupLayers.isEmpty()) {
+					groupAsJson.put("elements", getLayersJSON(groupLayers, layers));
+				}
+			}
+
+			json.put(groupAsJson);
+		}
+		return json;
+	}
+
+	private static JSONArray getLayersJSON(List<OskariLayerGroupLink> groupLayers, List<OskariLayer> layers) throws Exception {
+		JSONArray groupLayersJSON = new JSONArray();
+
+		for(OskariLayerGroupLink groupLayer: groupLayers) {
+			JSONObject groupLayerJSON = new JSONObject();
+			groupLayerJSON.put("id", groupLayer.getLayerId());
+			groupLayerJSON.put("type", "map_layer");
+			groupLayerJSON.put("name", getLayerName(layers, groupLayer.getLayerId()));
+			groupLayersJSON.put(groupLayerJSON);
+		}
+
+		return groupLayersJSON;
+	}
+
+	private static JSONObject getLayerName(List<OskariLayer> layers, int layerId) throws Exception {
+
+		OskariLayer layer = layers.stream()
+				.filter(l -> l.getId() == layerId)
+				.findAny()
+				.orElse(null);
+		if (layer == null)
+			throw new Exception("Layer not found");
+
+		return layer.getLocale();
+	}
+
+	private static boolean contains(int[] sortedLayerIds, int layerId) {
+		return Arrays.binarySearch(sortedLayerIds, layerId) >= 0;
 	}
 
 	public static final JSONObject createUnbindedThemesJSONObject(
