@@ -39,14 +39,8 @@ public class GetGroupingsHandler extends ActionHandler {
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {
 		List<Grouping> groupings = groupingService.findAll();
+		List<GroupingTheme> themes = groupingThemesService.findAll();
 		List<GroupingThemeData> data = groupingThemeDataService.findAll();
-		List<GroupingTheme> statisticsThemes;
-		try {
-			statisticsThemes = groupingThemesService.getAllStatisticsThemes();
-		} catch (ServiceException ex) {
-			throw new ActionException(
-					"Error during getting statistics themes", ex);
-		}
 
 		List<GroupingPermission> groupingPermittedUsers;
 		try {
@@ -62,7 +56,7 @@ public class GetGroupingsHandler extends ActionHandler {
 			throw new ActionException(
 					"Error during getting permission for role", ex);
 		}
-		if ((groupings.size() != 0 || statisticsThemes.size() != 0) && data.size() == 0) {
+		if ((groupings.size() != 0 || themes.size() != 0) && data.size() == 0) {
 			throw new ActionException("Inconsistent groupings data");
 		}
 		HashMap<Long, String> indicatorNames = new HashMap<Long,String>();
@@ -97,7 +91,7 @@ public class GetGroupingsHandler extends ActionHandler {
 
 		try {
 			JSONObject main = JSONGroupingsHelper.createGroupingsJSONObject(
-					groupings, statisticsThemes, data, groupingPermittedUsers,
+					groupings, themes, data, groupingPermittedUsers,
 					groupingPermittedRoles, indicatorNames);
 			ResponseHelper.writeResponse(params, main);
 		} catch (Exception e) {
