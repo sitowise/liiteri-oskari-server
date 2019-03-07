@@ -43,7 +43,8 @@ public class GetThemeGroupingsHandler extends ActionHandler {
 
 	private static final GroupingThemeServiceIbatisImpl groupingThemesService = new GroupingThemeServiceIbatisImpl();
 	private static final GroupingThemeDataServiceIbatisImpl groupingThemeDataService = new GroupingThemeDataServiceIbatisImpl();
-	
+	private static final GroupingServiceIbatisImpl groupingService = new GroupingServiceIbatisImpl();
+
 	private static final GroupingsService _service = GroupingsService.getInstance();
 
 	private static final OskariLayerService layerService = new OskariLayerServiceIbatisImpl();
@@ -52,10 +53,11 @@ public class GetThemeGroupingsHandler extends ActionHandler {
 
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {
+		List<Grouping> groupings = groupingService.findAll();
 		List<GroupingThemeData> data = groupingThemeDataService.findAll();
-		List<GroupingTheme> themes;
+		List<GroupingTheme> statisticsThemes;
 		try {
-			themes = groupingThemesService.getAllStatisticsThemes();
+			statisticsThemes = groupingThemesService.getAllStatisticsThemes();
 		} catch (ServiceException ex) {
 			throw new ActionException(
 					"Error during getting statistics themes", ex);
@@ -84,7 +86,7 @@ public class GetThemeGroupingsHandler extends ActionHandler {
 			throw new ActionException(
 					"Error during getting permission for role", ex);
 		}
-		if ((themes.size() != 0) && data.size() == 0) {
+		if ((groupings.size() != 0 || statisticsThemes.size() != 0) && data.size() == 0) {
 			throw new ActionException("Inconsistent groupings data");
 		}
 		HashMap<Long, String> indicatorNames = new HashMap<Long,String>();
@@ -110,7 +112,7 @@ public class GetThemeGroupingsHandler extends ActionHandler {
 
 		try {
 			JSONObject main = JSONGroupingsHelper.createThemeGroupingsJSONObject(
-					themes, data, groupingPermittedUsers,
+					groupings, statisticsThemes, data, groupingPermittedUsers,
 					groupingPermittedRoles, indicatorNames,
 					layers, groupsByParentId, linksByGroupId);
 			ResponseHelper.writeResponse(params, main);

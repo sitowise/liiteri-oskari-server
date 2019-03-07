@@ -112,25 +112,33 @@ public class JSONGroupingsHelper {
 	}
 
 	public static final JSONObject createThemeGroupingsJSONObject(
-			List<GroupingTheme> groupingThemes,
-			List<GroupingThemeData> data,
-			List<GroupingPermission> allUsers,
-			List<GroupingPermission> allRoles,
-			HashMap<Long, String> indicatorNames,
-			List<OskariLayer> layers, Map<Integer,
-			List<MaplayerGroup>> groupsByParentId,
+			List<Grouping> groupings, List<GroupingTheme> groupingThemes,
+			List<GroupingThemeData> data, List<GroupingPermission> allUsers,
+			List<GroupingPermission> allRoles, HashMap<Long, String> indicatorNames,
+			List<OskariLayer> layers, Map<Integer, List<MaplayerGroup>> groupsByParentId,
 			Map<Integer, List<OskariLayerGroupLink>>linksByGroupId) throws Exception {
 		final JSONObject main = new JSONObject();
 		JSONArray JSONgroupings = new JSONArray();
 
+		for (Grouping g : groupings) {
+			JSONObject grMain = new JSONObject();
+			JSONHelper.putValue(grMain, "mainType", "package");
+			JSONHelper.putValue(grMain, "id", g.getId());
+			JSONHelper.putValue(grMain, "name", g.getName());
+			JSONHelper.putValue(grMain, "label", g.getLabel());
+
+			//addJSONGroupingPermissions(grMain, allUsers, allRoles, g.getId());
+			JSONgroupings.put(grMain);
+		}
+
 		for (GroupingTheme t : GroupingCollectionHelper
 				.findUnbindedMainThemes(groupingThemes)) {
-			JSONObject thMain = createThemeJSONObject(t, groupingThemes, data, indicatorNames); //TODO: Zmienić logikę createThemeJSONObject (nowa metoda)
+			JSONObject thMain = createThemeJSONObject(t, groupingThemes, data, indicatorNames);
 			JSONHelper.putValue(thMain, "mainType", "theme");
 			JSONHelper.putValue(thMain, "id", t.getId());
 			JSONHelper.putValue(thMain, "state", GroupingStatus.getInstanceFromCodeValue(t.getStatus()).getName());
 			
-			addJSONGroupingPermissions(thMain, allUsers, allRoles, t.getId());
+			//addJSONGroupingPermissions(thMain, allUsers, allRoles, t.getId());
 			
 			JSONgroupings.put(thMain);
 		}
@@ -142,7 +150,6 @@ public class JSONGroupingsHelper {
 		for (int i = 0; i < jsonArray.length(); i++) {
 			JSONgroupings.put(jsonArray.getJSONObject(i));
 		}
-
 		JSONHelper.putValue(main, "groupings", JSONgroupings);
 
 		return main;
