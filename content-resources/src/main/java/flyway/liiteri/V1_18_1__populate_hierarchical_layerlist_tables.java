@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /*
-Creates map layer groups to be used in the hierarchical-layerlist bundle according to the map themes used in layerselector2 bundle
-Assigns map layers to the newly created groups in the same way as they were assigned to the corresponding map themes
+Creates map layer groups to be used in the hierarchical-layerlist bundle according to the map layer themes used in layerselector2 bundle
+Assigns map layers to the newly created groups in the same way as they were assigned to the corresponding map layer themes
 */
 
 public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigration {
@@ -25,21 +25,20 @@ public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigr
 
         int insertedMapLayerGroupsCount = 0;
         try {
-            insertedMapLayerGroupsCount = addLayerGroupsWithLayers(connection);
+            insertedMapLayerGroupsCount = insertLayerGroupsWithLayers(connection);
         }
         finally {
             LOG.info("Inserted map layer groups:", insertedMapLayerGroupsCount);
         }
     }
 
-    private int addLayerGroupsWithLayers(Connection connection)
+    private int insertLayerGroupsWithLayers(Connection connection)
             throws SQLException {
 
-        List<GroupingTheme> mapThemes = getMapThemes(connection);
-        LOG.info("Got", mapThemes.size(), "map themes");
+        List<GroupingTheme> mapLayerThemes = getMapLayerThemes(connection);
 
         int index = 0;
-        for(GroupingTheme theme : mapThemes) {
+        for(GroupingTheme theme : mapLayerThemes) {
             String locale = getLocale(theme.getName());
             long groupId = insertGroup(connection, locale, index);
 
@@ -53,7 +52,8 @@ public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigr
             throws SQLException {
 
         List<Long> themeMapLayerIds = getMapLayerIdsForTheme(connection, themeId);
-        LOG.info(String.format("Got %d map layers for group with id %d created from map theme with id %d.", themeMapLayerIds.size(), groupId, themeId));
+        LOG.info(String.format("Got %d map layers for group with id %d created from map layer theme with id %d.",
+                themeMapLayerIds.size(), groupId, themeId));
 
         int assignedMapLayersCount = 0;
         for(Long mapLayerId : themeMapLayerIds) {
@@ -61,7 +61,8 @@ public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigr
             assignedMapLayersCount++;
         }
 
-        LOG.info(String.format("%d map layers assigned to map layer group with id %d.", assignedMapLayersCount, groupId));
+        LOG.info(String.format("%d map layers assigned to map layer group with id %d.",
+                assignedMapLayersCount, groupId));
     }
 
     private List<Long> getMapLayerIdsForTheme(Connection connection, long themeId)
@@ -86,10 +87,10 @@ public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigr
         return themeMapLayerIds;
     }
 
-    private List<GroupingTheme> getMapThemes(Connection connection)
+    private List<GroupingTheme> getMapLayerThemes(Connection connection)
             throws SQLException {
 
-        List<GroupingTheme> mapThemes = new ArrayList<>();
+        List<GroupingTheme> mapLayerThemes = new ArrayList<>();
         final String sql = "SELECT id, name FROM oskari_groupings_themes " +
                 "WHERE is_public = TRUE AND " +
                 "parentthemeid IS NULL AND oskarigroupingid IS null AND mainthemeid IS null AND " +
@@ -101,11 +102,12 @@ public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigr
                     GroupingTheme theme = new GroupingTheme();
                     theme.setId(rs.getLong("id"));
                     theme.setName(rs.getString("name"));
-                    mapThemes.add(theme);
+                    mapLayerThemes.add(theme);
                 }
             }
         }
-        return mapThemes;
+        LOG.info("Got", mapLayerThemes.size(), "map layer themes");
+        return mapLayerThemes;
     }
 
     private long insertGroup(Connection connection, String locale, int orderNumber)
@@ -147,7 +149,8 @@ public class V1_18_1__populate_hierarchical_layerlist_tables implements JdbcMigr
 
             int insertedRows = statement.executeUpdate();
             if (insertedRows == 0) {
-                throw new SQLException(String.format("Creating map group link failed, no rows affected. Group id: %d, map layer id: %d.", groupId, mapLayerId));
+                throw new SQLException(String.format("Creating map group link failed, no rows affected. Group id: %d, map layer id: %d.",
+                        groupId, mapLayerId));
             }
         }
     }
