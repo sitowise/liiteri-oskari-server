@@ -91,6 +91,7 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
     private static final String ERROR_UNABLE_TO_PARSE_ANALYSE = "Unable_to_parse_analysis";
     private static final String ERROR_UNABLE_TO_GET_WPS_FEATURES = "Unable_to_get_WPS_features";
     private static final String ERROR_WPS_EXECUTE_RETURNS_EXCEPTION = "WPS_execute_returns_Exception";
+    private static final String ERROR_WPS_EXECUTE_RETURNS_PROPERTY_NAME_NOT_FOUND = "WPS_execute_returns_property_name_not_found";
     private static final String ERROR_WPS_EXECUTE_RETURNS_NO_FEATURES = "WPS_execute_returns_no_features";
     private static final String ERROR_UNABLE_TO_MERGE_ANALYSIS_DATA = "Unable_to_merge_analysis_data";
     private static final String ERROR_UNABLE_TO_PROCESS_AGGREGATE_UNION = "Unable_to_process_aggregate_union";
@@ -324,6 +325,10 @@ public class CreateAnalysisLayerHandler extends ActionHandler {
         }
         // Check, if exception result set
         if (featureSet == null || featureSet.indexOf("ows:Exception") > -1) {
+            //Check if the exception is caused by feature property name not found
+            if (featureSet != null && featureSet.indexOf("The possible propertyName values") > -1){
+                throw new ActionParamsException(ERROR_WPS_EXECUTE_RETURNS_PROPERTY_NAME_NOT_FOUND, featureSet);
+            }
             throw new ActionParamsException(ERROR_WPS_EXECUTE_RETURNS_EXCEPTION, featureSet);
         }
 
