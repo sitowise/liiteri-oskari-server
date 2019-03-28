@@ -1,0 +1,2 @@
+DELETE FROM oskari_maplayer_group;
+DELETE FROM oskari_maplayer_group_link;
