@@ -56,20 +56,20 @@ public class CustomStyleStoreFactory {
 	private static WFSCustomStyleStore createCustomStyle(Map<String, Object> symbolStyle) {
 		WFSCustomStyleStore customStyle = new WFSCustomStyleStore();	        
 		
-        customStyle.setFillColor(symbolStyle.get(WFSCustomStyleStore.PARAM_FILL_COLOR).toString());
+        customStyle.setFillColor((String)symbolStyle.get(WFSCustomStyleStore.PARAM_FILL_COLOR));
         customStyle.setFillPattern((int) symbolStyle.get(WFSCustomStyleStore.PARAM_FILL_PATTERN));
-        customStyle.setBorderColor(symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_COLOR).toString());
-        customStyle.setBorderLinejoin(symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_LINEJOIN).toString());
-        customStyle.setBorderDasharray(symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_DASHARRAY).toString());
+        customStyle.setBorderColor((String)symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_COLOR));
+        customStyle.setBorderLinejoin((String)symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_LINEJOIN));
+        customStyle.setBorderDasharray((String)symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_DASHARRAY));
         customStyle.setBorderWidth((int) symbolStyle.get(WFSCustomStyleStore.PARAM_BORDER_WIDTH));
 
-        customStyle.setStrokeLinecap(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_LINECAP).toString());
-        customStyle.setStrokeColor(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_COLOR).toString());
-        customStyle.setStrokeLinejoin(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_LINEJOIN).toString());
-        customStyle.setStrokeDasharray(symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_DASHARRAY).toString());
+        customStyle.setStrokeLinecap((String)symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_LINECAP));
+        customStyle.setStrokeColor((String)symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_COLOR));
+        customStyle.setStrokeLinejoin((String)symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_LINEJOIN));
+        customStyle.setStrokeDasharray((String)symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_DASHARRAY));
         customStyle.setStrokeWidth((int) symbolStyle.get(WFSCustomStyleStore.PARAM_STROKE_WIDTH));
 
-        customStyle.setDotColor(symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_COLOR).toString());
+        customStyle.setDotColor((String)symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_COLOR));
         customStyle.setDotShape((int) symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_SHAPE));
         customStyle.setDotSize((int) symbolStyle.get(WFSCustomStyleStore.PARAM_DOT_SIZE));
         
