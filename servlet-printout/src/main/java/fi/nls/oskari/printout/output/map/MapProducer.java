@@ -864,6 +864,7 @@ public class MapProducer {
 		}
 		
 		result.setLegendUrls(legendUrls);
+        result.setxClientInfo(xClientInfo);
 		
 		return result;
 	}

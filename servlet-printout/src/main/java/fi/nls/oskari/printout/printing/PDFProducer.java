@@ -459,7 +459,7 @@ public class PDFProducer {
 		}
 
 		if (opts.isPageLegend() && additionalData.getLegendUrls().size() > 0) {
-			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font, additionalData.getLegendUrls());
+			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font, additionalData.getLegendUrls(), additionalData.getxClientInfo());
 			pageLegend.createPages(targetDoc, pageCounter);
 		}
 
@@ -496,7 +496,7 @@ public class PDFProducer {
 
 		if (opts.isPageLegend() && additionalData.getLegendUrls().size() > 0) {
 
-			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font, additionalData.getLegendUrls());
+			PDFLegendPage pageLegend = new PDFLegendPage(page, opts, font, additionalData.getLegendUrls(), additionalData.getxClientInfo());
 
 			pageLegend.createPages(targetDoc, pageCounter);
 

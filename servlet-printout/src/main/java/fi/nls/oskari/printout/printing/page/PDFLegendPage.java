@@ -8,15 +8,10 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Vector;
+import java.util.*;
 
 import javax.imageio.ImageIO;
 
@@ -38,14 +33,11 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
 import org.opengis.referencing.operation.TransformException;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 //import org.apache.pdfbox.pdmodel.edit.PDPageContentStream;
@@ -68,10 +60,12 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 	}
 	
 	private List<URL> imageUrls;
+	private Map<String, String> xClientInfo;
 
-	public PDFLegendPage(Page page, Options opts, PDFont font, List<URL> imageUrls) {
+	public PDFLegendPage(Page page, Options opts, PDFont font, List<URL> imageUrls, Map<String, String> xClientInfo) {
 		super(page, opts, font);
 		this.imageUrls = imageUrls;
+		this.xClientInfo = xClientInfo;
 	}
 
 	public void createPages(PDDocument targetDoc, PageCounter pageCounter)
@@ -101,7 +95,7 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 				targetDoc, targetPage, opts.getPageTemplate() != null);
 
 		Vector<LegendImage> legendImages = new Vector<LegendImage>();		
-		createLegendImages(targetDoc, legendImages, this.imageUrls);
+		createLegendImages(targetDoc, legendImages);
 		
 		createMapLayersOverlay(targetDoc, targetPage, contentStream, ocprops,
 				props, legendImages);
@@ -112,16 +106,26 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 
 	}
 	
-	protected void createLegendImages(PDDocument targetDoc,
-			List<LegendImage> legendImages, List<URL> urls)
+	protected void createLegendImages(PDDocument targetDoc, List<LegendImage> legendImages)
 			throws IOException {
 
 		List<BufferedImage> images = new Vector<BufferedImage>();
 		
 		for (URL url : this.imageUrls)
 		{
+			final HttpURLConnection con = (HttpURLConnection) new URL(url.toString()).openConnection();
 			try {
-				BufferedImage image = ImageIO.read(url);
+				con.setUseCaches(false);
+				
+				if (this.xClientInfo != null) {
+					for (Map.Entry<String,String> entry : this.xClientInfo.entrySet()) {
+						con.setRequestProperty(entry.getKey(), entry.getValue());
+					}
+				}
+				
+				InputStream response = con.getInputStream();
+				
+				BufferedImage image = ImageIO.read(response);
 				if(image != null) {
 					images.add(image);
 				} else {
@@ -129,6 +133,8 @@ public class PDFLegendPage extends PDFAbstractPage implements PDFPage {
 				}
 			} catch (Exception e) {
 				log.warn("No legend graphic found " + url);
+			} finally {
+				con.disconnect();
 			}
 		}				
 		
