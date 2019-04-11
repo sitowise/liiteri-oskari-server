@@ -41,6 +41,8 @@ public class FEOutputProcessor implements OutputProcessor {
 
     final Map<Resource, Integer> selectedPropertiesIndex;
 
+    final List<String> layerSelectedProperties;
+
     final MathTransform transform;
     final String geomProp;
 
@@ -50,7 +52,8 @@ public class FEOutputProcessor implements OutputProcessor {
             ArrayList<String> selectedProperties,
             Map<Resource, Integer> selectedPropertiesIndex,
             MathTransform transform,
-            String geomProp) {
+            String geomProp,
+            List<String> layerSelectedProperties) {
         this.list = list;
         this.responseCollections = responseCollections;
         this.crs = crs;
@@ -59,6 +62,7 @@ public class FEOutputProcessor implements OutputProcessor {
         this.selectedPropertiesIndex = selectedPropertiesIndex;
         this.transform = transform;
         this.geomProp = geomProp;
+        this.layerSelectedProperties = layerSelectedProperties;
     }
 
     public void begin() throws IOException {
@@ -107,18 +111,41 @@ public class FEOutputProcessor implements OutputProcessor {
             // Add other properties
             if (selectedProperties != null && selectedProperties.size() > 0) {
 
-                for (Pair<Resource, ?> pair : simpleProperties) {
-                    Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
-                    if (keyIndex == null) {
-                    /*
-                     * log.debug("KEY INDEX FOR " + pair.getKey() +
-                     * " not found");
-                     */
-                        continue;
-                    }
-                    //TODO: type management
-                    ftb.add(pair.getKey().getLocalPart(),  pair.getValue().getClass());
+                if (layerSelectedProperties != null && layerSelectedProperties.size() > 0) {
 
+                    for ( String prop: layerSelectedProperties) {
+                        Pair<Resource, ?> pair = simpleProperties.stream()
+                                .filter(simpleProp -> prop.equals(simpleProp.getKey().getLocalPart()))
+                                .findAny()
+                                .orElse(null);
+
+                        if (pair != null){
+                            Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
+                            if (keyIndex == null) {
+                                /*
+                                 * log.debug("KEY INDEX FOR " + pair.getKey() +
+                                 * " not found");
+                                 */
+                                continue;
+                            }
+                            //TODO: type management
+                            ftb.add(pair.getKey().getLocalPart(),  pair.getValue().getClass());
+                        }
+                    }
+                }
+                else {
+                    for (Pair<Resource, ?> pair : simpleProperties) {
+                        Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
+                        if (keyIndex == null) {
+                            /*
+                             * log.debug("KEY INDEX FOR " + pair.getKey() +
+                             * " not found");
+                             */
+                            continue;
+                        }
+                        //TODO: type management
+                        ftb.add(pair.getKey().getLocalPart(), pair.getValue().getClass());
+                    }
                 }
             }
 
@@ -157,28 +184,45 @@ public class FEOutputProcessor implements OutputProcessor {
 
         log.debug("[fe] registering (generic) output type for " + type);
 
-        /*
-         * List<String> layerSelectedProperties = layer
-         * .getSelectedFeatureParams(session.getLanguage());
-         */
-        selectedProperties.add(0, "__fid");
+
+/*         List<String> layerSelectedProperties = layer
+         .getSelectedFeatureParams(session.getLanguage());*/
+
+       selectedProperties.add(0, "__fid");
         log.debug("- Property:" + "__fid" + " as 0");
-        for (Pair<Resource, XSDDatatype> prop : simpleProperties) {
 
-            log.debug("- Property:" + prop.getKey() + " as "
-                    + selectedProperties.size());
-            selectedPropertiesIndex.put(prop.getKey(),
-                    selectedProperties.size());
-            selectedProperties.add(prop.getKey().getLocalPart());
+        if (layerSelectedProperties != null && layerSelectedProperties.size() > 0){
 
+            for ( String prop: layerSelectedProperties) {
+                Pair<Resource, ?> pair = simpleProperties.stream()
+                        .filter(simpleProp -> prop.equals(simpleProp.getKey().getLocalPart()))
+                        .findAny()
+                        .orElse(null);
+
+                if (pair != null) {
+                    log.debug("- Property:" + pair.getKey() + " as "
+                            + selectedProperties.size());
+                    selectedPropertiesIndex.put(pair.getKey(),
+                            selectedProperties.size());
+                    selectedProperties.add(pair.getKey().getLocalPart());
+                }
+            }
         }
+        else {
+            for (Pair<Resource, XSDDatatype> prop : simpleProperties) {
+
+                log.debug("- Property:" + prop.getKey() + " as "
+                        + selectedProperties.size());
+                selectedPropertiesIndex.put(prop.getKey(),
+                        selectedProperties.size());
+                selectedProperties.add(prop.getKey().getLocalPart());
+            }
+        }
+
         selectedProperties.add("__centerX");
         log.debug("- Property:" + "__centerX" + " as "+ selectedProperties.size());
         selectedProperties.add("__centerY");
         log.debug("- Property:" + "__centerY" + " as "+ selectedProperties.size());
-        
-        
-
     }
 
     public void vertex(final Resource iri, final Resource type,
@@ -213,25 +257,45 @@ public class FEOutputProcessor implements OutputProcessor {
             // Add other properties
             if (selectedProperties != null && selectedProperties.size() > 0) {
 
-                for (Pair<Resource, ?> pair : simpleProperties) {
-                    Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
-                    if (keyIndex == null) {
-                    /*
-                     * log.debug("KEY INDEX FOR " + pair.getKey() +
-                     * " not found");
-                     */
-                        continue;
+                if (layerSelectedProperties != null && layerSelectedProperties.size() > 0) {
+                    for ( String prop: layerSelectedProperties) {
+                        Pair<Resource, ?> pair = simpleProperties.stream()
+                                .filter(simpleProp -> prop.equals(simpleProp.getKey().getLocalPart()))
+                                .findAny()
+                                .orElse(null);
+
+                        if (pair != null){
+                            Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
+                            if (keyIndex == null) {
+                                /*
+                                 * log.debug("KEY INDEX FOR " + pair.getKey() +
+                                 * " not found");
+                                 */
+                                continue;
+                            }
+                            sfb.add(pair.getValue());
+                        }
                     }
-                    sfb.add(pair.getValue());
                 }
-
-
+                else
+                {
+                    for (Pair<Resource, ?> pair : simpleProperties) {
+                        Integer keyIndex = selectedPropertiesIndex.get(pair.getKey());
+                        if (keyIndex == null) {
+                            /*
+                             * log.debug("KEY INDEX FOR " + pair.getKey() +
+                             * " not found");
+                             */
+                            continue;
+                        }
+                        sfb.add(pair.getValue());
+                    }
+                }
             }
 
             SimpleFeature f = sfb.buildFeature(iri.getUuid());
 
             sfc.add(f);
-
         }
 
         if (!(type.getNs().equals(requestResponse.getFeatureIri().getNs()) && type

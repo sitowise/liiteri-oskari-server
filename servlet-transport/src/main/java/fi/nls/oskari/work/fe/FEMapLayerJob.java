@@ -268,9 +268,13 @@ public class FEMapLayerJob extends OWSMapLayerJob {
             /* FeatureEngine InputProcessor */
             final XMLInputProcessor inputProcessor = new StaxGMLInputProcessor();
 
+
+           List<String> layerSelectedProperties = layer
+                    .getSelectedFeatureParams(session.getLanguage());
+
             final OutputProcessor outputProcessor = new FEOutputProcessor(
                     resultsList, responseCollections, crs, requestResponse,
-                    selectedProperties, selectedPropertiesIndex, transform, geomProp);
+                    selectedProperties, selectedPropertiesIndex, transform, geomProp, layerSelectedProperties);
 
             /* Backend HTTP URI info */
             FEUrl backendUrlInfo = getBackendURL(urlTemplate);
