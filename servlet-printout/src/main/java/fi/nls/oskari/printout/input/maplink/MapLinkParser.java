@@ -138,6 +138,16 @@ public class MapLinkParser {
 					subdef.setOpacity(layerSelection.getOpacity());
 					subdef.setStyle(style);
 				}
+				
+				//Set the legend of current style if available. Keep legendImage if style legend is not available.
+				if (layerSelection.getStyles().get(style) != null) {
+					String legendUrlFromStyle = layerSelection.getStyles().get(style).getLegend();
+					
+					if (legendUrlFromStyle != null && !legendUrlFromStyle.isEmpty()) {
+						layerSelection.setLegendUrl(legendUrlFromStyle);
+						layerSelection.setShowLegend(true);
+					}
+				}
 
 				mapLink.getMapLinkLayers().add(layerSelection);
 
