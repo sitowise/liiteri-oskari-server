@@ -279,6 +279,10 @@ public class LayerJSONFormatter {
         if (layer.getAttributes() != null) {
             forceProxy = layer.getAttributes().optBoolean("forceProxy", false);
         }
+        
+        // Below part of code is not original Oskari and breaks at least My Places printout (too many features is shown) because of wrong url.
+        // No sure if this code can be removed without breaking anything.
+        // NOTICE: My places workaround is done in getProxyUrl() function (checking if layer.getId() != -1).
         if (PropertyUtil.get("oskari.domain", "").startsWith("https://") && layer.getUrl().startsWith("http://")) {
             mixedContent = true;
         }
@@ -286,10 +290,13 @@ public class LayerJSONFormatter {
     }
 
     public String getProxyUrl(final OskariLayer layer) {
-        Map<String, String> urlParams = new HashMap<String, String>();
-        urlParams.put("action_route", "GetLayerTile");
-        urlParams.put(KEY_ID, Integer.toString(layer.getId()));
-        return IOHelper.constructUrl(PropertyUtil.get(PROPERTY_AJAXURL), urlParams);
+        if (layer.getId() != -1) {
+            Map<String, String> urlParams = new HashMap<String, String>();
+            urlParams.put("action_route", "GetLayerTile");
+            urlParams.put(KEY_ID, Integer.toString(layer.getId()));
+            return IOHelper.constructUrl(PropertyUtil.get(PROPERTY_AJAXURL), urlParams);
+        }
+        return layer.getUrl();
     }
 
     protected boolean isBeingProxiedViaOskariServer(String url) {
