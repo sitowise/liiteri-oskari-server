@@ -18,6 +18,8 @@ public enum ConfigValue {
 	
 	/* */
 	LAYER_LEGEND_PROXY("layer.legendproxy"),
+    
+    OSKARI_AJAX_URL_PREFIX("oskari.ajax.url.prefix"),
 
     MAPPRODUCER_IMAGE_UPSCALE_ALGORITHM("mapproducer.image.upscale"),
 
