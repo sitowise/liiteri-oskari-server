@@ -184,7 +184,12 @@ public class ArcGisStyleMapper {
 		result.add(255);
 		result.add(255);
 		result.add(255);
-		result.add(255);
+        if(color == null) {
+            result.add(0);
+            return result;
+        }
+        else
+            result.add(255);
 		String tmpColor = color;
 		
 		if (tmpColor.startsWith("#"))
