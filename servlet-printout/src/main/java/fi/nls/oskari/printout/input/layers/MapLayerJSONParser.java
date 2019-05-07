@@ -344,12 +344,13 @@ public class MapLayerJSONParser {
             }
 			
 			if (!"statslayer".equals(type)) {
-			    if (layerObj.get("legendImage") != null && !layerObj.get("legendImage").toString().isEmpty()) {
-					layerDefinition.setLegendUrl(layerObj.get("legendImage").toString());
-					layerDefinition.setShowLegend(true);
-				} else if (type.equals("arcgislayer")) {
-				    layerDefinition.setLegendUrl("action_route=GetArcGisLegend&LAYERID=" + layerid);
-				    layerDefinition.setShowLegend(true);
+                if (type.equals("arcgislayer")) {
+                    layerDefinition.setLegendUrl(ConfigValue.OSKARI_AJAX_URL_PREFIX.getConfigProperty(props, "/action?")
+                            + "action_route=GetArcGisLegend&LAYERID=" + layerid);
+                    layerDefinition.setShowLegend(true);
+				} else if (layerObj.get("legendImage") != null && !layerObj.get("legendImage").toString().isEmpty()) {
+                    layerDefinition.setLegendUrl(layerObj.get("legendImage").toString());
+                    layerDefinition.setShowLegend(true);
 				}
 			}
 
