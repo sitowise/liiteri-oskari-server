@@ -134,7 +134,7 @@ public class ArcGisStyleMapper {
 		JSONArray outlineColorArray = new JSONArray();
 		outlineColorArray.addAll(mapColor(customStyle.getDotColor()));
 		outline.put("color", outlineColorArray);
-		outline.put("size", customStyle.getDotSize());	
+		outline.put("size", customStyle.getDotSize() * 3);
 		
 		return outline;
 	}
