@@ -8,6 +8,7 @@ import fi.nls.oskari.control.ActionHandler;
 import fi.nls.oskari.control.ActionParameters;
 import fi.nls.oskari.domain.User;
 import fi.nls.oskari.domain.map.OskariLayer;
+import fi.nls.oskari.domain.map.UserGisData;
 import fi.nls.oskari.domain.map.userlayer.UserLayer;
 import fi.nls.oskari.service.OskariComponentManager;
 import fi.nls.oskari.util.JSONHelper;
@@ -43,18 +44,36 @@ public class GetUserLayersHandler extends ActionHandler {
         final User user = params.getUser();
         if (!user.isGuest()) {
             final List<UserLayer> list = userLayerService.getUserLayerByUuid(user.getUuid());
-            final OskariLayer baseLayer = UserLayerDataService.getBaseLayer();
             for (UserLayer ul : list) {
-                // Parse userlayer data to userlayer
-                final JSONObject userLayer = UserLayerDataService.parseUserLayer2JSON(ul, baseLayer);
+                // Parse userlayer data to userlayer json
+                final JSONObject userLayer = UserLayerDataService.parseUserLayer2JSON(ul);
                 JSONObject permissions = OskariLayerWorker.getAllowedPermissions();
                 JSONHelper.putValue(userLayer, "permissions", permissions);
+                JSONHelper.putValue(userLayer, "shared", false);
                 // transform WKT for layers now that we know SRS
                 OskariLayerWorker.transformWKTGeom(userLayer, params.getHttpParam(ActionConstants.PARAM_SRS));
                 layers.put(userLayer);
             }
-        }
 
-        ResponseHelper.writeResponse(params, response);
+            List<UserGisData> sharedUserGisData = userLayerService.getSharedUserLayers(user.getId());
+            for (UserGisData ul : sharedUserGisData) {
+                Long id = getIdFromDataIdString(ul.getDataId());
+                UserLayer userLayer = userLayerService.getUserLayerById(id);
+
+                JSONObject userLayerJson = UserLayerDataService.parseUserLayer2JSON(userLayer);
+                JSONObject permissions = OskariLayerWorker.getAllowedPermissions();
+                JSONHelper.putValue(userLayerJson, "permissions", permissions);
+                JSONHelper.putValue(userLayerJson, "shared", true);
+                OskariLayerWorker.transformWKTGeom(userLayerJson, params.getHttpParam(ActionConstants.PARAM_SRS));
+                layers.put(userLayerJson);
+            }
+
+            ResponseHelper.writeResponse(params, response);
+        }
+    }
+
+    private Long getIdFromDataIdString(String dataId) {
+        int position = dataId.lastIndexOf('_');
+        return Long.parseLong(dataId.substring(position + 1));
     }
 }

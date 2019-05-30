@@ -22,7 +22,7 @@ public interface AnalysisDbService {
         public void mergeAnalysis(final Analysis analysis, final List<Long> ids) throws ServiceException;
         public long updatePublisherName(final long id, final String uuid, final String name);
         
-        public List<Long> getSharedAnalysisIds(long userId);
+        public List<String> getSharedAnalysisIds(long userId);
         public List<UserGisData> getSharedAnalysis(long userId);
         public List<UserGisData> getUnexpiredAnalysis(long userId);
 }

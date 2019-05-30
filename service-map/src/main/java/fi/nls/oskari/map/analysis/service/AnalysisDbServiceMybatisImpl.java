@@ -293,10 +293,10 @@ public class AnalysisDbServiceMybatisImpl implements AnalysisDbService {
     }
 
     @Override
-    public List<Long> getSharedAnalysisIds(long userId) {
+    public List<String> getSharedAnalysisIds(long userId) {
         try (SqlSession session = factory.openSession()) {
             final AnalysisMapper mapper = session.getMapper(AnalysisMapper.class);
-            List<Long> ids = mapper.findSharedAnalysisIds(userId);
+            List<String> ids = mapper.findSharedAnalysisIds(userId);
             return ids;
         }
     }

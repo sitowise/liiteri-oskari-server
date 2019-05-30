@@ -35,20 +35,42 @@ public class AnalysisProxyHandler extends ProxyServiceConfig {
         config.setParamNames(aList.toArray(new String[0]));
         config.setHeaders(getHeaders());
 
-        final String requestedAnalysis = params.getHttpParam(PARAM_ANALYSIS_ID);
+        final String requestedAnalysisId = params.getHttpParam(PARAM_ANALYSIS_ID);
         
         //check if data is shared with the user (then uuid filter is not needed)
-        List<Long> sharedAnalysisIds = analysisService.getSharedAnalysisIds(params.getUser().getId());
+        List<String> sharedAnalysisIds = getSharedAnalysisWpsLayerIds(params.getUser().getId());
         String authenticationFilter = "";
-        if (!sharedAnalysisIds.contains(Long.parseLong(requestedAnalysis)))
+        if (!sharedAnalysisIds.contains(requestedAnalysisId))
         {
         	authenticationFilter = "(uuid='" + params.getUser().getUuid() + "'+OR+publisher_name+IS+NOT+NULL)+AND+";
         }
         
         //(uuid='d3a216dd-077d-44ce-b79a-adf20ca88367')
-        final String userSpecificURL = getUrl() + authenticationFilter + "analysis_id=" + requestedAnalysis;
+        final String userSpecificURL = getUrl() + authenticationFilter + "analysis_id=" + requestedAnalysisId;
         // setup user specific base url
         config.setUrl(userSpecificURL);
         return config;
+    }
+
+    /**
+     * Converts result of getSharedAnalysisWpsLayerIds in format:
+     * "analysis_string1_..._stringN_number1_..._numberN" (oskari_user_gis_data.data_id)
+     * to format "numberN" to match requestedAnalysisId format that is also "number" (analysis.id)
+     * @return
+     */
+    private List<String> getSharedAnalysisWpsLayerIds(long userId) {
+
+        List<String> sharedAnalysisIds = analysisService.getSharedAnalysisIds(userId);
+        List<String> getSharedAnalysisWpsLayerIds = new ArrayList<String>();
+
+        for (String id : sharedAnalysisIds) {
+            getSharedAnalysisWpsLayerIds.add(getIdFromDataIdString(id));
+        }
+        return getSharedAnalysisWpsLayerIds;
+    }
+
+    private String getIdFromDataIdString(String dataId) {
+        int position = dataId.lastIndexOf('_');
+        return dataId.substring(position + 1);
     }
 }

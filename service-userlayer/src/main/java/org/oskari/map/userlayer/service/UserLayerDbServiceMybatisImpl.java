@@ -336,10 +336,10 @@ public class UserLayerDbServiceMybatisImpl extends UserLayerDbService {
     }
 
     @Override
-    public List<Long> getSharedUserLayerIds(long userId) {
+    public List<String> getSharedUserLayerIds(long userId) {
         try (SqlSession session = factory.openSession()) {
             final UserLayerMapper mapper = session.getMapper(UserLayerMapper.class);
-            List<Long> resultList = mapper.findSharedUserLayerIds(userId);
+            List<String> resultList = mapper.findSharedUserLayerIds(userId);
 
             return resultList;
         }

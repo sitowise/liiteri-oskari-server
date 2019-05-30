@@ -64,7 +64,7 @@ public class GetAnalysisLayersHandler extends ActionHandler {
 	                final String permissionKey = "analysis+" + a.getId();
 	                JSONObject permissions = OskariLayerWorker.getPermissions(user, permissionKey, permissionsList, editAccessList);
 	                JSONHelper.putValue(analysisLayer, "permissions", permissions);
-	                JSONHelper.putValue(analysisLayer, "shared", "false");
+	                JSONHelper.putValue(analysisLayer, "shared", false);
 	                JSONHelper.putValue(analysisLayer, "downloadServiceUrl", u.getDownloadServiceUrl());
 	                layers.put(analysisLayer);
             	}
@@ -82,7 +82,7 @@ public class GetAnalysisLayersHandler extends ActionHandler {
 	                final String permissionKey = "analysis+" + a.getId();
 	                JSONObject permissions = OskariLayerWorker.getPermissions(user, permissionKey, permissionsList, editAccessList);
 	                JSONHelper.putValue(analysisLayer, "permissions", permissions);
-	                JSONHelper.putValue(analysisLayer, "shared", "true");
+	                JSONHelper.putValue(analysisLayer, "shared", true);
 	                JSONHelper.putValue(analysisLayer, "downloadServiceUrl", u.getDownloadServiceUrl());
 	                layers.put(analysisLayer);
             	}
