@@ -37,20 +37,41 @@ public class UserLayerProxyHandler extends ProxyServiceConfig {
         config.setParamNames(aList.toArray(new String[0]));
         config.setHeaders(getHeaders());
 
-        final String requestedUserlayer = params.getHttpParam(PARAM_USERLAYER_ID);
+        final String requestedUserlayerId = params.getHttpParam(PARAM_USERLAYER_ID);
 
         //check if data is shared with the user (then uuid filter is not needed)
-        List<Long> sharedUserLayerIds = userLayerService.getSharedUserLayerIds(params.getUser().getId());
+        List<String> sharedUserLayerIds = getSharedUserLayerIds(params.getUser().getId());
         String authenticationFilter = "";
-        if (!sharedUserLayerIds.contains(Long.parseLong(requestedUserlayer)))
+        if (!sharedUserLayerIds.contains(requestedUserlayerId))
         {
         	authenticationFilter = "(uuid='" + params.getUser().getUuid() + "'+OR+publisher_name+IS+NOT+NULL)+AND+";
         }
 
         //(uuid='d3a216dd-077d-44ce-b79a-adf20ca88367')
-        final String userSpecificURL = getUrl() + authenticationFilter + "user_layer_id=" + requestedUserlayer;
+        final String userSpecificURL = getUrl() + authenticationFilter + "user_layer_id=" + requestedUserlayerId;
         // setup user specific base url
         config.setUrl(userSpecificURL);
         return config;
+    }
+
+    /**
+     * Converts result of getSharedUserLayerIds in format" userlayer_number" (oskari_user_gis_data.data_id)
+     * to format "number" to match requestedAnalysisId format that is also "number" (user_layer.id)
+     * @return
+     */
+    private List<String> getSharedUserLayerIds(long userId) {
+
+        List<String> sharedLayerFullIds = userLayerService.getSharedUserLayerIds(userId);
+        List<String> getSharedUserLayerIds = new ArrayList<String>();
+
+        for (String id : sharedLayerFullIds) {
+            getSharedUserLayerIds.add(getIdFromDataIdString(id));
+        }
+        return getSharedUserLayerIds;
+    }
+
+    private String getIdFromDataIdString(String dataId) {
+        int position = dataId.lastIndexOf('_');
+        return dataId.substring(position + 1);
     }
 }

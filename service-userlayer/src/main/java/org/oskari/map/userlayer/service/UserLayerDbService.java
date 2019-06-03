@@ -37,7 +37,7 @@ public abstract class UserLayerDbService extends OskariComponent {
     //UserLayerData related
     public abstract int updateUserLayerDataCols(final UserLayerData userlayerdata);
 
-    public abstract List<Long> getSharedUserLayerIds(long userId);
+    public abstract List<String> getSharedUserLayerIds(long userId);
     public abstract List<UserGisData> getSharedUserLayers(long userId);
     public abstract List<UserGisData> getUnexpiredUserLayers(long userId);
 }

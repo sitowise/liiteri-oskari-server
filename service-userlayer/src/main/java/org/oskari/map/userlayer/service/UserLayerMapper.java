@@ -34,6 +34,6 @@ public interface UserLayerMapper {
 
     public List<UserGisData> findSharedUserLayers(long userId);
     public List<UserGisData> findUnexpiredUserLayers(long userId);
-    public List<Long> findSharedUserLayerIds(long userId);
+    public List<String> findSharedUserLayerIds(long userId);
 
 }

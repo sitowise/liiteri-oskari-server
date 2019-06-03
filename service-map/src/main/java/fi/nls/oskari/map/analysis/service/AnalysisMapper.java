@@ -20,7 +20,7 @@ public interface AnalysisMapper {
     void deleteAnalysisStyleById(final long id);
     void updatePublisherName(final Map<String, Object> params);
     void mergeAnalysisData(final Analysis analysis);
-    List<Long> findSharedAnalysisIds(final long id);
+    List<String> findSharedAnalysisIds(final long id);
     List<UserGisData> findSharedAnalysis(final long userId);
     List<UserGisData> findUnexpiredAnalysis(final long userId);
 }
