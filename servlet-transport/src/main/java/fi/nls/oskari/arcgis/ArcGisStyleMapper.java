@@ -341,7 +341,7 @@ public class ArcGisStyleMapper {
 
         if (code.equals("esriSFSBackwardDiagonal"))
             result = 0;
-        else if (code.equals("esriSFSBackwardDiagonal"))
+        else if (code.equals("esriSFSHorizontal"))
             result = 2;
         else if (code.equals("esriSFSNull"))
             result = 4;
