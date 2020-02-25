@@ -56,7 +56,7 @@ public class ShapefileService {
 			}
 			
 			if (inputFeatureCollection == null) {
-				//TODO add log and finish processing
+				LOGGER.error("Error with parsing input feature collection string");
 			}
 			
 			// Create feature type
@@ -91,9 +91,9 @@ public class ShapefileService {
 					featureStore.addFeatures(collection);
 					transaction.commit();
 				} catch (Exception problem) {
+					LOGGER.error("Problem with collecting features to output shapefile");
 					problem.printStackTrace();
 					transaction.rollback();
-					//TODO log error
 				} finally {
 					transaction.close();
 				}
@@ -103,11 +103,11 @@ public class ShapefileService {
 				out.flush();
 				
 			} else {
-				//TODO log error
+				LOGGER.error("Problem with collecting features to output shapefile");
 			}
 		} catch (Exception e) {
+			LOGGER.error("Exception with exporting statistics to shapefile");
 			e.printStackTrace();
-			//TODO log error
 		}
 	}
 	
@@ -202,7 +202,7 @@ public class ShapefileService {
 			}
 			
 		} catch (IOException ex) {
-			// Report
+			LOGGER.error("Exception during creation of explanation file");
 		} finally {
 			try {writer.close();} catch (Exception ex) {/*ignore*/}
 		}

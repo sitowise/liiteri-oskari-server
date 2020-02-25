@@ -16,7 +16,7 @@ public class ExportStatsToShpHandler extends ActionHandler {
 	private static final String PARAM_FEATURE_COLLECTION = "featureCollection";
 	private static final String PARAM_FILE_NAME = "fileName";
 	private static final String CONTENT_TYPE_ZIP = "application/zip";
-	private static final Logger logger = LogFactory.getLogger(ExportStatsToShpHandler.class);
+	private static final Logger LOGGER = LogFactory.getLogger(ExportStatsToShpHandler.class);
 	private static final String DEFAULT_OUTPUT_FILE_NAME = "statistics";
 	private ShapefileService service;
 	
@@ -45,6 +45,7 @@ public class ExportStatsToShpHandler extends ActionHandler {
 			service.exportStatisticsToShp(out, featureCollectionParam, fileName);
 			
 		} catch (Exception e) {
+			LOGGER.error("Could not handle ExportStatsToShpHandler request");
 			throw new ActionException("Could not handle ExportStatsToShpHandler request: ", e);
 		}
 	}
