@@ -16,6 +16,7 @@ import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.NameImpl;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeImpl;
+import org.geotools.feature.type.AttributeDescriptorImpl;
 import org.geotools.feature.type.GeometryDescriptorImpl;
 import org.geotools.feature.type.GeometryTypeImpl;
 import org.geotools.geojson.feature.FeatureJSON;
@@ -37,12 +38,14 @@ import java.util.zip.ZipOutputStream;
 public class ShapefileService {
 	private final Logger LOGGER = LogFactory.getLogger(ShapefileService.class);
 	private String outputFinalName;
+	private Map<String, String> attributeNamesMap;
 	
 	public ShapefileService(String outputFinalName) {
 		this.outputFinalName = outputFinalName;
 	}
 	
 	public void exportStatisticsToShp(OutputStream out, String featureCollectionParam) {
+		attributeNamesMap = new HashMap<String, String>();
 		try {
 			// read input geojson to FeatureCollection object
 			FeatureCollection<SimpleFeatureType, SimpleFeature> inputFeatureCollection = null;
@@ -62,6 +65,8 @@ public class ShapefileService {
 			
 			// Create temporary file for shp and datastore
 			File tempShapeFile = File.createTempFile("shpFile", ".shp");
+			
+			createExplanationFile(tempShapeFile.getAbsolutePath());
 			
 			ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 			
@@ -110,21 +115,45 @@ public class ShapefileService {
 	/**
 	 * Create feature type for feature collection to create shapefile
 	 */
-	private static SimpleFeatureType createFeatureType(FeatureCollection<SimpleFeatureType, SimpleFeature> inputFeatureCollection) throws Exception {
+	private SimpleFeatureType createFeatureType(FeatureCollection<SimpleFeatureType, SimpleFeature> inputFeatureCollection) throws Exception {
 		
 		SimpleFeatureType inSchema = inputFeatureCollection.getSchema();
 		List<AttributeDescriptor> inAttributes = inSchema.getAttributeDescriptors();
 		GeometryType inGeomType = null;
 		List<AttributeDescriptor> outAttributes = new ArrayList<AttributeDescriptor>();
 		
+		int statIndex = 1;
 		// rewrite all attributes except geometry one
-		for (AttributeDescriptor attribute : inAttributes) {
+		for (AttributeDescriptor inAttribute : inAttributes) {
 			
-			AttributeType type = attribute.getType();
+			AttributeType type = inAttribute.getType();
 			if (type instanceof GeometryType) {
 				inGeomType = (GeometryType) type;
 			} else {
-				outAttributes.add(attribute);
+				
+				String STAT_ATR_PREFIX = "#STAT_ATTRIBUTE#";
+				String shortName = inAttribute.getLocalName();
+				String explanation = inAttribute.getLocalName();
+				if (shortName.startsWith(STAT_ATR_PREFIX)) {
+					shortName = "Stat " + statIndex;
+					explanation = explanation.substring(STAT_ATR_PREFIX.length());
+					statIndex++;
+				} else if (shortName.length() > 10 || this.attributeNamesMap.containsKey(shortName)) {
+					shortName = shortName.substring(0, 9);
+					
+					int shortNameIndex = 1;
+					while (this.attributeNamesMap.containsKey(shortName)) {
+						shortName = shortName.substring(0, 8) + shortNameIndex;
+						shortNameIndex++;
+					}
+				}
+				
+				this.attributeNamesMap.put(shortName, explanation);
+				AttributeDescriptor outAttribute = new AttributeDescriptorImpl(
+						inAttribute.getType(), new NameImpl(shortName),
+						inAttribute.getMinOccurs(), inAttribute.getMaxOccurs(),
+						inAttribute.isNillable(), inAttribute.getDefaultValue());
+				outAttributes.add(outAttribute);
 			}
 		}
 		
@@ -151,6 +180,33 @@ public class ShapefileService {
 				inSchema.getSuper(), inSchema.getDescription());
 		
 		return shpType;
+	}
+	
+	/**
+	 * Generate text file with explanation of column names which were shortened because of DBF limitations
+	 */
+	private void createExplanationFile(String filePath) {
+		BufferedWriter writer = null;
+		
+		filePath = filePath.substring(0, filePath.lastIndexOf("."));
+		
+		try {
+			writer = new BufferedWriter(new OutputStreamWriter(
+					new FileOutputStream(filePath + ".txt"), "utf-8"));
+			
+			writer.write("Explanation of attribute names for this shapefile:");
+			writer.newLine();
+			
+			for (Map.Entry<String, String> entry : this.attributeNamesMap.entrySet()) {
+				writer.newLine();
+				writer.write(entry.getKey() + " : " + entry.getValue());
+			}
+			
+		} catch (IOException ex) {
+			// Report
+		} finally {
+			try {writer.close();} catch (Exception ex) {/*ignore*/}
+		}
 	}
 	
 	/**
