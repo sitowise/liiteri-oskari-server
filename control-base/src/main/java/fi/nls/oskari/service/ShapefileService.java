@@ -40,11 +40,10 @@ public class ShapefileService {
 	private String outputFinalName;
 	private Map<String, String> attributeNamesMap;
 	
-	public ShapefileService(String outputFinalName) {
-		this.outputFinalName = outputFinalName;
-	}
+	public ShapefileService() {}
 	
-	public void exportStatisticsToShp(OutputStream out, String featureCollectionParam) {
+	public void exportStatisticsToShp(OutputStream out, String featureCollectionParam, String outputFinalName) {
+		this.outputFinalName = outputFinalName;
 		attributeNamesMap = new HashMap<String, String>();
 		try {
 			// read input geojson to FeatureCollection object
