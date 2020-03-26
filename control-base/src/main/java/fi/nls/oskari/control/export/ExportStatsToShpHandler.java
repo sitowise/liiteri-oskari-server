@@ -3,6 +3,8 @@ package fi.nls.oskari.control.export;
 import java.io.*;
 import javax.servlet.http.HttpServletResponse;
 
+import fi.nls.oskari.control.ActionDeniedException;
+import fi.nls.oskari.domain.User;
 import fi.nls.oskari.service.ShapefileService;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.ActionException;
@@ -27,6 +29,11 @@ public class ExportStatsToShpHandler extends ActionHandler {
 	
 	@Override
 	public void handleAction(final ActionParameters params) throws ActionException {
+		
+		User user = params.getUser();
+		if (user.isGuest()) {
+			throw new ActionDeniedException("User is not logged");
+		}
 		
 		String featureCollectionParam = params.getRequiredParam(PARAM_FEATURE_COLLECTION);
 		String fileName = params.getHttpParam(PARAM_FILE_NAME, DEFAULT_OUTPUT_FILE_NAME);
