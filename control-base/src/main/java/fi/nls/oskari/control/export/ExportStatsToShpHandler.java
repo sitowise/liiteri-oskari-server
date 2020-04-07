@@ -17,6 +17,7 @@ import fi.nls.oskari.log.Logger;
 public class ExportStatsToShpHandler extends ActionHandler {
 	private static final String PARAM_FEATURE_COLLECTION = "featureCollection";
 	private static final String PARAM_FILE_NAME = "fileName";
+	private static final String PARAM_EXPLANATION = "explanation";
 	private static final String CONTENT_TYPE_ZIP = "application/zip";
 	private static final Logger LOGGER = LogFactory.getLogger(ExportStatsToShpHandler.class);
 	private static final String DEFAULT_OUTPUT_FILE_NAME = "statistics";
@@ -37,6 +38,7 @@ public class ExportStatsToShpHandler extends ActionHandler {
 		
 		String featureCollectionParam = params.getRequiredParam(PARAM_FEATURE_COLLECTION);
 		String fileName = params.getHttpParam(PARAM_FILE_NAME, DEFAULT_OUTPUT_FILE_NAME);
+		String explanation = params.getHttpParam(PARAM_EXPLANATION, "");
 		
 		try {
 			final HttpServletResponse response = params.getResponse();
@@ -49,7 +51,7 @@ public class ExportStatsToShpHandler extends ActionHandler {
 				throw new ActionException(ioe.getMessage(), ioe);
 			}
 			
-			service.exportStatisticsToShp(out, featureCollectionParam, fileName);
+			service.exportStatisticsToShp(out, featureCollectionParam, fileName, explanation);
 			
 		} catch (Exception e) {
 			LOGGER.error("Could not handle ExportStatsToShpHandler request");
