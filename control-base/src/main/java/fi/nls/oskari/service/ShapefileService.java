@@ -42,7 +42,8 @@ public class ShapefileService {
 	
 	public ShapefileService() {}
 	
-	public void exportStatisticsToShp(OutputStream out, String featureCollectionParam, String outputFinalName) {
+	public void exportStatisticsToShp(OutputStream out, String featureCollectionParam, String outputFinalName,
+									  String explanation) {
 		this.outputFinalName = outputFinalName;
 		attributeNamesMap = new HashMap<String, String>();
 		try {
@@ -65,7 +66,7 @@ public class ShapefileService {
 			// Create temporary file for shp and datastore
 			File tempShapeFile = File.createTempFile("shpFile", ".shp");
 			
-			createExplanationFile(tempShapeFile.getAbsolutePath());
+			createExplanationFile(tempShapeFile.getAbsolutePath(), explanation);
 			
 			ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 			
@@ -184,7 +185,7 @@ public class ShapefileService {
 	/**
 	 * Generate text file with explanation of column names which were shortened because of DBF limitations
 	 */
-	private void createExplanationFile(String filePath) {
+	private void createExplanationFile(String filePath, String explanation) {
 		BufferedWriter writer = null;
 		
 		filePath = filePath.substring(0, filePath.lastIndexOf("."));
@@ -193,7 +194,7 @@ public class ShapefileService {
 			writer = new BufferedWriter(new OutputStreamWriter(
 					new FileOutputStream(filePath + ".txt"), "utf-8"));
 			
-			writer.write("Explanation of attribute names for this shapefile:");
+			writer.write(explanation);
 			writer.newLine();
 			
 			for (Map.Entry<String, String> entry : this.attributeNamesMap.entrySet()) {
