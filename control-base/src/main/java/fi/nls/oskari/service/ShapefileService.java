@@ -28,10 +28,7 @@ import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.GeometryType;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -45,7 +42,7 @@ public class ShapefileService {
 	public void exportStatisticsToShp(OutputStream out, String featureCollectionParam, String outputFinalName,
 									  String explanation) {
 		this.outputFinalName = outputFinalName;
-		attributeNamesMap = new HashMap<String, String>();
+		attributeNamesMap = new LinkedHashMap<String, String>();
 		try {
 			// read input geojson to FeatureCollection object
 			FeatureCollection<SimpleFeatureType, SimpleFeature> inputFeatureCollection = null;
