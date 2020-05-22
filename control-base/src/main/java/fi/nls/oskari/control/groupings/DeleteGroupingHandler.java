@@ -2,6 +2,8 @@ package fi.nls.oskari.control.groupings;
 
 import java.util.List;
 
+import fi.nls.oskari.control.ActionDeniedException;
+import fi.nls.oskari.domain.Role;
 import pl.sito.liiteri.groupings.service.GroupingsService;
 import fi.nls.oskari.annotation.OskariActionRoute;
 import fi.nls.oskari.control.ActionException;
@@ -27,9 +29,15 @@ public class DeleteGroupingHandler extends ActionHandler {
 			.getLogger(DeleteGroupingHandler.class);
 
 	private static final GroupingsService _service = GroupingsService.getInstance();
+	private final static String[] AUTHORIZED_ROLES = new String [] { Role.GROUPINGS_ADMIN };
 	
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {
+		
+		if (!params.getUser().isSuperAdmin() && !params.getUser().hasAnyRoleIn(AUTHORIZED_ROLES)) {
+			throw new ActionDeniedException("Denied, user not admin");
+		}
+		
 		Long id;
 		String type = params.getHttpParam(GROUPINGTYPE);
 		try {

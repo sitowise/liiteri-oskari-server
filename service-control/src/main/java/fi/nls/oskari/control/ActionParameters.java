@@ -283,6 +283,17 @@ public class ActionParameters {
             throw new ActionDeniedException("Admin only");
         }
     }
+    
+    /**
+     * Calling this will throw an exception if user isn't an superadmin
+     * @throws ActionDeniedException if user is not superadmin
+     */
+    public void requireSuperAdminUser() throws ActionDeniedException {
+        requireLoggedInUser();
+        if(!getUser().isSuperAdmin()) {
+            throw new ActionDeniedException("SuperAdmin only");
+        }
+    }
 
     /**
      * Returns an api key for the request
