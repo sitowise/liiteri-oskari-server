@@ -59,7 +59,7 @@ public class GetPermissionsLayerHandlers extends ActionHandler {
     public void handleAction(ActionParameters params) throws ActionException {
     	
     	// require admin user
-        params.requireAdminUser();
+        params.requireSuperAdminUser();
 
         final String externalId = params.getRequiredParam("externalId");
         final String externalType = params.getRequiredParam("externalType");

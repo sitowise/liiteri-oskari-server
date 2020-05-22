@@ -1,5 +1,6 @@
 package fi.nls.oskari.control.groupings;
 
+import fi.nls.oskari.domain.Role;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,15 +31,19 @@ public class SaveGroupingHandler extends ActionHandler {
 	
 	private static final GroupingsService _service = GroupingsService.getInstance();
 	private GroupingDbService groupingService = new GroupingServiceIbatisImpl();
+	
+	private final static String[] AUTHORIZED_ROLES = new String [] { Role.GROUPINGS_ADMIN };
 
 	@Override
 	public void handleAction(ActionParameters params) throws ActionException {
 		
+		if (!params.getUser().isSuperAdmin() && !params.getUser().hasAnyRoleIn(AUTHORIZED_ROLES)) {
+			throw new ActionDeniedException("Denied, user not admin");
+		}
+		
 		String groupingString = params.getRequiredParam(GROUPING_PARAM);
 		String type = params.getRequiredParam(GROUPING_TYPE);		
 		User user = params.getUser();
-		if (user.isGuest())
-			throw new ActionDeniedException("User is not logged");
 		
 		JSONObject result = new JSONObject();
 		if (type.equals("package")) {

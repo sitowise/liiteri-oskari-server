@@ -10,11 +10,7 @@ import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Internal model for a user.
@@ -187,6 +183,15 @@ public class User implements Serializable {
     }
 
     public Boolean isAdmin() {
+        ArrayList<String> adminRoles = new ArrayList<>();
+        adminRoles.add(Role.getAdminRole().getName());
+        if (Role.getAdditionalAdminRoles() != null) {
+            Role.getAdditionalAdminRoles().forEach(role -> adminRoles.add(role.getName()));
+        }
+        return hasAnyRoleIn(adminRoles.toArray(new String[0]));
+    }
+    
+    public Boolean isSuperAdmin() {
         return hasRole(Role.getAdminRole().getName());
     }
 

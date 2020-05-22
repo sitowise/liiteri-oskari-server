@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -27,6 +28,7 @@ public class Role implements Serializable {
 	
     private static final Logger log = LogFactory.getLogger(Role.class);
     private static Role ADMIN_ROLE = null;
+    private static ArrayList<Role> ADDITIONAL_ADMIN_ROLES = null;
     private static Role USER_ROLE = null;
     public static final String DEFAULT_ADMIN_ROLE_NAME = "Admin";
     public static final String DEFAULT_USER_ROLE_NAME = "User";
@@ -64,6 +66,19 @@ public class Role implements Serializable {
             }
         }
         return ADMIN_ROLE;
+    }
+    
+    public static ArrayList<Role> getAdditionalAdminRoles() {
+        if(ADDITIONAL_ADMIN_ROLES == null) {
+            String[] adminRoleNames = PropertyUtil.getCommaSeparatedList("oskari.user.role.additionalAdmins");
+            if (adminRoleNames != null && adminRoleNames.length > 0) {
+                ADDITIONAL_ADMIN_ROLES = new ArrayList<>();
+                for (String roleName : adminRoleNames) {
+                    ADDITIONAL_ADMIN_ROLES.add(getRoleByName(roleName));
+                }
+            }
+        }
+        return ADDITIONAL_ADMIN_ROLES;
     }
 
     /**

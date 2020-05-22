@@ -30,7 +30,7 @@ public class SaveLayerPermissionHandler extends ActionHandler {
     public void handleAction(ActionParameters params) throws ActionException {
         log.debug("PERMISSION HANDLER LAYER");
 
-        if (!params.getUser().isAdmin() && !params.getUser().hasAnyRoleIn(AUTHORIZED_ROLES)) {
+        if (!params.getUser().isSuperAdmin() && !params.getUser().hasAnyRoleIn(AUTHORIZED_ROLES)) {
             throw new ActionDeniedException("Denied, user not admin");
         }
 
