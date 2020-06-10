@@ -1029,7 +1029,7 @@
             <url>http://maven.geo-solutions.it</url>
         </repository>
         <repository>
-    		<id>osgeo</id>
+    		<id>repo.osgeo.org</id>
     		<name>OSGeo Release Repository</name>
     		<url>https://repo.osgeo.org/repository/release/</url>
     		<snapshots><enabled>false</enabled></snapshots>
