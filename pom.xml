@@ -1029,10 +1029,12 @@
             <url>http://maven.geo-solutions.it</url>
         </repository>
         <repository>
-            <id>boundless</id>
-            <name>Boundless Maven Repository</name>
-            <url>http://repo.boundlessgeo.com/main/</url>
-        </repository>
+    		<id>osgeo</id>
+    		<name>OSGeo Release Repository</name>
+    		<url>https://repo.osgeo.org/repository/release/</url>
+    		<snapshots><enabled>false</enabled></snapshots>
+    		<releases><enabled>true</enabled></releases>
+  		</repository>
     </repositories>
 
     <!-- For uploading artifacts to oskari.org repository -->
