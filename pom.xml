@@ -95,7 +95,7 @@
         <jetty.version>9.1.0.M0</jetty.version>
 
         <postgresql.version>42.1.4</postgresql.version>
-        <quartz-scheduler.version>2.2.1</quartz-scheduler.version>
+        <quartz-scheduler.version>2.3.2</quartz-scheduler.version>
 
         <xerces.version>2.10.0</xerces.version>
         <xmlbeans.version>2.6.0</xmlbeans.version>
