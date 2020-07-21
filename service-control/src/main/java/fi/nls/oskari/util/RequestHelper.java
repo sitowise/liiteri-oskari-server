@@ -5,6 +5,7 @@ import fi.nls.oskari.log.Logger;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
+import org.jsoup.nodes.Document.OutputSettings;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.URL;
@@ -25,8 +26,28 @@ public class RequestHelper {
      * @return cleaned up version or null if param was null
      */
     public static final String cleanString(final String str) {
+        return cleanString(str, true);
+    }
+    
+    /**
+     * Cleans up any XSS threats from given string. Enable or disable pretty printing. Removes all HTML tags also.
+     * @param str
+     * @param prettyPrint
+     * @return cleaned up version or null if param was null
+     */
+    public static final String cleanString(final String str, boolean prettyPrint) {
         if (str != null) {
-            String s = Jsoup.clean(str, Whitelist.none());
+            String s;
+            
+            if (prettyPrint) {
+                s = Jsoup.clean(str, Whitelist.none());
+            } else {
+                OutputSettings settings = new OutputSettings();
+                settings.prettyPrint(false);
+    
+                s = Jsoup.clean(str, "", Whitelist.none(), settings);
+            }
+            
             return StringEscapeUtils.unescapeHtml(s);
         }
         return str;
@@ -93,6 +114,22 @@ public class RequestHelper {
      */
     public static final String getString(final String str, final String defaultValue) {
         final String value = cleanString(str);
+        if (value != null) {
+            return value;
+        }
+        return defaultValue;
+    }
+    
+    /**
+     * Cleans up the string but returns defaultValue if given str was null. Enable or disable pretty printing.
+     * @see #cleanString(String)
+     * @param str
+     * @param defaultValue
+     * @param prettyPrint
+     * @return
+     */
+    public static final String getString(final String str, final String defaultValue, boolean prettyPrint) {
+        final String value = cleanString(str, prettyPrint);
         if (value != null) {
             return value;
         }

@@ -199,6 +199,16 @@ public class ActionParameters {
         return RequestHelper.getString(getRequest().getParameter(key), defaultValue);
     }
     /**
+     * Returns a cleaned up (think XSS) value for the requested parameter. Enable or disable pretty printing.
+     * @param key parameter name
+     * @param defaultValue value to be returned if parameter is not present in the request
+     * @param prettyPrint pretty print setting
+     * @return cleaned up value for the parameter or given defaultValue if not found
+     */
+    public String getHttpParam(final String key, final String defaultValue, boolean prettyPrint) {
+        return RequestHelper.getString(getRequest().getParameter(key), defaultValue, prettyPrint);
+    }
+    /**
      * Returns a parameter as integer or default value if not present/can't be parsed
      * @param key parameter name for an integer parameter
      * @param defaultValue value to be returned if parameter is not present in the request or can't be parsed

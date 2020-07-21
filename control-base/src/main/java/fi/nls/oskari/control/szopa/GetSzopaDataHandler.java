@@ -51,7 +51,7 @@ public class GetSzopaDataHandler extends ActionHandler {
         SzopaRequest request = null;
         String data = null;
         
-        String geometryFilterParam = params.getHttpParam(PARM_GEOMETRYFILTER, "");
+        String geometryFilterParam = params.getHttpParam(PARM_GEOMETRYFILTER, "", false);
         
         if (!geometryFilterParam.isEmpty()) {
         	JSONArray array = JSONHelper.createJSONArray(geometryFilterParam.toString());
