@@ -498,7 +498,8 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 
 
 		URLConnection connection = connectionProvider.getConnection();
-        connection.setDoOutput(true);
+		connection.setDoOutput(true);
+		connection.addRequestProperty("Content-Type", "application/xml");
 
 		OutputStream outs = connection.getOutputStream();
 		try {
@@ -567,6 +568,7 @@ public class KTJkiiWFSSearchChannelImpl implements KTJkiiWFSSearchChannel {
 
         URLConnection connection = connectionProvider.getConnection();
         connection.setDoOutput(true);
+		connection.addRequestProperty("Content-Type", "application/xml");
 
 		OutputStream outs = connection.getOutputStream();
 		try {
