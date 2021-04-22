@@ -105,7 +105,7 @@
         <flexjson.version>2.0</flexjson.version>
         <deegree.version>2</deegree.version>
 
-        <mybatis.version>3.4.5</mybatis.version>
+        <mybatis.version>3.5.6</mybatis.version>
         <com.google.guava.version>18.0</com.google.guava.version>
         <pdfbox.version>2.0.6</pdfbox.version>
         <!-- Test deps versions -->
