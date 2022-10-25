@@ -82,7 +82,7 @@
         <commons-lang3.version>3.0</commons-lang3.version>
         <stax-api.version>1.0-2</stax-api.version>
         <stax2-api.version>3.1.4</stax2-api.version>
-        <woodstox.version>5.0.1</woodstox.version>
+        <woodstox.version>5.4.0</woodstox.version>
         <jsonld-java.version>0.3</jsonld-java.version>
         <xmlunit.version>1.5</xmlunit.version>
         <jedis.version>2.9.0</jedis.version>
